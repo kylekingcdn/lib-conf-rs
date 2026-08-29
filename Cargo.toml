@@ -1,0 +1,19 @@
+[package]
+name = "libconf"
+description = ""
+version = "0.0.1"
+edition = "2024"
+rust-version = "1.91"
+repository = "https://github.com/kylekingcdn/libconf-rs"
+license = "MIT"
+publish = true
+
+[lib]
+proc-macro = true
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
