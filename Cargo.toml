@@ -1,6 +1,6 @@
 [package]
 name = "libconf"
-description = ""
+description = "Proc-macro providing library authors with first-class configuration for their end-users"
 version = "0.0.1"
 edition = "2024"
 rust-version = "1.91"

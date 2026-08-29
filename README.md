@@ -1,5 +1,9 @@
 # `libconf`
 
+Rust proc-macro crate providing library authors with first-class configuration for their end-users
+
+## Overview
+
 <div class="warning">
   <b>This crate is currently a work in progress.</b>
   <br/><br/>
