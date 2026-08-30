@@ -1,27 +1,20 @@
-[package]
-name = "libconf"
-description = "Proc-macro providing library authors with first-class configuration for their end-users"
-version = "0.0.1-pre1"
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
 edition = "2024"
 rust-version = "1.91"
 repository = "https://github.com/kylekingcdn/libconf-rs"
 license = "MIT"
 publish = true
 
-[lib]
-proc-macro = true
+[profile.dev]
+opt-level = 1
+[profile.dev.package."*"]
+opt-level = 3
 
-[[example]]
-name = "basic"
-crate-type = ["lib"]
+[workspace.dependencies]
 
-[[example]]
-name = "library_consumer"
-path = "examples/library_consumer/consumer_code.rs"
-
-[lints.clippy]
+[workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }
-
-[package.metadata.docs.rs]
-all-features = true
-rustdoc-args = ["--cfg", "docsrs"]
