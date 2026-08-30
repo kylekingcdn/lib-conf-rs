@@ -11,6 +11,14 @@ publish = true
 [lib]
 proc-macro = true
 
+[[example]]
+name = "basic"
+crate-type = ["lib"]
+
+[[example]]
+name = "library_consumer"
+path = "examples/library_consumer/consumer_code.rs"
+
 [lints.clippy]
 pedantic = { level = "warn", priority = -1 }
 
