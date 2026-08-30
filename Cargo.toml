@@ -5,7 +5,7 @@ members = ["crates/*"]
 [workspace.package]
 edition = "2024"
 rust-version = "1.91"
-repository = "https://github.com/kylekingcdn/libconf-rs"
+repository = "https://github.com/kylekingcdn/lib-conf-rs"
 license = "MIT"
 publish = true
 

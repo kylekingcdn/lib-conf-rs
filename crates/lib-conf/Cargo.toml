@@ -1,5 +1,5 @@
 [package]
-name = "libconf"
+name = "lib-conf"
 description = "Proc-macro providing library authors with first-class configuration for their end-users"
 version = "0.0.1-pre1"
 edition.workspace = true

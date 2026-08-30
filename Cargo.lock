@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "libconf"
+name = "lib-conf"
 version = "0.0.1-pre1"
