@@ -7,7 +7,7 @@ edition = "2024"
 rust-version = "1.91"
 repository = "https://github.com/kylekingcdn/lib-conf-rs"
 license = "MIT"
-publish = true
+publish = false
 
 [profile.dev]
 opt-level = 1
@@ -18,3 +18,5 @@ opt-level = 3
 
 [workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }
+match_bool = "allow"
+single_match_else = "allow"
