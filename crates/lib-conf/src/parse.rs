@@ -11,7 +11,8 @@ use crate::{
 };
 
 use proc_macro::TokenStream;
-use quote::{format_ident, ToTokens};
+use proc_macro2::TokenStream as TokenStream2;
+use quote::{format_ident, quote, ToTokens};
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::LazyLock;
@@ -47,6 +48,15 @@ pub(crate) struct OriginStruct {
     pub generics: Generics,
 }
 impl OriginStruct {
+    pub fn has_required_fields(&self) -> bool {
+        self.fields.iter().any(|f| f.is_required())
+    }
+    pub fn required_fields(&self) -> Vec<Rc<OriginField>> {
+        self.fields.iter().filter(|f| f.is_required()).cloned().collect()
+    }
+    pub fn optional_fields(&self) -> Vec<Rc<OriginField>> {
+        self.fields.iter().filter(|f| f.is_optional()).cloned().collect()
+    }
     pub fn has_generics(&self) -> bool {
         self.generics.type_params().next().is_some()
     }
@@ -128,6 +138,9 @@ impl OriginField {
     pub fn is_optional(&self) -> bool {
         self.has_default()
     }
+    pub fn is_required(&self) -> bool {
+        !self.is_optional()
+    }
     pub fn has_default(&self) -> bool {
         self.default.is_some()
     }
@@ -151,6 +164,15 @@ impl OriginField {
     pub fn phantom_ident(&self) -> Ident {
         let ident = &self.ident;
         format_ident!("_{ident}")
+    }
+    /// Returns the field as a function param declaration
+    ///
+    /// e.g. `my_field: MyType<T>`
+    pub fn as_fn_param_tokens(&self) -> TokenStream2 {
+        let ident = &self.ident;
+        let ty = &self.ty;
+        
+        quote!(#ident: #ty)
     }
     pub fn as_required_type(&self) -> Type {
         self.flat_ty.clone()

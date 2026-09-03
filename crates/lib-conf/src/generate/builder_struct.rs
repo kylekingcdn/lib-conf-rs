@@ -56,6 +56,15 @@ impl BuilderStruct {
     pub fn fields(&self) -> &Vec<BuilderField> {
         &self.fields
     }
+    pub fn has_required_fields(&self) -> bool {
+        self.fields.iter().any(|f| f.is_required())
+    }
+    pub fn required_fields(&self) -> Vec<&BuilderField> {
+        self.fields.iter().filter(|f| f.is_required()).collect()
+    }
+    pub fn optional_fields(&self) -> Vec<&BuilderField> {
+        self.fields.iter().filter(|f| f.is_optional()).collect()
+    }
     pub fn generate_builder_ident(origin_ident: &Ident) -> Ident {
         format_ident!("{}Builder", origin_ident)
     }
@@ -79,12 +88,19 @@ impl BuilderStruct {
         }
     }
     fn new_fn_tokens(&self) -> TokenStream {
-        // TODO: handle required fields
         let origin_ty = &self.origin.ty;
+        let mut params = Vec::new();
+        let mut idents = Vec::new();
+        for field in self.origin.required_fields() {
+            params.push(field.as_fn_param_tokens());
+            idents.push(field.ident.to_token_stream());
+        }
         quote! {
-            fn new() -> Self {
+            /// Constructs a new builder instance
+            #[must_use]
+            pub fn new(#(#params),*) -> Self {
                 Self {
-                    inner: <#origin_ty>::default(),
+                    inner: <#origin_ty>::new(#(#idents),*), 
                     override_conf: None,
                 }
             }
@@ -148,6 +164,9 @@ impl BuilderStruct {
             }
         }
     }
+    fn default_impl_tokens(&self) -> TokenStream {
+        util::bare_default_impl_tokens(self.ident(), &self.origin.generics)
+    }
     fn impl_tokens(&self) -> TokenStream {
         let struct_ident = &self.ident;
         let new_fn = self.new_fn_tokens();
@@ -176,6 +195,9 @@ impl ToTokens for BuilderStruct {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         tokens.extend(self.struct_tokens());
         tokens.extend(self.impl_tokens());
+        if !self.origin.has_required_fields() {
+            tokens.extend(self.default_impl_tokens());
+        }
     }
 }
 
@@ -184,8 +206,14 @@ impl ToTokens for BuilderStruct {
 pub type BuilderField = VariantField<BuilderVariant>;
 
 impl BuilderField {
+    pub fn is_optional(&self) -> bool {
+        self.source.is_optional()
+    }
+    pub fn is_required(&self) -> bool {
+        !self.is_optional()
+    }
     pub(super) fn setter_tokens(&self) -> TokenStream {
-        let ident = &self.ident();
+        let ident = self.ident();
         let ty = &self.source.ty;
         let docs = self.docs();
         quote! {

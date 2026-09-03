@@ -53,24 +53,38 @@ impl ConfigStruct {
 // ! Config struct generate methods
 impl ConfigStruct {
     fn new_fn_tokens(&self) -> TokenStream {
-        // TODO: handle required fields
-        let fields: Vec<_> = self.fields.iter().map(ConfigField::assign_default_tokens).collect();
+        let mut params = Vec::new();
+        let mut fields = Vec::new();
+        for field in &self.fields {
+            if field.source.is_required() {
+                params.push(field.source.as_fn_param_tokens());
+                fields.push(field.ident().to_token_stream());
+            } else {
+                fields.push(field.assign_default_tokens());
+            }
+        }
         quote! {
-            fn new() -> Self {
+            #[must_use]
+            pub(crate) fn new(#(#params),*) -> Self {
                 Self {
-                    #(#fields)*
+                    #(#fields),*
                 }
             }
         }
     }
     fn builder_fn_tokens(&self) -> TokenStream {
         let builder_ty = self.builder_struct.ty();
-        // TODO: handle required fields
+        let mut params = Vec::new();
+        let mut idents = Vec::new();
+        for field in self.origin.required_fields() {
+            params.push(field.as_fn_param_tokens());
+            idents.push(field.ident.to_token_stream());
+        }
         quote! {
             /// Creates a new config builder
             #[must_use]
-            pub fn builder() -> #builder_ty {
-                <#builder_ty>::new()
+            pub fn builder(#(#params),*) -> #builder_ty {
+                <#builder_ty>::new(#(#idents),*)
             }
         }
     }
@@ -98,7 +112,7 @@ impl ConfigStruct {
         }
     }
     fn impl_tokens(&self) -> TokenStream {
-        let ident = &self.ident();
+        let ident = self.ident();
         let new_fn = self.new_fn_tokens();
         let builder_fn = self.builder_fn_tokens();
         let getter_fns = self.getter_fns_tokens();
@@ -119,24 +133,10 @@ impl ConfigStruct {
         }
     }
     fn default_impl_tokens(&self) -> TokenStream {
-        let ident = &self.ident();
-        let (
-            impl_generics,
-            ty_generics,
-            where_clause,
-        ) = self.origin.generics.split_for_impl();
-        // TODO: handle required fields
-        quote! {
-            #[automatically_derived]
-            impl #impl_generics Default for #ident #ty_generics #where_clause {
-                fn default() -> Self {
-                    Self::new()
-                }
-            }
-        }
+        util::bare_default_impl_tokens(self.ident(), &self.origin.generics)
     }
     fn add_impl_tokens(&self) -> TokenStream {
-        let ident = &self.ident();
+        let ident = self.ident();
         let override_ty = &self.override_struct.ty();
         let (
             impl_generics,
@@ -160,15 +160,11 @@ impl ConfigStruct {
 }
 impl ToTokens for ConfigStruct {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let struct_impl = self.impl_tokens();
-        let default_impl = self.default_impl_tokens();
-        let add_impl = self.add_impl_tokens();
-        let out = quote! {
-            #struct_impl
-            #default_impl
-            #add_impl
-        };
-        tokens.extend(out);
+        tokens.extend(self.impl_tokens());
+        if !self.origin.has_required_fields() {
+            tokens.extend(self.default_impl_tokens());
+        }
+        tokens.extend(self.add_impl_tokens());
     }
 }
 
@@ -212,7 +208,7 @@ impl ConfigField {
         let ident = self.ident();
         let def = self.source.default().unwrap();
 
-        quote!(#ident: #def,)
+        quote!(#ident: #def)
     }
     pub(super) fn merge_override_tokens(&self, override_var_ident: &Ident) -> TokenStream {
         match self.attrs().override_required {

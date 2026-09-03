@@ -38,6 +38,27 @@ impl From<Vec<Path>> for Derives {
     }
 }
 
+// !- Common trait impls
+
+pub fn bare_default_impl_tokens(
+    ident: &Ident,
+    generics: &Generics,
+) -> TokenStream {
+    let (
+        impl_generics,
+        ty_generics,
+        where_clause,
+    ) = generics.split_for_impl();
+    quote! {
+        #[automatically_derived]
+        impl #impl_generics Default for #ident #ty_generics #where_clause {
+            fn default() -> Self {
+                Self::new()
+            }
+        }
+    }
+}
+
 // !- Doc attr addition helper
 
 /// Handles trim + prefix of leading space
