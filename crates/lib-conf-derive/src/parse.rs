@@ -5,7 +5,7 @@ mod util;
 use crate::{
     generate,
     parse::{
-        attr::{AttrExpr, FieldAttr},
+        attr::{AttrExpr, FieldAttr, StructAttr},
         error::ParseError,
     },
 };
@@ -35,6 +35,12 @@ static STRUCT_SUFFIX_CSV: LazyLock<String> = LazyLock::new(||
     STRUCT_SUFFIXES.iter().map(ToString::to_string).collect::<Vec<_>>().join(", ")
 );
 
+static UNSET_ALIASES: LazyLock<&[&'static str; 3]> = LazyLock::new(|| &[
+    "reset",
+    "revert",
+    "clear",
+]);
+
 // !- Source config struct
 
 #[cfg_attr(feature = "syn-debug", derive(Debug))]
@@ -42,10 +48,12 @@ static STRUCT_SUFFIX_CSV: LazyLock<String> = LazyLock::new(||
 pub(crate) struct OriginStruct {
     pub ident: Ident,
     pub ty: Type,
-    pub suffix: &'static str,
-    pub fields: Vec<Rc<OriginField>>,
-    pub doc_attrs: Vec<Attribute>,
     pub generics: Generics,
+    pub suffix: &'static str,
+
+    pub attrs: OriginStructAttrs,
+    
+    pub fields: Vec<Rc<OriginField>>,
 }
 impl OriginStruct {
     pub fn has_required_fields(&self) -> bool {
@@ -97,33 +105,108 @@ impl TryFrom<TokenStream> for OriginStruct {
             Fields::Unit => Err(ParseError::UnitStructUnsupported(derive_input.ident.span())),
         }?;
 
-        let mut doc_attrs = Vec::new();
-        for attr in &derive_input.attrs {
-            // Err(error) for invalid #[doc...] attrs
-            // Ok(Some(attr) for valid #[doc...] attrs
-            // Ok(None for non-`doc` attrs
-            if let Some(doc_attr) = util::try_parse_doc_attrs(attr)? {
-                doc_attrs.push(doc_attr);
-            }
-        }
+        let attrs = OriginStructAttrs::try_from(derive_input.attrs)?;
         let fields: Vec<OriginField> = fields.named.into_iter().map(OriginField::try_from).collect::<Result<_,_>>()?;
-
         let ty = generate::util::build_type(&derive_input.ident, &derive_input.generics);
 
         let parsed = Self {
             suffix: Self::resolve_suffix(&derive_input.ident)?,
             ident: derive_input.ident,
             ty,
-            fields: fields.into_iter().map(Into::into).collect(),
-            doc_attrs,
             generics: derive_input.generics,
+
+            attrs,
+
+            fields: fields.into_iter().map(Into::into).collect(),
         };
 
         Ok(parsed)
     }
 }
 
-// !- Config struct fields
+// !- Config struct attrs
+
+#[allow(clippy::struct_excessive_bools)]
+#[cfg_attr(feature = "syn-debug", derive(Debug))]
+#[derive(Clone, Default)]
+pub(crate) struct OriginStructAttrs {
+    pub doc_attrs: Vec<Attribute>,
+
+    pub builder_derives: Vec<TokenStream2>,
+    pub builder_attrs: Vec<TokenStream2>,
+    
+    pub override_derives: Vec<TokenStream2>,
+    pub override_attrs: Vec<TokenStream2>,
+}
+impl OriginStructAttrs {
+    pub fn has_builder_derives(&self) -> bool {
+        !self.builder_derives.is_empty()
+    }
+    pub fn has_override_derives(&self) -> bool {
+        !self.override_derives.is_empty()
+    }
+    pub fn has_builder_attrs(&self) -> bool {
+        !self.builder_attrs.is_empty()
+    }
+    pub fn has_override_attrs(&self) -> bool {
+        !self.override_attrs.is_empty()
+    }
+}
+impl TryFrom<Vec<Attribute>> for OriginStructAttrs {
+    type Error = syn::Error;
+
+    fn try_from(attrs: Vec<Attribute>) -> Result<Self, Self::Error> {
+        let mut out = Self::default();
+
+        for attr in attrs {
+            if !attr.path().is_ident(attr::HELPER_ATTR_CONFIG) {
+                // parse docs
+                // - Err(error) for invalid #[doc...] attrs
+                // - Ok(Some(attr) for valid #[doc...] attrs
+                // - Ok(None for non-`doc` attrs
+                if let Some(doc_attr) = util::try_parse_doc_attrs(&attr)? {
+                    out.doc_attrs.push(doc_attr);
+                }
+                // unknown attr that we were able to get a key of
+                else if let Some(ident) = attr.path().get_ident() {
+                    eprintln!("Ignoring unknown struct attribute: {ident}");
+                }
+                continue;
+            }
+            let metas = attr.parse_args_with(Punctuated::<Meta, Token![,]>::parse_terminated)?;
+            for meta in metas {
+                let ident = meta.path().require_ident()?.clone();
+                let struct_attr = StructAttr::try_from(&ident)?;
+                match meta {
+                    Meta::List(meta_list) => {
+                        struct_attr.validate_shape(attr::Shape::List, &ident)?;
+                        match struct_attr {
+                            StructAttr::Attr => {
+                                out.builder_attrs.push(meta_list.tokens.clone());
+                                out.override_attrs.push(meta_list.tokens);
+                            }
+                            StructAttr::BuilderAttr => out.builder_attrs.push(meta_list.tokens),
+                            StructAttr::OverrideAttr => out.override_attrs.push(meta_list.tokens),
+                            StructAttr::Derive => {
+                                out.builder_derives.push(meta_list.tokens.clone());
+                                out.override_derives.push(meta_list.tokens);
+                            }
+                            StructAttr::BuilderDerive => out.builder_derives.push(meta_list.tokens),
+                            StructAttr::OverrideDerive => out.override_derives.push(meta_list.tokens),
+                            //_unknown => unreachable!("shape validation covers unknown"),
+                        }
+                    }
+                    Meta::NameValue(_) => Err(ParseError::InvalidAttrShape { ident, shape: attr::Shape::KeyValue })?,
+                    Meta::Path(_) => Err(ParseError::InvalidAttrShape { ident, shape: attr::Shape::Flag })?,
+                }
+            }
+        }
+        
+        Ok(out)
+    }
+}
+
+// !- Config fields
 
 #[cfg_attr(feature = "syn-debug", derive(Debug))]
 #[derive(Clone)]
@@ -134,6 +217,7 @@ pub(crate) struct OriginField {
     pub is_option: bool,
     pub default: Option<AttrExpr>,
     pub attrs: FieldAttrs,
+    pub override_attrs: Vec<TokenStream2>,
     pub doc_attrs: Vec<Attribute>,
 }
 impl OriginField {
@@ -150,6 +234,9 @@ impl OriginField {
     pub fn default(&self) -> Option<&AttrExpr> {
         self.default.as_ref()
     }
+    pub fn has_override_attrs(&self) -> bool {
+        !self.override_attrs.is_empty()
+    }
     /// Whether the override struct should have an unset field
     pub fn with_unset_field(&self) -> bool {
         self.is_optional() && !self.attrs.skip_override_field()
@@ -161,6 +248,18 @@ impl OriginField {
             Some(format_ident!("{ident}_unset"))
         } else {
             None
+        }
+    }
+    /// Returns the ident of the unset field, if one should be used
+    pub fn unset_aliases(&self) -> Vec<String> {
+        if self.with_unset_field() {
+            let ident = &self.ident;
+            UNSET_ALIASES
+                .iter()
+                .map(|alias| format!("{ident}_{alias}"))
+                .collect()
+        } else {
+            Vec::new()
         }
     }
     /// Returns the ident used for corresponding phantom field
@@ -221,44 +320,69 @@ impl TryFrom<Field> for OriginField {
             flat_ty: unwrapped_option.unwrap_or(&field.ty).clone(),
             ty: field.ty,
             attrs: FieldAttrs::default(),
+            override_attrs: Vec::new(),
             doc_attrs: Vec::new(),
         };
-
-        // parse attrs
-        let mut seen = Vec::new();
-        for attr in &field.attrs {
-            if attr.path().is_ident(attr::HELPER_ATTR_CONFIG) {
-                let ident = attr.path().require_ident().unwrap(); // already checked is ident
-                if seen.contains(ident) {
-                    Err(ParseError::DuplicateAttr { ident: ident.clone() })?;
-                }
-
-                let scope_attrs = attr.parse_args_with(
-                    Punctuated::<Meta, Token![,]>::parse_terminated
-                )?;
-                parsed.attrs = FieldAttrs::try_from(scope_attrs)?;
-
-                // type compatibility validation done here for ty access
-                if parsed.is_option && parsed.attrs.override_required {
-                    Err(ParseError::AttrOptionUnsupported {
-                        ident: ident.clone(),
-                    })?;
-                }
-                seen.push(ident.clone());
-            }
-            else {
-                // Err(error) for invalid #[doc...] attrs
-                // Ok(Some(attr) for valid #[doc...] attrs
-                // Ok(None for non-`doc` attrs
-                if let Some(doc_attr) = util::try_parse_doc_attrs(attr)? {
+        
+        // first attr pass, group into vecs by normal attrs or passthrough
+        let mut standard_attrs = Vec::new(); // vec of Meta
+        let mut seen = HashMap::<FieldAttr, Ident>::new(); // Map of FieldAttr types seen on first pass
+        for attr in field.attrs {
+            if !attr.path().is_ident(attr::HELPER_ATTR_CONFIG) {
+                // parse docs
+                // - Err(error) for invalid #[doc...] attrs
+                // - Ok(Some(attr) for valid #[doc...] attrs
+                // - Ok(None for non-`doc` attrs
+                if let Some(doc_attr) = util::try_parse_doc_attrs(&attr)? {
                     parsed.doc_attrs.push(doc_attr);
                 }
                 // unknown attr that we were able to get a key of
                 else if let Some(ident) = attr.path().get_ident() {
-                    eprintln!("Ignoring unknown attribute: {ident}");
+                    eprintln!("Ignoring unknown field attribute: {ident}");
+                }
+                continue;
+            }
+            let metas = attr.parse_args_with(Punctuated::<Meta, Token![,]>::parse_terminated)?;
+            for meta in metas {
+                let ident = meta.path().require_ident()?.clone();
+                let field_attr = FieldAttr::try_from(&ident)?;
+                if field_attr.is_passthrough() {
+                    match meta {
+                        Meta::List(meta_list) => {
+                            parsed.override_attrs.push(meta_list.tokens);
+                            seen.insert(field_attr, ident);
+                        }
+                        Meta::NameValue(_) => Err(ParseError::InvalidAttrShape { ident, shape: attr::Shape::KeyValue })?,
+                        Meta::Path(_) => Err(ParseError::InvalidAttrShape { ident, shape: attr::Shape::Flag })?,
+                    }
+                }
+                // type compatibility validation done here for ty access
+                else if field_attr == FieldAttr::OverrideRequired && parsed.is_option {
+                    Err(ParseError::AttrOptionUnsupported { ident })?;
+                }
+                else {
+                    standard_attrs.push(meta);
+                    seen.insert(field_attr, ident);
                 }
             }
         }
+        
+        // manually handle mut ex validation on first pass for attr passthrough
+        if let Some(attr_ident) = seen.get(&FieldAttr::OverrideAttr) {
+            for incompat in FieldAttr::OverrideAttr.incompatible_attrs() {
+                if let Some(incompat_ident) = seen.get(incompat) {
+                    Err(ParseError::IncompatibleAttrs {
+                        ident: attr_ident.clone(),
+                        other: incompat_ident.clone(),
+                    })?;
+                }
+            }
+        }
+        
+        // parse standard attrs into FieldAttrs struct
+        parsed.attrs = FieldAttrs::try_from(standard_attrs)?;
+
+        // store default expr for Option types
         parsed.default = match &parsed.attrs.default {
             Some(def) => Some(def.clone()),
             None if parsed.is_option => Some(AttrExpr::none_expr()),
@@ -268,7 +392,7 @@ impl TryFrom<Field> for OriginField {
     }
 }
 
-// !- Field attributes
+// !- Config field attrs
 
 #[allow(clippy::struct_excessive_bools)]
 #[cfg_attr(feature = "syn-debug", derive(Debug))]
@@ -350,10 +474,10 @@ impl FieldAttrs {
         self.override_via.is_some()
     }
 }
-impl TryFrom<Punctuated<Meta, token::Comma>> for FieldAttrs {
+impl TryFrom<Vec<Meta>> for FieldAttrs {
     type Error = syn::Error;
 
-    fn try_from(items: Punctuated<Meta, token::Comma>) -> Result<Self, Self::Error> {
+    fn try_from(items: Vec<Meta>) -> Result<Self, Self::Error> {
         let mut seen = HashMap::<FieldAttr, Ident>::new();
         let mut out = Self::default();
         for item in &items {
@@ -381,6 +505,8 @@ impl TryFrom<Punctuated<Meta, token::Comma>> for FieldAttrs {
 
                     #[allow(clippy::match_single_binding)]
                     match field_attr {
+                        // FieldAttr::OverrideAttr => out.override_attrs.push(meta_list.tokens),
+
                         _unknown => unreachable!("shape validation covers unknown"),
                     }
                 },
@@ -393,13 +519,16 @@ impl TryFrom<Punctuated<Meta, token::Comma>> for FieldAttrs {
                         FieldAttr::Default => out.default = Some(AttrExpr::try_from(meta_name_value.value.clone())?),
                         FieldAttr::OverrideFrom => out.override_from = Some(syn::parse(meta_name_value.value.to_token_stream().into())?),
                         FieldAttr::OverrideVia => out.override_via = Some(syn::parse(meta_name_value.value.to_token_stream().into())?),
+
                         _unknown => unreachable!("shape validation covers unknown"),
                     }
                     (field_attr, ident.clone())
                 }
             };
-            // avoid redundant calls in each shape
-            attr::validate_unique(field_attr, &seen)?;
+            // validate no duplicates (allow for passthrough, however)
+            if field_attr != FieldAttr::OverrideAttr {
+                attr::validate_unique(field_attr, &seen)?;
+            }
             seen.insert(field_attr, ident);
         }
         // error on implicit attr specified

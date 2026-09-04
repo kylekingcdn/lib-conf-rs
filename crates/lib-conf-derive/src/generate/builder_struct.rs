@@ -73,7 +73,21 @@ impl BuilderStruct {
 // ! Builder struct generate methods
 
 impl BuilderStruct {
+    fn derive_tokens(&self) -> Option<TokenStream> {
+        self.origin.attrs.has_builder_derives().then(|| {
+            let derives = &self.origin.attrs.builder_derives;
+            quote!(#[derive(#(#derives),*)])
+        })
+    }
+    fn attr_tokens(&self) -> Option<TokenStream> {
+        self.origin.attrs.has_builder_attrs().then(|| {
+            let attrs = &self.origin.attrs.builder_attrs;
+            quote!(#(#[#attrs])*)
+        })
+    }
     fn struct_tokens(&self) -> TokenStream {
+        let derives = self.derive_tokens();
+        let attrs = self.attr_tokens();
         let struct_ident = &self.ident;
         let origin_ty = &self.origin.ty;
         let override_ty = &self.override_struct.ty();
@@ -81,6 +95,8 @@ impl BuilderStruct {
         let where_clause = &generics.where_clause;
         quote! {
             #[derive(Debug, Clone)]
+            #derives
+            #attrs
             pub struct #struct_ident #generics
             #where_clause
             {

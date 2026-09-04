@@ -75,6 +75,18 @@ impl OverrideStruct {
 }
 // ! Override struct generate methods
 impl OverrideStruct {
+    fn derive_tokens(&self) -> Option<TokenStream> {
+        self.origin.attrs.has_override_derives().then(|| {
+            let derives = &self.origin.attrs.override_derives;
+            quote!(#[derive(#(#derives),*)])
+        })
+    }
+    fn attr_tokens(&self) -> Option<TokenStream> {
+        self.origin.attrs.has_override_attrs().then(|| {
+            let attrs = &self.origin.attrs.override_attrs;
+            quote!(#(#[#attrs])*)
+        })
+    }
     fn phantom_fields_tokens(&self) -> TokenStream {
         let mut out = TokenStream::new();
         for field in &self.phantom_fields {
@@ -89,6 +101,8 @@ impl OverrideStruct {
         out
     }
     fn struct_tokens(&self) -> TokenStream {
+        let derives = self.derive_tokens();
+        let attrs = self.attr_tokens();
         let struct_ident = &self.ident;
         let fields: Vec<_> = self.fields
             .iter()
@@ -99,6 +113,8 @@ impl OverrideStruct {
         let where_clause = &generics.where_clause;
         quote! {
             #[derive(Debug, Clone, ::serde::Deserialize)]
+            #derives
+            #attrs
             pub struct #struct_ident #generics
             #where_clause
             {
@@ -149,6 +165,12 @@ impl OverrideField {
     pub fn is_required(&self) -> bool {
         self.attrs().override_required
     }
+    fn attr_tokens(&self) -> Option<TokenStream> {
+        self.origin.has_override_attrs().then(|| {
+            let attrs = &self.origin.override_attrs;
+            quote!(#(#[#attrs])*)
+        })
+    }
     fn getter_ret_ty(&self) -> Type {
         // TODO: map String to &str
         // TODO: as_ref for option?
@@ -188,7 +210,7 @@ impl OverrideField {
 }
 impl ToTokens for OverrideField {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let ident = self.ident();    
+        let ident = self.ident();
         let ty = if let Some(ref from_ty) = self.attrs().override_from {
             let mut inner = from_ty.to_token_stream();
             if !self.attrs().override_required {
@@ -203,17 +225,19 @@ impl ToTokens for OverrideField {
 
         // regular assign field
         let field_docs = self.docs();
+        let attrs = self.attr_tokens();
         let field = quote! {
             #field_docs
+            #attrs
             pub(crate) #ident: #ty,
         };
         tokens.extend(field);
 
         // unset field
-        if self.origin.with_unset_field() {
-            let unset_ident = format_ident!("{ident}_unset");
+        if let Some(unset_ident) = self.origin.unset_ident() {
+            let aliases = self.origin.unset_aliases();
             let unset_field = quote! {
-                #[serde(default, alias="reset", alias="revert", alias="clear")]
+                #[serde(default, #(alias=#aliases),*)]
                 /// flag allowing for reverting a builder-configured
                 /// setting at runtime
                 pub(crate) #unset_ident: bool,

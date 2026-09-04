@@ -15,6 +15,114 @@ use syn::{Expr, ExprCall, ExprLit, ExprPath, Ident, parse_quote, spanned::Spanne
 pub static HELPER_ATTR_CONFIG: &str = "config";
 pub static DOC_ATTR: &str = "doc";
 
+// !- Struct attr
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub(crate) enum StructAttr {
+    Derive,
+    BuilderDerive,
+    OverrideDerive,
+    
+    Attr,
+    BuilderAttr,
+    OverrideAttr,
+}
+impl StructAttr {
+    pub const DERIVE: &'static str = "derive";
+    pub const BUILDER_DERIVE: &'static str = "builder_derive";
+    pub const OVERRIDE_DERIVE: &'static str = "override_derive";
+    pub const ATTR: &'static str = "attr";
+    pub const BUILDER_ATTR: &'static str = "builder_attr";
+    pub const OVERRIDE_ATTR: &'static str = "override_attr";
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Derive => Self::DERIVE,
+            Self::BuilderDerive => Self::BUILDER_DERIVE,
+            Self::OverrideDerive => Self::OVERRIDE_DERIVE,
+            Self::Attr => Self::ATTR,
+            Self::BuilderAttr => Self::BUILDER_ATTR,
+            Self::OverrideAttr => Self::OVERRIDE_ATTR,
+        }
+    }
+    pub(crate) fn supported_shapes(&self) -> &Vec<Shape> {
+        match STRUCT_ATTR_SHAPES.get(self) {
+            Some(x) => x,
+            None => panic!("Missing supported shapes definition for struct attr: '{self}'"),
+        }
+    }
+    pub(crate)fn supports_shape(self, shape: Shape) -> bool {
+        self.supported_shapes().contains(&shape)
+    }
+    pub(crate) fn validate_shape(self, shape: Shape, ident: &Ident) -> Result<(), ParseError> {
+        if self.supports_shape(shape) {
+            Ok(())
+        } else {
+            Err(ParseError::InvalidAttrShape { ident: ident.clone(), shape })
+        }
+    }
+}
+// ! Field attr trait impls
+
+impl fmt::Display for StructAttr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
+impl From<StructAttr> for &'static str {
+    fn from(struct_attr: StructAttr) -> Self {
+        struct_attr.as_str()
+    }
+}
+impl From<&StructAttr> for &'static str {
+    fn from(struct_attr: &StructAttr) -> Self {
+        struct_attr.as_str()
+    }
+}
+impl From<StructAttr> for String {
+    fn from(struct_attr: StructAttr) -> Self {
+        struct_attr.to_string()
+    }
+}
+impl From<&StructAttr> for String {
+    fn from(struct_attr: &StructAttr) -> Self {
+        struct_attr.to_string()
+    }
+}
+impl TryFrom<&Ident> for StructAttr {
+    type Error = ParseError;
+
+    fn try_from(value: &Ident) -> Result<Self, Self::Error> {
+        match value.to_string().as_str() {
+            Self::DERIVE => Ok(Self::Derive),
+            Self::BUILDER_DERIVE => Ok(Self::BuilderDerive),
+            Self::OVERRIDE_DERIVE => Ok(Self::OverrideDerive),
+            Self::ATTR => Ok(Self::Attr),
+            Self::BUILDER_ATTR => Ok(Self::BuilderAttr),
+            Self::OVERRIDE_ATTR => Ok(Self::OverrideAttr),
+            _unknown => Err(ParseError::UnknownAttr { ident: value.clone() })
+        }
+    }
+}
+impl TryFrom<Ident> for StructAttr {
+    type Error = ParseError;
+
+    fn try_from(value: Ident) -> Result<Self, Self::Error> {
+        (&value).try_into()
+    }
+}
+
+// ! Struct attr statics
+
+pub static STRUCT_ATTR_SHAPES: LazyLock<HashMap<StructAttr, Vec<Shape>>> = LazyLock::new(|| [
+    (StructAttr::Derive,            vec![Shape::List]),
+    (StructAttr::BuilderDerive,     vec![Shape::List]),
+    (StructAttr::OverrideDerive,    vec![Shape::List]),
+    (StructAttr::Attr,              vec![Shape::List]),
+    (StructAttr::BuilderAttr,       vec![Shape::List]),
+    (StructAttr::OverrideAttr,      vec![Shape::List]),
+].into());
+
 // !- Field attr
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -26,7 +134,8 @@ pub(crate) enum FieldAttr {
     ConfigSkipGetter,
 
     BuilderSkip,
-
+    
+    OverrideAttr,
     OverrideSkip,
     OverrideRequired,
     OverrideFrom,
@@ -41,6 +150,7 @@ impl FieldAttr {
 
     pub const BUILDER_SKIP: &'static str = "builder_skip";
 
+    pub const OVERRIDE_ATTR: &'static str = "override_attr";
     pub const OVERRIDE_SKIP: &'static str = "override_skip";
     pub const OVERRIDE_REQUIRED: &'static str = "override_required";
     pub const OVERRIDE_FROM: &'static str = "override_from";
@@ -53,6 +163,7 @@ impl FieldAttr {
             Self::SkipAll => Self::SKIP_ALL,
             Self::ConfigSkipGetter => Self::CONFIG_SKIP_GETTER,
             Self::BuilderSkip => Self::BUILDER_SKIP,
+            Self::OverrideAttr => Self::OVERRIDE_ATTR,
             Self::OverrideSkip => Self::OVERRIDE_SKIP,
             Self::OverrideRequired => Self::OVERRIDE_REQUIRED,
             Self::OverrideFrom => Self::OVERRIDE_FROM,
@@ -61,28 +172,28 @@ impl FieldAttr {
     }
 
     pub fn dependencies(&self) -> &Vec<Self> {
-        if let Some(deps) = ATTR_DEPS.get(self) {
+        if let Some(deps) = FIELD_ATTR_DEPS.get(self) {
              deps
         } else {
-            &ATTR_EMPTY_FIELD_VEC
+            &FIELD_ATTR_EMPTY_VEC
         }
     }
     pub fn incompatible_attrs(&self) -> &Vec<Self> {
-        if let Some(mutex) = ATTR_MUT_EX.get(self) {
+        if let Some(mutex) = FIELD_ATTR_MUT_EX.get(self) {
              mutex
         } else {
-            &ATTR_EMPTY_FIELD_VEC
+            &FIELD_ATTR_EMPTY_VEC
         }
     }
     pub fn implied_attrs(&self) -> &Vec<Self> {
-        if let Some(mutex) = ATTR_IMPLICIT.get(self) {
+        if let Some(mutex) = FIELD_ATTR_IMPLICIT.get(self) {
              mutex
         } else {
-            &ATTR_EMPTY_FIELD_VEC
+            &FIELD_ATTR_EMPTY_VEC
         }
     }
     pub(crate) fn supported_shapes(&self) -> &Vec<Shape> {
-        match ATTR_SHAPES.get(self) {
+        match FIELD_ATTR_SHAPES.get(self) {
             Some(x) => x,
             None => panic!("Missing supported shapes definition for field attr: '{self}'"),
         }
@@ -96,6 +207,9 @@ impl FieldAttr {
         } else {
             Err(ParseError::InvalidAttrShape { ident: ident.clone(), shape })
         }
+    }
+    pub(crate) fn is_passthrough(&self) -> bool {
+        FIELD_PASSTHROUGH_ATTRS.contains(self)
     }
 }
 
@@ -136,6 +250,7 @@ impl TryFrom<&Ident> for FieldAttr {
             Self::SKIP_ALL => Ok(Self::SkipAll),
             Self::CONFIG_SKIP_GETTER => Ok(Self::ConfigSkipGetter),
             Self::BUILDER_SKIP => Ok(Self::BuilderSkip),
+            Self::OVERRIDE_ATTR => Ok(Self::OverrideAttr),
             Self::OVERRIDE_SKIP => Ok(Self::OverrideSkip),
             Self::OVERRIDE_REQUIRED => Ok(Self::OverrideRequired),
             Self::OVERRIDE_FROM => Ok(Self::OverrideFrom),
@@ -152,10 +267,10 @@ impl TryFrom<Ident> for FieldAttr {
     }
 }
 
-// ! Attr type statics
+// ! Field attr statics
 
 /// Attributes that depend on other attrs being present
-pub static ATTR_DEPS: LazyLock<HashMap<FieldAttr, Vec<FieldAttr>>> = LazyLock::new(|| [
+pub static FIELD_ATTR_DEPS: LazyLock<HashMap<FieldAttr, Vec<FieldAttr>>> = LazyLock::new(|| [
     (FieldAttr::OverrideVia, vec![FieldAttr::OverrideFrom]),
 ].into());
 
@@ -163,7 +278,7 @@ pub static ATTR_DEPS: LazyLock<HashMap<FieldAttr, Vec<FieldAttr>>> = LazyLock::n
 /// (AKA mutually exclusive)
 ///
 /// NOTE: only one side of the exclusivity is required
-pub static ATTR_MUT_EX: LazyLock<HashMap<FieldAttr, Vec<FieldAttr>>> = LazyLock::new(|| [
+pub static FIELD_ATTR_MUT_EX: LazyLock<HashMap<FieldAttr, Vec<FieldAttr>>> = LazyLock::new(|| [
     (FieldAttr::OverrideRequired, vec![
         FieldAttr::Default,
         // FieldAttr::BuilderSkip, // covered by implicit
@@ -180,9 +295,13 @@ pub static ATTR_MUT_EX: LazyLock<HashMap<FieldAttr, Vec<FieldAttr>>> = LazyLock:
         FieldAttr::OverrideFrom,
         FieldAttr::OverrideVia,
     ]),
+    (FieldAttr::OverrideAttr, vec![
+        FieldAttr::SkipAll,
+        FieldAttr::OverrideSkip,
+    ]),
 ].into());
 
-pub static ATTR_IMPLICIT: LazyLock<HashMap<FieldAttr, Vec<FieldAttr>>> = LazyLock::new(|| [
+pub static FIELD_ATTR_IMPLICIT: LazyLock<HashMap<FieldAttr, Vec<FieldAttr>>> = LazyLock::new(|| [
     (FieldAttr::SkipAll, vec![
         FieldAttr::ConfigSkipGetter,
         FieldAttr::BuilderSkip,
@@ -193,23 +312,26 @@ pub static ATTR_IMPLICIT: LazyLock<HashMap<FieldAttr, Vec<FieldAttr>>> = LazyLoc
     ]),
 ].into());
 
-static ATTR_EMPTY_FIELD_VEC: LazyLock<Vec<FieldAttr>> = LazyLock::new(Vec::new);
+static FIELD_ATTR_EMPTY_VEC: LazyLock<Vec<FieldAttr>> = LazyLock::new(Vec::new);
 
-pub static ATTR_SHAPES: LazyLock<HashMap<FieldAttr, Vec<Shape>>> = LazyLock::new(|| [
+pub static FIELD_ATTR_SHAPES: LazyLock<HashMap<FieldAttr, Vec<Shape>>> = LazyLock::new(|| [
     (FieldAttr::Copy,               vec![Shape::Flag]),
     (FieldAttr::Default,            vec![Shape::KeyValue]),
     (FieldAttr::SkipAll,            vec![Shape::Flag]),
     (FieldAttr::ConfigSkipGetter,   vec![Shape::Flag]),
     (FieldAttr::BuilderSkip,        vec![Shape::Flag]),
+    (FieldAttr::OverrideAttr,       vec![Shape::List]),
     (FieldAttr::OverrideSkip,       vec![Shape::Flag]),
     (FieldAttr::OverrideRequired,   vec![Shape::Flag]),
     (FieldAttr::OverrideFrom,       vec![Shape::KeyValue]),
     (FieldAttr::OverrideVia,        vec![Shape::KeyValue]),
 ].into());
 
-// static ATTR_EMPTY_SHAPE_VEC: LazyLock<Vec<Shape>> = LazyLock::new(Vec::new);
+static FIELD_PASSTHROUGH_ATTRS: LazyLock<Vec<FieldAttr>> = LazyLock::new(|| [
+    FieldAttr::OverrideAttr,
+].into());
 
-// ! Attr shape
+// !- Attr shape
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum Shape {
