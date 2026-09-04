@@ -1,6 +1,6 @@
 mod common;
 
-#[derive(Debug, Clone, lib_conf::LibConfig)]
+#[derive(Debug, Clone, lib_conf_derive::LibConfig)]
 pub struct TestConfig {
     #[config(copy, default = true)]
     pub foo: bool,

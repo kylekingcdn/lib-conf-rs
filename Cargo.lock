@@ -32,6 +32,13 @@ dependencies = [
 name = "lib-conf"
 version = "0.0.1-pre1"
 dependencies = [
+ "lib-conf-derive",
+]
+
+[[package]]
+name = "lib-conf-derive"
+version = "0.0.1-pre1"
+dependencies = [
  "config",
  "dotenvy",
  "prettyplease",

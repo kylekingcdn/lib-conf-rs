@@ -1,7 +1,7 @@
 mod common;
 
-#[derive(Debug, Clone, lib_conf::LibConfig)]
-pub struct TestConfig<T: Default + Clone + std::fmt::Debug, S: Copy>
+#[derive(Debug, Clone, lib_conf_derive::LibConfig)]
+pub struct TestConfig<T: Default + Clone + std::fmt::Debug, S>
 where
     S: Copy,
 {

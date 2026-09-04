@@ -1,35 +1,28 @@
 [package]
 name = "lib-conf"
-description = "Proc-macro providing library authors with first-class configuration for their end-users"
-version = "0.0.1-pre1"
+description.workspace = true
+version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 repository.workspace = true
 license.workspace = true
 publish = true
-
+readme = "../lib-conf-derive/README.md"
 [lints]
 workspace = true
 
 [features]
-default = []
-syn-debug = ["syn/extra-traits"]
+# feature groups
+default = ["derive"]
+standard = ["derive", "serde"]
+# dep gates
+derive = ["dep:lib-conf-derive"]
+# passthrough flags
+serde = ["lib-conf-derive?/serde"]
+syn-debug = ["lib-conf-derive?/syn-debug"]
 
 [dependencies]
-prettyplease = { version = "0.3.0" }
-proc-macro2 = "1.0.107"
-quote = "1.0.47"
-syn = "3.0.4"
-thiserror = "2.0.20"
-
-[lib]
-proc-macro = true
-
-[dev-dependencies]
-config = { version = "0.15.25", default-features = false }
-dotenvy = "0.15.7"
-secrecy = { version = "0.10.3", features = ["serde"] }
-serde = { version = "1.0.229", features = ["alloc", "derive"] }
+lib-conf-derive = { workspace = true, optional = true }
 
 [package.metadata.docs.rs]
 all-features = true

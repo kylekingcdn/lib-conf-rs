@@ -1,0 +1,38 @@
+[package]
+name = "lib-conf-derive"
+description.workspace = true
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+license.workspace = true
+publish = true
+readme = "README.cratesio.md"
+
+[lints]
+workspace = true
+
+[features]
+default = []
+serde = []
+syn-debug = ["syn/extra-traits"]
+
+[dependencies]
+prettyplease = "0.3.0"
+proc-macro2 = "1.0.107"
+quote = "1.0.47"
+syn = "3.0.4"
+thiserror = "2.0.20"
+
+[lib]
+proc-macro = true
+
+[dev-dependencies]
+config = { version = "0.15.25", default-features = false }
+dotenvy = "0.15.7"
+secrecy = { version = "0.10.3", features = ["serde"] }
+serde = { version = "1.0.229", features = ["alloc", "derive"] }
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

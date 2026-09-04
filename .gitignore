@@ -12,6 +12,11 @@ schemas/
 # config
 .env
 *.env
-!/crates/lib-conf/tests/*.env
+!examples/**/*.env
+!tests/**/*.env
+!examples/*/.env
+!tests/.env
+!tests/*/.env
+
 # platform
 .DS_Store
