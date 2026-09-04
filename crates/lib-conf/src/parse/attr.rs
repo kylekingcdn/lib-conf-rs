@@ -74,14 +74,13 @@ impl FieldAttr {
             &ATTR_EMPTY_FIELD_VEC
         }
     }
-    pub fn is_incompatible(self, other: Self) -> bool {
-        self.incompatible_attrs().contains(&other)
+    pub fn implied_attrs(&self) -> &Vec<Self> {
+        if let Some(mutex) = ATTR_IMPLICIT.get(self) {
+             mutex
+        } else {
+            &ATTR_EMPTY_FIELD_VEC
+        }
     }
-    #[allow(clippy::ptr_arg)]
-    pub fn check_incompatibility(self, all: &Vec<Self>) -> Option<Self> {
-        all.iter().find(|&&attr| self.is_incompatible(attr)).copied()
-    }
-
     pub(crate) fn supported_shapes(&self) -> &Vec<Shape> {
         match ATTR_SHAPES.get(self) {
             Some(x) => x,
@@ -165,15 +164,32 @@ pub static ATTR_DEPS: LazyLock<HashMap<FieldAttr, Vec<FieldAttr>>> = LazyLock::n
 ///
 /// NOTE: only one side of the exclusivity is required
 pub static ATTR_MUT_EX: LazyLock<HashMap<FieldAttr, Vec<FieldAttr>>> = LazyLock::new(|| [
-    (FieldAttr::SkipAll, vec![
-        FieldAttr::ConfigSkipGetter,
-        FieldAttr::BuilderSkip,
-        FieldAttr::OverrideSkip,
+    (FieldAttr::OverrideRequired, vec![
+        FieldAttr::Default,
+        // FieldAttr::BuilderSkip, // covered by implicit
+        // FieldAttr::OverrideSkip, // covered by inverse
     ]),
     (FieldAttr::OverrideSkip, vec![
         FieldAttr::OverrideRequired,
         FieldAttr::OverrideFrom,
         FieldAttr::OverrideVia,
+    ]),
+    // any attributes incompatible with any of the 3 _skip attrs
+    (FieldAttr::SkipAll, vec![
+        FieldAttr::OverrideRequired,
+        FieldAttr::OverrideFrom,
+        FieldAttr::OverrideVia,
+    ]),
+].into());
+
+pub static ATTR_IMPLICIT: LazyLock<HashMap<FieldAttr, Vec<FieldAttr>>> = LazyLock::new(|| [
+    (FieldAttr::SkipAll, vec![
+        FieldAttr::ConfigSkipGetter,
+        FieldAttr::BuilderSkip,
+        FieldAttr::OverrideSkip,
+    ]),
+    (FieldAttr::OverrideRequired, vec![
+        FieldAttr::BuilderSkip,
     ]),
 ].into());
 
@@ -211,18 +227,30 @@ pub fn validate_unique(attr: FieldAttr, seen: &HashMap<FieldAttr, Ident>) -> Res
         Ok(())
     }
 }
-pub fn validate_mutex(seen: &HashMap<FieldAttr, Ident>) -> Result<(), ParseError> {
-    let list = seen.keys().copied().collect();
+pub fn validate_implicit(seen: &HashMap<FieldAttr, Ident>) -> Result<(), ParseError> {
     for (attr, ident) in seen {
-        if let Some(incompat) = attr.check_incompatibility(&list) {
-            let incompat_ident = seen.get(&incompat).unwrap();
-            return Err(ParseError::IncompatibleAttrs {
-                ident: incompat_ident.clone(),
-                other: ident.clone(),
-            });
+        for implicit in attr.implied_attrs() {
+            if let Some(implicit_ident) = seen.get(implicit) {
+                return Err(ParseError::ImplicitAttr {
+                    ident: implicit_ident.clone(), // error on implied
+                    other: ident.clone(),
+                });
+            }
         }
     }
-
+    Ok(())
+}
+pub fn validate_mutex(seen: &HashMap<FieldAttr, Ident>) -> Result<(), ParseError> {
+    for (attr, ident) in seen {
+        for incompat in attr.incompatible_attrs() {
+            if let Some(incompat_ident) = seen.get(incompat) {
+                return Err(ParseError::IncompatibleAttrs {
+                    ident: incompat_ident.clone(), // error on implied
+                    other: ident.clone(),
+                });
+            }
+        }
+    }
     Ok(())
 }
 pub fn validate_deps(seen: &HashMap<FieldAttr, Ident>) -> Result<(), ParseError> {

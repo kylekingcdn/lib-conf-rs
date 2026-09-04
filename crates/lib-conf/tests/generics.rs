@@ -1,8 +1,10 @@
 mod common;
 
 #[derive(Debug, Clone, lib_conf::LibConfig)]
-pub struct TestConfig<T: Default + Clone + std::fmt::Debug, S> {
-    // TODO: test where clause
+pub struct TestConfig<T: Default + Clone + std::fmt::Debug, S: Copy>
+where
+    S: Copy,
+{
     pub req_t: T,
 
     #[config(default = T::default())]
@@ -10,13 +12,17 @@ pub struct TestConfig<T: Default + Clone + std::fmt::Debug, S> {
 
     pub opt_t: Option<T>,
     
-    #[config(override_skip)]
+    #[config(override_skip, copy)]
     pub opt_s: Option<S>,
+    
+    #[config(skip_all, default = true)]
+    pub all_skipped: bool,
 }
 
 fn load_override<'a, T, S>() -> TestOverrideConfig<T, S>
 where
-    T: Default + Clone + std::fmt::Debug + serde::Deserialize<'a>
+    T: Default + Clone + std::fmt::Debug + serde::Deserialize<'a>,
+    S: Copy
 {
     common::load_env_and_config_default(file!())
 }
@@ -45,7 +51,7 @@ fn default_works() {
     assert_eq!(config.req_t(), &String::from(REQ_DEF_VAL));
     assert_eq!(config.def_t(), &String::default());
     assert_eq!(config.opt_t(), &None);
-    assert_eq!(config.opt_s(), &None);
+    assert_eq!(config.opt_s(), None);
 }
 
 #[test]
@@ -59,7 +65,7 @@ fn compile_time_works() {
     assert_eq!(config.req_t(), &String::from(COMPILE_VAL));
     assert_eq!(config.def_t(), &String::from(COMPILE_VAL));
     assert_eq!(config.opt_t(), &Some(String::from(COMPILE_VAL)));
-    assert_eq!(config.opt_s(), &Some(true));
+    assert_eq!(config.opt_s(), Some(true));
 }
 
 #[test]
@@ -82,7 +88,7 @@ fn override_works() {
     assert_eq!(config.req_t(), &String::from(RUNTIME_VAL));
     assert_eq!(config.def_t(), &String::default()); // has unset
     assert_eq!(config.opt_t(), &Some(String::from(RUNTIME_VAL)));
-    assert_eq!(config.opt_s(), &Some(true)); // has skip override
+    assert_eq!(config.opt_s(), Some(true)); // has skip override
     
     println!("output config: {config:#?}");
 }

@@ -63,6 +63,9 @@ impl OriginStruct {
     pub fn use_phantom_fields(&self) -> bool {
         self.has_generics()
     }
+    pub fn has_constructor_override_param(&self) -> bool {
+        self.fields.iter().any(|f| f.attrs.override_required)
+    }
     fn resolve_suffix(ident: &Ident) -> Result<&'static str, ParseError> {
         let ident_str = ident.to_string();
         for suffix in *STRUCT_SUFFIXES {
@@ -186,11 +189,13 @@ impl OriginField {
             parse_quote!(Option::<#ty>)
         }
     }
+    // FIXME: rename to as_required_borrow_type
     /// Same as `as_required_type`, except prefixes `&` if the copy flag wasn't provided
     pub fn as_required_return_type(&self) -> Type {
         let ty = self.as_required_type();
         Self::build_return_type(ty, self.attrs.copy)
     }
+    // FIXME: rename to as_optional_borrow_type
     /// Same as `as_optional_type`, except prefixes `&` if the copy flag wasn't provided
     pub fn as_optional_return_type(&self) -> Type {
         let ty = self.as_optional_type();
@@ -219,6 +224,7 @@ impl TryFrom<Field> for OriginField {
             doc_attrs: Vec::new(),
         };
 
+        // parse attrs
         let mut seen = Vec::new();
         for attr in &field.attrs {
             if attr.path().is_ident(attr::HELPER_ATTR_CONFIG) {
@@ -227,8 +233,17 @@ impl TryFrom<Field> for OriginField {
                     Err(ParseError::DuplicateAttr { ident: ident.clone() })?;
                 }
 
-                let scope_attrs = attr.parse_args_with(Punctuated::<Meta, Token![,]>::parse_terminated)?;
+                let scope_attrs = attr.parse_args_with(
+                    Punctuated::<Meta, Token![,]>::parse_terminated
+                )?;
                 parsed.attrs = FieldAttrs::try_from(scope_attrs)?;
+
+                // type compatibility validation done here for ty access
+                if parsed.is_option && parsed.attrs.override_required {
+                    Err(ParseError::AttrOptionUnsupported {
+                        ident: ident.clone(),
+                    })?;
+                }
                 seen.push(ident.clone());
             }
             else {
@@ -259,25 +274,71 @@ impl TryFrom<Field> for OriginField {
 #[cfg_attr(feature = "syn-debug", derive(Debug))]
 #[derive(Clone, Default)]
 pub(crate) struct FieldAttrs {
-    pub copy: bool, // default: false
-    pub default: Option<AttrExpr>, // default: None
-    pub skip_all: bool, // default: false
+    /// no caveats
+    pub copy: bool,
+    
+    /// incompatible attrs:
+    /// - override_required
+    pub default: Option<AttrExpr>,
+    
+    /// implies:
+    /// - builder_skip
+    /// - override_skip
+    /// - config_skip_getter
+    ///
+    /// incompatible (+above):
+    /// - override_required
+    /// - override_from
+    /// - override_via
+    pub skip_all: bool,
 
-    pub config_skip_getter: bool, // default: false
+    /// imcompatible:
+    /// - skip_all
+    pub config_skip_getter: bool,
 
-    pub builder_skip: bool, // default: false
+    /// imcompatible:
+    /// - skip_all
+    /// - override_required
+    pub builder_skip: bool,
 
-    pub override_skip: bool, // default: false
-    pub override_required: bool, // default: false
-    pub override_from: Option<TypePath>, // default: None
-    pub override_via: Option<TypePath>, // default: None
+    /// incompatible:
+    /// - skip_all
+    /// - override_required
+    /// - override_from
+    /// - override_via
+    pub override_skip: bool,
+
+    /// implies:
+    /// - builder_skip
+    ///
+    /// incompatible(+above):
+    /// - default
+    /// - skip_all
+    /// - override_skip
+    ///
+    /// incompatible types:
+    /// - Option<_>
+    pub override_required: bool,
+    
+    /// incompatible:
+    /// - skip_all
+    /// - override_skip
+    pub override_from: Option<TypePath>,
+    
+    /// requires:
+    /// - override_from
+    ///
+    /// incompatible:
+    /// - skip_all
+    /// - override_skip
+    pub override_via: Option<TypePath>,
 }
 impl FieldAttrs {
     pub fn skip_config_getter(&self) -> bool {
         self.skip_all || self.config_skip_getter
     }
     pub fn skip_builder_setter(&self) -> bool {
-        self.skip_all || self.builder_skip
+        self.skip_all || self.builder_skip || self.override_required
     }
     pub fn skip_override_field(&self) -> bool {
         self.skip_all || self.override_skip
@@ -341,9 +402,11 @@ impl TryFrom<Punctuated<Meta, token::Comma>> for FieldAttrs {
             attr::validate_unique(field_attr, &seen)?;
             seen.insert(field_attr, ident);
         }
+        // error on implicit attr specified
+        attr::validate_implicit(&seen)?;
         // error on incompatible attrs
         attr::validate_mutex(&seen)?;
-        // validate deps once all attributes are parsed
+        // validate deps
         attr::validate_deps(&seen)?;
         Ok(out)
     }

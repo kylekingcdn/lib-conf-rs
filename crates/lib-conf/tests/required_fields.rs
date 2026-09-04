@@ -2,9 +2,10 @@ mod common;
 
 #[derive(Debug, Clone, lib_conf::LibConfig)]
 pub struct TestConfig {
-    #[config(default = true)]
+    #[config(copy, default = true)]
     pub foo: bool,
 
+    #[config(copy)]
     pub init_me: bool,
 }
 

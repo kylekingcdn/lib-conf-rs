@@ -21,16 +21,18 @@ pub(crate) enum ParseError {
     //InvalidAttrExpr { span: Span, expr: Expr },
     #[error("Invalid attribute expression type")]
     InvalidAttrExpr { span: Span },
-    // #[error("Attribute '{ident}' is not supported by '{realm}'")]
-    // UnsupportedAttrRealm { ident: Ident, realm: &'static str },
     #[error("Attribute '{ident}' specified multiple times")]
     DuplicateAttr { ident: Ident },
     #[error("Attribute '{ident}' cannot be used with '{other}'")]
     IncompatibleAttrs { ident: Ident, other: Ident},
+    #[error("Attribute '{ident}' is automatically implied by '{other}'")]
+    ImplicitAttr { ident: Ident, other: Ident},
     #[error("Unexpected shape {shape:#?} for attribute '{ident}'")]
     InvalidAttrShape { ident: Ident, shape: Shape },
     #[error("Missing attribute '{missing}', which is required while using '{present}'")]
     MissingAttrDep { present: Ident, missing: FieldAttr },
+    #[error("Attribute '{ident}' cannot be used with Option types")]
+    AttrOptionUnsupported { ident: Ident },
 }
 impl ParseError {
     pub fn span(self) -> Span {
@@ -43,8 +45,10 @@ impl ParseError {
             Self::InvalidAttrExpr { span, .. } => span,
             Self::UnknownAttr { ident } |
             Self::IncompatibleAttrs { ident, .. } |
+            Self::ImplicitAttr { ident, .. } |
             Self::DuplicateAttr { ident, .. } |
-            Self::InvalidAttrShape { ident, .. } => ident.span(),
+            Self::InvalidAttrShape { ident, .. } |
+            Self::AttrOptionUnsupported { ident } => ident.span(),
             Self::MissingAttrDep { present, .. } => present.span(),
         }
     }
