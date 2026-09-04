@@ -17,7 +17,7 @@ opt-level = 1
 opt-level = 3
 
 [workspace.dependencies]
-lib-conf-derive = { version = "0.1.0-pre1", path = "crates/lib-conf-derive" }
+lib-conf-derive = { version = "0.1.0-pre2", path = "crates/lib-conf-derive" }
 
 [workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }
