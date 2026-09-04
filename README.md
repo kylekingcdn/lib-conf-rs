@@ -1,1 +1,1 @@
-crates/lib-conf-derive/README.md
+crates/lib-conf/README.md
