@@ -21,11 +21,11 @@ Rust proc-macro crate providing library authors with first-class configuration f
 ### Todo (initial release)
 
 - [x] Handle required fields in `new()` + `builder()` fns, strip `Default` impl
-- [ ] Take ovveride in as param if `override_required` is set on any fields,
+- [ ] Take override in as param if `override_required` is set on any fields,
   strip `with_override`fn
-  - [ ] `override_required`should imply `builder_skip`
-  - [ ] `override_required` should not be allowed with default or Option types
-- [ ] Implement override type mapping for `override_from` and `override_via`
+  - [x] `override_required`should imply `builder_skip`
+  - [x] `override_required` should not be allowed with default or Option types
+- [x] Implement override type mapping for `override_from` and `override_via`
 - [ ] Return non-copy `Option<_>` getters using `as_ref()`
 - [ ] Return `String`/`Option<String>` getters fns using `as_str()` to
   avoid `&String` return types.

@@ -6,7 +6,7 @@ use crate::{
 use proc_macro2::TokenStream;
 use quote::{ToTokens, format_ident, quote};
 use std::rc::Rc;
-use syn::{Ident, Type};
+use syn::{Ident, parse_quote, Type};
 
 #[derive(Debug, Copy, Clone)]
 pub struct OverrideVariant;
@@ -150,14 +150,21 @@ impl OverrideField {
     fn getter_ret_ty(&self) -> Type {
         // TODO: map String to &str
         // TODO: as_ref for option?
-        match self.attrs().override_required {
-            true  => self.origin.as_required_return_type(),
-            false => self.origin.as_optional_return_type(),
+        if let Some(ref from_ty) = self.attrs().override_from {
+            let mut inner = from_ty.to_token_stream();
+            if !self.attrs().override_required {
+                inner = quote!(Option::<#inner>)
+            }
+            parse_quote!(&#inner)
+        } else if self.attrs().override_required {
+            self.origin.as_required_return_type()
+        } else {
+            self.origin.as_optional_return_type()
         }
     }
     fn getter_ret_expr(&self) -> TokenStream {
         let ident = self.ident();
-        match self.attrs().copy {
+        match self.attrs().copy && self.attrs().override_from.is_none() {
             true  => quote!( self.#ident),
             false => quote!(&self.#ident),
         }
@@ -179,10 +186,17 @@ impl OverrideField {
 }
 impl ToTokens for OverrideField {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let ident = self.ident();
-        let ty = match self.attrs().override_required {
-            true  => self.origin.as_required_type(),
-            false => self.origin.as_optional_type(),
+        let ident = self.ident();    
+        let ty = if let Some(ref from_ty) = self.attrs().override_from {
+            let mut inner = from_ty.to_token_stream();
+            if !self.attrs().override_required {
+                inner = quote!(Option::<#inner>)
+            }
+            parse_quote!(#inner)
+        } else if self.attrs().override_required {
+            self.origin.as_required_type()
+        } else {
+            self.origin.as_optional_type()
         };
 
         // regular assign field

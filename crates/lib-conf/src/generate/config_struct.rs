@@ -211,22 +211,29 @@ impl ConfigField {
         quote!(#ident: #def)
     }
     pub(super) fn merge_override_tokens(&self, override_var_ident: &Ident) -> TokenStream {
-        match self.attrs().override_required {
-            true  => self.merge_override_required_tokens(override_var_ident),
-            false => self.merge_override_optional_tokens(override_var_ident),
-        }
-    }
-    fn merge_override_required_tokens(&self, override_var_ident: &Ident) -> TokenStream {
         let ident = self.ident();
-        let override_field = match self.attrs().copy {
-            true  => quote!(#override_var_ident.#ident),
-            false => quote!(#override_var_ident.#ident.clone()),
+
+        let temp_assign =
+        if self.attrs().copy && !self.attrs().has_mapped_type() {
+            quote!(let val = #override_var_ident.#ident;)
+        } else {
+            quote!(let val = #override_var_ident.#ident.clone();)
         };
-        let assign = match self.origin.is_option {
-            true  => quote!(Some(#override_field)),
-            false => override_field,
+        
+        let mut assign = if let Some(_from_ty) = &self.attrs().override_from {
+            let mut inner = quote!(val);
+            if let Some(via_ty) = &self.attrs().override_via {
+                inner = quote!(<#via_ty>::from(#inner));
+            }
+            quote!(#inner.into())
+        } else {
+            quote!(val)
         };
-        // origin type is guaranteed option if an undet ident is given
+        // wrap in Some if Option
+        if self.origin.is_option {
+            assign = quote!(Some(#assign));
+        }
+        // origin type is guaranteed option if an unset ident is given
         let unsetter = self.origin.unset_ident().map(|unset_ident| {
             let default = self.origin.default().unwrap();
             quote! {
@@ -235,39 +242,23 @@ impl ConfigField {
                 } else
             }
         });
-
         // wrapped in brackets to allow for condutional preceeding if {..} else
-        quote! {
-            #unsetter
+        let mut setter = quote! {
             {
                 self.#ident = #assign;
             }
+        };
+        // wrap setter in if let Some..
+        if !self.attrs().override_required {
+            setter = quote! {
+                if let Some(val) = val #setter
+            }
         }
-    }
-    fn merge_override_optional_tokens(&self, override_var_ident: &Ident) -> TokenStream {
-        let ident = self.ident();
-        let override_field = match self.attrs().copy {
-            true  => quote!(#override_var_ident.#ident),
-            false => quote!(#override_var_ident.#ident.clone()),
-        };
-        let assign = match self.origin.is_option {
-            true  => quote!(Some(val)),
-            false => quote!(     val ),
-        };
-        // origin type is guaranteed option if an undet ident is given
-        let unsetter = self.origin.unset_ident().map(|unset_ident| {
-            let default = self.origin.default().unwrap();
-            quote! {
-                if #override_var_ident.#unset_ident {
-                    self.#ident = #default
-                } else
-            }
-        });
+
         quote! {
+            #temp_assign
             #unsetter
-            if let Some(val) = #override_field {
-                self.#ident = #assign;
-            }
+            #setter
         }
     }
 }
