@@ -4,7 +4,7 @@ members = ["crates/*", "examples/*"]
 
 [workspace.package]
 description = "Proc-macro providing library authors with first-class configuration for their end-users"
-version = "0.0.1-pre1"
+version = "0.1.0-pre1"
 edition = "2024"
 rust-version = "1.91"
 repository = "https://github.com/kylekingcdn/lib-conf-rs"
@@ -17,7 +17,7 @@ opt-level = 1
 opt-level = 3
 
 [workspace.dependencies]
-lib-conf-derive = { version = "0.0.1-pre1", path = "crates/lib-conf-derive" }
+lib-conf-derive = { version = "0.1.0-pre1", path = "crates/lib-conf-derive" }
 
 [workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }
