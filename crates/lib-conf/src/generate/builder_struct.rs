@@ -78,10 +78,12 @@ impl BuilderStruct {
         let origin_ty = &self.origin.ty;
         let override_ty = &self.override_struct.ty();
         let generics = &self.origin.generics;
-
+        let where_clause = &generics.where_clause;
         quote! {
             #[derive(Debug, Clone)]
-            pub struct #struct_ident #generics {
+            pub struct #struct_ident #generics
+            #where_clause
+            {
                 pub(crate) inner: #origin_ty,
                 pub(crate) override_conf: Option<#override_ty>,
             }

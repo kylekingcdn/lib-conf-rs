@@ -96,10 +96,12 @@ impl OverrideStruct {
             .collect();
         let phantom_fields = self.phantom_fields_tokens();
         let generics = &self.origin.generics;
-
+        let where_clause = &generics.where_clause;
         quote! {
             #[derive(Debug, Clone, ::serde::Deserialize)]
-            pub struct #struct_ident #generics {
+            pub struct #struct_ident #generics
+            #where_clause
+            {
                 #(#fields)*
 
                 #phantom_fields
