@@ -11,7 +11,7 @@ pub fn try_parse_doc_attrs(attr: &Attribute) -> Result<Option<Attribute>, Error>
         if let Ok(doc_meta) = attr.meta.require_name_value() {
             if let Expr::Lit(doc_lit) = &doc_meta.value {
                 if let Lit::Str(doc_lit_str) = &doc_lit.lit {
-                    let doc_str = doc_lit_str.value();
+                    //let doc_str = doc_lit_str.value();
                     //eprintln!("Got doc string: {doc_str}");
                     Ok(Some(attr.clone()))
                 } else {
