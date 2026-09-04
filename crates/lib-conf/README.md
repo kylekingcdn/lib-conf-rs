@@ -26,6 +26,8 @@ Rust proc-macro crate providing library authors with first-class configuration f
   - [x] `override_required`should imply `builder_skip`
   - [x] `override_required` should not be allowed with default or Option types
 - [x] Implement override type mapping for `override_from` and `override_via`
+- [ ] Configure `Derive`'s for override & builder generated structs
+- [ ] Configure passthrough attrs for both struct and field levels
 - [ ] Return non-copy `Option<_>` getters using `as_ref()`
 - [ ] Return `String`/`Option<String>` getters fns using `as_str()` to
   avoid `&String` return types.
