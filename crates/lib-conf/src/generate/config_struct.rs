@@ -56,8 +56,8 @@ impl ConfigStruct {
         let mut params = Vec::new();
         let mut fields = Vec::new();
         for field in &self.fields {
-            if field.source.is_required() {
-                params.push(field.source.as_fn_param_tokens());
+            if field.origin.is_required() {
+                params.push(field.origin.as_fn_param_tokens());
                 fields.push(field.ident().to_token_stream());
             } else {
                 fields.push(field.assign_default_tokens());
@@ -174,7 +174,7 @@ pub type ConfigField = VariantField<ConfigVariant>;
 
 impl ConfigField {
     fn getter_ret_ty(&self) -> TokenStream {
-        let src_ty = &self.source.ty;
+        let src_ty = &self.origin.ty;
         // TODO: map String to &str
         // TODO: as_ref for option?
         match self.attrs().copy {
@@ -204,9 +204,9 @@ impl ConfigField {
         }
     }
     pub(super) fn assign_default_tokens(&self) -> TokenStream {
-        assert!(self.source.is_optional());
+        assert!(self.origin.is_optional());
         let ident = self.ident();
-        let def = self.source.default().unwrap();
+        let def = self.origin.default().unwrap();
 
         quote!(#ident: #def)
     }
@@ -222,13 +222,13 @@ impl ConfigField {
             true  => quote!(#override_var_ident.#ident),
             false => quote!(#override_var_ident.#ident.clone()),
         };
-        let assign = match self.source.is_option {
+        let assign = match self.origin.is_option {
             true  => quote!(Some(#override_field)),
             false => override_field,
         };
-        // source type is guaranteed option if an undet ident is given
-        let unsetter = self.source.unset_ident().map(|unset_ident| {
-            let default = self.source.default().unwrap();
+        // origin type is guaranteed option if an undet ident is given
+        let unsetter = self.origin.unset_ident().map(|unset_ident| {
+            let default = self.origin.default().unwrap();
             quote! {
                 if #override_var_ident.#unset_ident {
                     self.#ident = #default
@@ -250,13 +250,13 @@ impl ConfigField {
             true  => quote!(#override_var_ident.#ident),
             false => quote!(#override_var_ident.#ident.clone()),
         };
-        let assign = match self.source.is_option {
+        let assign = match self.origin.is_option {
             true  => quote!(Some(val)),
             false => quote!(     val ),
         };
-        // source type is guaranteed option if an undet ident is given
-        let unsetter = self.source.unset_ident().map(|unset_ident| {
-            let default = self.source.default().unwrap();
+        // origin type is guaranteed option if an undet ident is given
+        let unsetter = self.origin.unset_ident().map(|unset_ident| {
+            let default = self.origin.default().unwrap();
             quote! {
                 if #override_var_ident.#unset_ident {
                     self.#ident = #default

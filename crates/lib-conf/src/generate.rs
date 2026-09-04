@@ -20,25 +20,25 @@ use syn::Ident;
 #[cfg_attr(feature = "syn-debug", derive(Debug))]
 #[derive(Clone)]
 pub struct VariantField<T> {
-    source: Rc<OriginField>,
+    origin: Rc<OriginField>,
     _variant: PhantomData<T>,
 }
 impl<T> VariantField<T> {
-    pub fn new(source: Rc<OriginField>) -> Self {
+    pub fn new(origin: Rc<OriginField>) -> Self {
         Self {
-            source,
+            origin,
             _variant: PhantomData,
         }
     }
     pub fn ident(&self) -> &Ident {
-        &self.source.ident
+        &self.origin.ident
     }
     pub fn attrs(&self) -> &FieldAttrs {
-        &self.source.attrs
+        &self.origin.attrs
     }
     pub fn docs(&self) -> util::AppendDoc {
-        let mut out = util::AppendDoc::new(self.source.doc_attrs.clone());
-        if let Some(default) = self.source.default() {
+        let mut out = util::AppendDoc::new(self.origin.doc_attrs.clone());
+        if let Some(default) = self.origin.default() {
             // separate existing docs, if any
             if !out.source().is_empty() {
                 out.newl();

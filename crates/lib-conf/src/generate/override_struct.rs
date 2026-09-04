@@ -35,13 +35,6 @@ impl OverrideStruct {
                 phantom_fields.push(field.clone());
             }
         }
-
-        let fields = origin.fields
-            .iter()
-            .filter(|f| !f.attrs.skip_override_field())
-            .cloned()
-            .map(OverrideField::new)
-            .collect();
         let ident = Self::generate_ident(&origin.ident, origin.suffix);
         let ty = util::build_type(&ident, &origin.generics);
         Self {
@@ -63,16 +56,16 @@ impl OverrideStruct {
         &self.fields
     }
     pub fn has_required_fields(&self) -> bool {
-        self.fields.iter().any(|f| f.attrs().override_required)
+        self.fields.iter().any(|f| f.is_required())
     }
     pub fn required_fields(&self) -> Vec<&OverrideField> {
-        self.fields.iter().filter(|f| f.attrs().override_required).collect()
+        self.fields.iter().filter(|f| f.is_required()).collect()
     }
     pub fn optional_fields(&self) -> Vec<&OverrideField> {
-        self.fields.iter().filter(|f| !f.attrs().override_required).collect()
+        self.fields.iter().filter(|f| f.is_optional()).collect()
     }
-    fn generate_ident(source: &Ident, suffix: &'static str) -> Ident {
-        let ident_str = source.to_string();
+    fn generate_ident(origin_ident: &Ident, suffix: &'static str) -> Ident {
+        let ident_str = origin_ident.to_string();
         assert!(ident_str.ends_with(suffix));
 
         let suf_index = ident_str.rfind(suffix).unwrap();
@@ -114,6 +107,7 @@ impl OverrideStruct {
         }
     }
     fn getter_fns_tokens(&self) -> TokenStream {
+        // TODO: add unset getter
         let fields = self.fields
             .iter()
             .map(OverrideField::getter_tokens);
@@ -147,12 +141,18 @@ impl ToTokens for OverrideStruct {
 pub type OverrideField = VariantField<OverrideVariant>;
 
 impl OverrideField {
+    pub fn is_optional(&self) -> bool {
+        !self.is_required()
+    }
+    pub fn is_required(&self) -> bool {
+        self.attrs().override_required
+    }
     fn getter_ret_ty(&self) -> Type {
         // TODO: map String to &str
         // TODO: as_ref for option?
         match self.attrs().override_required {
-            true  => self.source.as_required_return_type(),
-            false => self.source.as_optional_return_type(),
+            true  => self.origin.as_required_return_type(),
+            false => self.origin.as_optional_return_type(),
         }
     }
     fn getter_ret_expr(&self) -> TokenStream {
@@ -181,8 +181,8 @@ impl ToTokens for OverrideField {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let ident = self.ident();
         let ty = match self.attrs().override_required {
-            true  => self.source.as_required_type(),
-            false => self.source.as_optional_type(),
+            true  => self.origin.as_required_type(),
+            false => self.origin.as_optional_type(),
         };
 
         // regular assign field
@@ -194,7 +194,7 @@ impl ToTokens for OverrideField {
         tokens.extend(field);
 
         // unset field
-        if self.source.with_unset_field() {
+        if self.origin.with_unset_field() {
             let unset_ident = format_ident!("{ident}_unset");
             let unset_field = quote! {
                 #[serde(default, alias="reset", alias="revert", alias="clear")]

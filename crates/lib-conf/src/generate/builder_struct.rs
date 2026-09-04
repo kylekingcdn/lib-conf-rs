@@ -207,14 +207,14 @@ pub type BuilderField = VariantField<BuilderVariant>;
 
 impl BuilderField {
     pub fn is_optional(&self) -> bool {
-        self.source.is_optional()
+        self.origin.is_optional()
     }
     pub fn is_required(&self) -> bool {
         !self.is_optional()
     }
     pub(super) fn setter_tokens(&self) -> TokenStream {
         let ident = self.ident();
-        let ty = &self.source.ty;
+        let ty = &self.origin.ty;
         let docs = self.docs();
         quote! {
             #docs
