@@ -30,14 +30,14 @@ dependencies = [
 
 [[package]]
 name = "lib-conf"
-version = "0.1.0-pre1"
+version = "0.1.0-pre2"
 dependencies = [
  "lib-conf-derive",
 ]
 
 [[package]]
 name = "lib-conf-derive"
-version = "0.1.0-pre1"
+version = "0.1.0-pre2"
 dependencies = [
  "config",
  "dotenvy",
