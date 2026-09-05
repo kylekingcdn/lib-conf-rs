@@ -208,8 +208,8 @@ impl FieldAttr {
             Err(ParseError::InvalidAttrShape { ident: ident.clone(), shape })
         }
     }
-    pub(crate) fn is_passthrough(&self) -> bool {
-        FIELD_PASSTHROUGH_ATTRS.contains(self)
+    pub(crate) fn is_passthrough(self) -> bool {
+        FIELD_PASSTHROUGH_ATTRS.contains(&self)
     }
 }
 

@@ -6,7 +6,7 @@ use crate::{
 use proc_macro2::TokenStream;
 use quote::{ToTokens, format_ident, quote};
 use std::rc::Rc;
-use syn::{Ident, Type};
+use syn::Ident;
 
 #[derive(Debug, Copy, Clone)]
 pub struct ConfigVariant;
@@ -16,7 +16,6 @@ pub struct ConfigVariant;
 #[cfg_attr(feature = "syn-debug", derive(Debug))]
 #[derive(Clone)]
 pub struct ConfigStruct {
-    ty: Type,
     fields: Vec<ConfigField>,
 
     origin: Rc<OriginStruct>,
@@ -29,10 +28,7 @@ impl ConfigStruct {
             .iter().cloned()
             .map(ConfigField::new)
             .collect();
-        let ty = util::build_type(&origin.ident, &origin.generics);
-
         Self {
-            ty,
             fields,
 
             origin,
@@ -43,12 +39,6 @@ impl ConfigStruct {
     pub fn ident(&self) -> &Ident {
         &self.origin.ident
     }
-    pub fn ty(&self) -> &Type {
-        &self.ty
-    }
-    pub fn fields(&self) -> &Vec<ConfigField> {
-        &self.fields
-    }
 }
 // ! Config struct generate methods
 impl ConfigStruct {
@@ -58,7 +48,7 @@ impl ConfigStruct {
     ///
     /// assignments:
     /// - all fields, with source selection prioritized by:
-    ///   - any field with override_required: override_conf
+    ///   - any field with `override_required`: `override_conf`
     ///     - must handle origin being optional or required
     ///     - must handle potentially mapped override type
     ///   - any required origin field: dedicated parameter
@@ -260,13 +250,6 @@ impl ConfigField {
                 #ret
             }
         }
-    }
-    pub(super) fn assign_default_tokens(&self) -> TokenStream {
-        assert!(self.origin.is_optional());
-        let ident = self.ident();
-        let def = self.origin.default().unwrap();
-
-        quote!(#ident: #def)
     }
     pub(super) fn merge_override_tokens(&self, override_var_ident: &Ident) -> TokenStream {
         let ident = self.ident();

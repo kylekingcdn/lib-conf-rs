@@ -53,18 +53,6 @@ impl BuilderStruct {
     pub fn ty(&self) -> &Type {
         &self.ty
     }
-    pub fn fields(&self) -> &Vec<BuilderField> {
-        &self.fields
-    }
-    pub fn has_required_fields(&self) -> bool {
-        self.fields.iter().any(|f| f.is_required())
-    }
-    pub fn required_fields(&self) -> Vec<&BuilderField> {
-        self.fields.iter().filter(|f| f.is_required()).collect()
-    }
-    pub fn optional_fields(&self) -> Vec<&BuilderField> {
-        self.fields.iter().filter(|f| f.is_optional()).collect()
-    }
     pub fn generate_builder_ident(origin_ident: &Ident) -> Ident {
         format_ident!("{}Builder", origin_ident)
     }
@@ -272,12 +260,6 @@ impl ToTokens for BuilderStruct {
 pub type BuilderField = VariantField<BuilderVariant>;
 
 impl BuilderField {
-    pub fn is_optional(&self) -> bool {
-        self.origin.is_optional()
-    }
-    pub fn is_required(&self) -> bool {
-        !self.is_optional()
-    }
     pub(super) fn setter_tokens(&self) -> TokenStream {
         let ident = self.ident();
         let ty = &self.origin.ty;

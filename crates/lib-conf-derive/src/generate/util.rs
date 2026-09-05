@@ -4,38 +4,13 @@ use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use std::fmt::Display;
 use std::ops::AddAssign;
-use syn::{Attribute, Generics, Ident, Path, Type, parse_quote};
+use syn::{Attribute, Generics, Ident, Type, parse_quote};
 
 // !- Token manipulation
 
 pub fn build_type(ident: &Ident, generics: &Generics) -> Type {
     let ty_gen = generics.split_for_impl().1;
     parse_quote!(#ident #ty_gen)
-}
-
-// !- Derive tokens helper
-
-#[cfg_attr(feature = "syn-debug", derive(Debug))]
-#[derive(Clone)]
-pub(crate) struct Derives(Vec<Path>);
-
-impl ToTokens for Derives {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        if !self.0.is_empty() {
-            let derives = &self.0;
-            tokens.extend(quote! { #[derive(#( #derives ),*)] });
-        }
-    }
-}
-impl From<Vec<TokenStream>> for Derives {
-    fn from(tokens: Vec<TokenStream>) -> Self {
-        Self(tokens.into_iter().map(|t| parse_quote!(#t)).collect())
-    }
-}
-impl From<Vec<Path>> for Derives {
-    fn from(paths: Vec<Path>) -> Self {
-        Self(paths)
-    }
 }
 
 // !- Common trait impls
@@ -110,13 +85,7 @@ impl AppendDoc {
     pub fn source(&self) -> &Vec<Attribute> {
         &self.source
     }
-    pub fn append(&self) -> &Vec<String> {
-        &self.append
-    }
-    pub fn is_empty(&self) -> bool {
-        self.source.is_empty() && self.append.is_empty()
-    }
-
+    
     pub fn line(&mut self, line: impl Display) {
         // TODO: assert has no newlines?
         self.append.push(line.to_string());

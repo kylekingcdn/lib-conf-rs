@@ -46,23 +46,11 @@ impl OverrideStruct {
             phantom_fields,
         }
     }
-    pub fn ident(&self) -> &Ident {
-        &self.ident
-    }
     pub fn ty(&self) -> &Type {
         &self.ty
     }
-    pub fn fields(&self) -> &Vec<OverrideField> {
-        &self.fields
-    }
     pub fn has_required_fields(&self) -> bool {
-        self.fields.iter().any(|f| f.is_required())
-    }
-    pub fn required_fields(&self) -> Vec<&OverrideField> {
-        self.fields.iter().filter(|f| f.is_required()).collect()
-    }
-    pub fn optional_fields(&self) -> Vec<&OverrideField> {
-        self.fields.iter().filter(|f| f.is_optional()).collect()
+        self.fields.iter().any(super::VariantField::is_required)
     }
     fn generate_ident(origin_ident: &Ident, suffix: &'static str) -> Ident {
         let ident_str = origin_ident.to_string();
@@ -159,9 +147,6 @@ impl ToTokens for OverrideStruct {
 pub type OverrideField = VariantField<OverrideVariant>;
 
 impl OverrideField {
-    pub fn is_optional(&self) -> bool {
-        !self.is_required()
-    }
     pub fn is_required(&self) -> bool {
         self.attrs().override_required
     }
@@ -177,7 +162,7 @@ impl OverrideField {
         if let Some(ref from_ty) = self.attrs().override_from {
             let mut inner = from_ty.to_token_stream();
             if !self.attrs().override_required {
-                inner = quote!(Option::<#inner>)
+                inner = quote!(Option::<#inner>);
             }
             parse_quote!(&#inner)
         } else if self.attrs().override_required {
@@ -214,7 +199,7 @@ impl ToTokens for OverrideField {
         let ty = if let Some(ref from_ty) = self.attrs().override_from {
             let mut inner = from_ty.to_token_stream();
             if !self.attrs().override_required {
-                inner = quote!(Option::<#inner>)
+                inner = quote!(Option::<#inner>);
             }
             parse_quote!(#inner)
         } else if self.attrs().override_required {

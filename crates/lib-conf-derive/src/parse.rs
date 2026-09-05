@@ -18,7 +18,7 @@ use std::rc::Rc;
 use std::sync::LazyLock;
 use syn::{
     Attribute, Data, DeriveInput, Error, Field, Fields, Generics, Ident, Meta,
-    Token, Type, TypePath, parse_quote, punctuated::Punctuated, token
+    Token, Type, TypePath, parse_quote, punctuated::Punctuated,
 };
 
 // !- Statics
@@ -60,25 +60,11 @@ impl OriginStruct {
     pub fn has_required_fields(&self) -> bool {
         self.fields.iter().any(|f| f.is_required())
     }
-    pub fn required_fields(&self) -> Vec<Rc<OriginField>> {
-        self.fields.iter().filter(|f| f.is_required()).cloned().collect()
-    }
-    // pub fn constructor_fields(&self) -> Vec<Rc<OriginField>> {
-    //     self.fields.iter().filter(|f|
-    //         f.is_required() && !f.attrs.override_required
-    //     ).cloned().collect()
-    // }
-    pub fn optional_fields(&self) -> Vec<Rc<OriginField>> {
-        self.fields.iter().filter(|f| f.is_optional()).cloned().collect()
-    }
     pub fn has_generics(&self) -> bool {
         self.generics.type_params().next().is_some()
     }
     pub fn use_phantom_fields(&self) -> bool {
         self.has_generics()
-    }
-    pub fn has_constructor_override_param(&self) -> bool {
-        self.fields.iter().any(|f| f.attrs.override_required)
     }
     fn resolve_suffix(ident: &Ident) -> Result<&'static str, ParseError> {
         let ident_str = ident.to_string();
@@ -408,59 +394,59 @@ pub(crate) struct FieldAttrs {
     pub copy: bool,
     
     /// incompatible attrs:
-    /// - override_required
+    /// - `override_required`
     pub default: Option<AttrExpr>,
     
     /// implies:
-    /// - builder_skip
-    /// - override_skip
-    /// - config_skip_getter
+    /// - `builder_skip`
+    /// - `override_skip`
+    /// - `config_skip_getter`
     ///
     /// incompatible (+above):
-    /// - override_required
-    /// - override_from
-    /// - override_via
+    /// - `override_required`
+    /// - `override_from`
+    /// - `override_via`
     pub skip_all: bool,
 
     /// imcompatible:
-    /// - skip_all
+    /// - `skip_all`
     pub config_skip_getter: bool,
 
     /// imcompatible:
-    /// - skip_all
-    /// - override_required
+    /// - `skip_all`
+    /// - `override_required`
     pub builder_skip: bool,
 
     /// incompatible:
-    /// - skip_all
-    /// - override_required
-    /// - override_from
-    /// - override_via
+    /// - `skip_all`
+    /// - `override_required`
+    /// - `override_from`
+    /// - `override_via`
     pub override_skip: bool,
 
     /// implies:
-    /// - builder_skip
+    /// - `builder_skip`
     ///
     /// incompatible(+above):
     /// - default
-    /// - skip_all
-    /// - override_skip
+    /// - `skip_all`
+    /// - `override_skip`
     ///
     /// incompatible types:
     /// - Option<_>
     pub override_required: bool,
     
     /// incompatible:
-    /// - skip_all
-    /// - override_skip
+    /// - `skip_all`
+    /// - `override_skip`
     pub override_from: Option<TypePath>,
     
     /// requires:
-    /// - override_from
+    /// - `override_from`
     ///
     /// incompatible:
-    /// - skip_all
-    /// - override_skip
+    /// - `skip_all`
+    /// - `override_skip`
     pub override_via: Option<TypePath>,
 }
 impl FieldAttrs {
@@ -472,12 +458,6 @@ impl FieldAttrs {
     }
     pub fn skip_override_field(&self) -> bool {
         self.skip_all || self.override_skip
-    }
-    pub fn has_mapped_type(&self) -> bool {
-        self.override_from.is_some()
-    }
-    pub fn has_intermediate_type(&self) -> bool {
-        self.override_via.is_some()
     }
 }
 impl TryFrom<Vec<Meta>> for FieldAttrs {
