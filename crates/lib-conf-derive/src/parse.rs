@@ -23,13 +23,14 @@ use syn::{
 
 // !- Statics
 
-static STRUCT_SUFFIXES: LazyLock<&[&'static str; 6]> = LazyLock::new(|| &[
+static STRUCT_SUFFIXES: LazyLock<&[&'static str; 7]> = LazyLock::new(|| &[
     "Config",
     "Conf",
     "Options",
     "Opts",
     "Parameters",
     "Params",
+    "Settings",
 ]);
 static STRUCT_SUFFIX_CSV: LazyLock<String> = LazyLock::new(||
     STRUCT_SUFFIXES.iter().map(ToString::to_string).collect::<Vec<_>>().join(", ")
@@ -62,6 +63,11 @@ impl OriginStruct {
     pub fn required_fields(&self) -> Vec<Rc<OriginField>> {
         self.fields.iter().filter(|f| f.is_required()).cloned().collect()
     }
+    // pub fn constructor_fields(&self) -> Vec<Rc<OriginField>> {
+    //     self.fields.iter().filter(|f|
+    //         f.is_required() && !f.attrs.override_required
+    //     ).cloned().collect()
+    // }
     pub fn optional_fields(&self) -> Vec<Rc<OriginField>> {
         self.fields.iter().filter(|f| f.is_optional()).cloned().collect()
     }

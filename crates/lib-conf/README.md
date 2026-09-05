@@ -21,7 +21,7 @@ Rust proc-macro crate providing library authors with first-class configuration f
 ### Todo (initial release)
 
 - [x] Handle required fields in `new()` + `builder()` fns, strip `Default` impl
-- [ ] Take override in as param if `override_required` is set on any fields,
+- [x] Take override in as param if `override_required` is set on any fields,
   strip `with_override`fn
   - [x] `override_required`should imply `builder_skip`
   - [x] `override_required` should not be allowed with default or Option types
@@ -31,6 +31,7 @@ Rust proc-macro crate providing library authors with first-class configuration f
 - [ ] Return non-copy `Option<_>` getters using `as_ref()`
 - [ ] Return `String`/`Option<String>` getters fns using `as_str()` to
   avoid `&String` return types.
+- [ ] Add gates for serde support to allow for wider consumer compat.
 
 ### Roadmap
 

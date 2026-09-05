@@ -85,12 +85,19 @@ impl BuilderStruct {
             quote!(#(#[#attrs])*)
         })
     }
+    fn override_field_ty_tokens(&self) -> TokenStream {
+        let mut ty = self.override_struct.ty().to_token_stream();
+        if !self.override_struct.has_required_fields() {
+            ty = quote!(Option<#ty>);
+        }
+        ty
+    }
     fn struct_tokens(&self) -> TokenStream {
         let derives = self.derive_tokens();
         let attrs = self.attr_tokens();
         let struct_ident = &self.ident;
         let origin_ty = &self.origin.ty;
-        let override_ty = &self.override_struct.ty();
+        let override_ty = self.override_field_ty_tokens();
         let generics = &self.origin.generics;
         let where_clause = &generics.where_clause;
         quote! {
@@ -101,25 +108,41 @@ impl BuilderStruct {
             #where_clause
             {
                 pub(crate) inner: #origin_ty,
-                pub(crate) override_conf: Option<#override_ty>,
+                pub(crate) override_conf: #override_ty,
             }
         }
     }
     fn new_fn_tokens(&self) -> TokenStream {
-        let origin_ty = &self.origin.ty;
         let mut params = Vec::new();
         let mut idents = Vec::new();
-        for field in self.origin.required_fields() {
-            params.push(field.as_fn_param_tokens());
-            idents.push(field.ident.to_token_stream());
+        
+        if self.override_struct.has_required_fields() {
+            let override_ty = self.override_struct.ty();
+            params.push(quote!(override_conf: #override_ty));
+            idents.push(quote!(override_conf));
         }
+        for field in &self.origin.fields {
+            // only other params are config-required and override-optional 
+            if !field.attrs.override_required && field.is_required() {
+                params.push(field.as_fn_param_tokens());
+                idents.push(field.ident.to_token_stream());
+            }
+        }
+        
+        let origin_ty = &self.origin.ty;
+        let override_assign = if self.override_struct.has_required_fields() {
+            quote!(override_conf.clone())
+        } else {
+            quote!(None)
+        };
+
         quote! {
             /// Constructs a new builder instance
             #[must_use]
             pub fn new(#(#params),*) -> Self {
                 Self {
-                    inner: <#origin_ty>::new(#(#idents),*), 
-                    override_conf: None,
+                    override_conf: #override_assign,
+                    inner: <#origin_ty>::new(#(#idents),*),
                 }
             }
         }
@@ -130,7 +153,12 @@ impl BuilderStruct {
     }
     fn override_fns_tokens(&self) -> TokenStream {
         let override_ty = &self.override_struct.ty();
-        quote! {
+        let assign = if self.override_struct.has_required_fields() {
+            quote!(override_conf)
+        } else {
+            quote!(Some(override_conf))
+        };
+        let mut out = quote! {
             /// If supplied, will overwrite any values present in the provided
             /// override config.
             ///
@@ -148,17 +176,25 @@ impl BuilderStruct {
                 mut self,
                 override_conf: #override_ty,
             ) -> Self {
-                self.override_conf = Some(override_conf);
+                self.override_conf = #assign;
                 self
             }
-            /// Clears the override config previously set via
-            /// [`with_override()`](Self::with_override).
-            #[must_use]
-            pub fn clear_override(mut self) -> Self {
-                self.override_conf = None;
-                self
-            }
+        };
+        
+        // skip override clear fn if override has required fields
+        if !self.override_struct.has_required_fields() {
+            out.extend(quote! {
+                /// Clears the override config previously set via
+                /// [`with_override()`](Self::with_override).
+                #[must_use]
+                pub fn clear_override(mut self) -> Self {
+                    self.override_conf = None;
+                    self
+                }
+            });
         }
+        
+        out
     }
     fn build_fn_tokens(&self) -> TokenStream {
         let origin_ident = &self.origin.ident;
@@ -166,7 +202,22 @@ impl BuilderStruct {
         let doc_headline = util::doc_line(
             format!("Builds the [`{origin_ident}`]")
         );
-
+        
+        let merge_expr =
+        if self.override_struct.has_required_fields() {
+            quote! {
+                self.inner + self.override_conf
+            }
+        } else {
+            quote! {
+                if let Some(override_conf) = self.override_conf {
+                    self.inner + override_conf
+                } else {
+                    self.inner
+                }
+            }
+        };
+        
         quote! {
             #doc_headline
             ///
@@ -174,11 +225,7 @@ impl BuilderStruct {
             /// corresponding assigments made using the builder.
             #[must_use]
             pub fn build(self) -> #origin_ty {
-                if let Some(override_conf) = self.override_conf {
-                    self.inner + override_conf
-                } else {
-                    self.inner
-                }
+                #merge_expr
             }
         }
     }
@@ -213,7 +260,8 @@ impl ToTokens for BuilderStruct {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         tokens.extend(self.struct_tokens());
         tokens.extend(self.impl_tokens());
-        if !self.origin.has_required_fields() {
+        if !self.origin.has_required_fields() &&
+        !self.override_struct.has_required_fields() {
             tokens.extend(self.default_impl_tokens());
         }
     }
