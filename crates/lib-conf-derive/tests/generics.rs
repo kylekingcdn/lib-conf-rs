@@ -50,7 +50,7 @@ fn default_works() {
     let config = builder_default().build();
     assert_eq!(config.req_t(), &String::from(REQ_DEF_VAL));
     assert_eq!(config.def_t(), &String::default());
-    assert_eq!(config.opt_t(), &None);
+    assert_eq!(config.opt_t(), None);
     assert_eq!(config.opt_s(), None);
 }
 
@@ -64,7 +64,7 @@ fn compile_time_works() {
         .build();
     assert_eq!(config.req_t(), &String::from(COMPILE_VAL));
     assert_eq!(config.def_t(), &String::from(COMPILE_VAL));
-    assert_eq!(config.opt_t(), &Some(String::from(COMPILE_VAL)));
+    assert_eq!(config.opt_t(), Some(String::from(COMPILE_VAL)).as_ref());
     assert_eq!(config.opt_s(), Some(true));
 }
 
@@ -72,9 +72,9 @@ fn compile_time_works() {
 fn override_works() {
     let override_config = load_override_string();
     println!("override config: {override_config:#?}");
-    assert_eq!(override_config.req_t(), &Some(String::from(RUNTIME_VAL)));
-    assert_eq!(override_config.def_t(), &Some(String::from(RUNTIME_VAL)));
-    assert_eq!(override_config.opt_t(), &Some(String::from(RUNTIME_VAL)));
+    assert_eq!(override_config.req_t(), Some(String::from(RUNTIME_VAL)).as_ref());
+    assert_eq!(override_config.def_t(), Some(String::from(RUNTIME_VAL)).as_ref());
+    assert_eq!(override_config.opt_t(), Some(String::from(RUNTIME_VAL)).as_ref());
 
     // TODO: add unset getters for consistency
     
@@ -87,7 +87,7 @@ fn override_works() {
         .build();
     assert_eq!(config.req_t(), &String::from(RUNTIME_VAL));
     assert_eq!(config.def_t(), &String::default()); // has unset
-    assert_eq!(config.opt_t(), &Some(String::from(RUNTIME_VAL)));
+    assert_eq!(config.opt_t(), Some(String::from(RUNTIME_VAL)).as_ref());
     assert_eq!(config.opt_s(), Some(true)); // has skip override
     
     println!("output config: {config:#?}");

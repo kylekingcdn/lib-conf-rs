@@ -1,6 +1,6 @@
-pub mod attr;
-pub mod error;
-mod util;
+pub(crate) mod attr;
+pub(crate) mod error;
+pub(crate) mod util;
 
 use crate::{
     generate,
@@ -18,7 +18,7 @@ use std::rc::Rc;
 use std::sync::LazyLock;
 use syn::{
     Attribute, Data, DeriveInput, Error, Field, Fields, Generics, Ident, Meta,
-    Token, Type, TypePath, parse_quote, punctuated::Punctuated,
+    Token, Type, TypePath, punctuated::Punctuated,
 };
 
 // !- Statics
@@ -268,37 +268,6 @@ impl OriginField {
         
         quote!(#ident: #ty)
     }
-    pub fn as_required_type(&self) -> Type {
-        self.flat_ty.clone()
-    }
-    /// If `self.is_option`, returns the original type, otherwise wraps the type in `Option<_>(_)`
-    pub fn as_optional_type(&self) -> Type {
-        if self.is_option {
-            self.ty.clone()
-        } else {
-            let ty = &self.ty;
-            parse_quote!(Option::<#ty>)
-        }
-    }
-    // FIXME: rename to as_required_borrow_type
-    /// Same as `as_required_type`, except prefixes `&` if the copy flag wasn't provided
-    pub fn as_required_return_type(&self) -> Type {
-        let ty = self.as_required_type();
-        Self::build_return_type(ty, self.attrs.copy)
-    }
-    // FIXME: rename to as_optional_borrow_type
-    /// Same as `as_optional_type`, except prefixes `&` if the copy flag wasn't provided
-    pub fn as_optional_return_type(&self) -> Type {
-        let ty = self.as_optional_type();
-        Self::build_return_type(ty, self.attrs.copy)
-    }
-    pub fn build_return_type(base_ty: Type, supports_copy: bool) -> Type {
-        if supports_copy {
-            base_ty
-        } else {
-            parse_quote!(&#base_ty)
-        }
-    }
 }
 impl TryFrom<Field> for OriginField {
     type Error = Error;
@@ -315,7 +284,7 @@ impl TryFrom<Field> for OriginField {
             override_attrs: Vec::new(),
             doc_attrs: Vec::new(),
         };
-        
+
         // first attr pass, group into vecs by normal attrs or passthrough
         let mut standard_attrs = Vec::new(); // vec of Meta
         let mut seen = HashMap::<FieldAttr, Ident>::new(); // Map of FieldAttr types seen on first pass

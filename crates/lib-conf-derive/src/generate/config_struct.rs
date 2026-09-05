@@ -1,12 +1,12 @@
 use crate::{
     generate::{BuilderStruct, OverrideStruct, util, VariantField},
-    parse::OriginStruct,
+    parse::{self, OriginStruct},
 };
 
 use proc_macro2::TokenStream;
 use quote::{ToTokens, format_ident, quote};
 use std::rc::Rc;
-use syn::Ident;
+use syn::{Ident, parse_quote, Type};
 
 #[derive(Debug, Copy, Clone)]
 pub struct ConfigVariant;
@@ -221,20 +221,57 @@ impl ToTokens for ConfigStruct {
 pub type ConfigField = VariantField<ConfigVariant>;
 
 impl ConfigField {
-    fn getter_ret_ty(&self) -> TokenStream {
-        let src_ty = &self.origin.ty;
-        // TODO: map String to &str
-        // TODO: as_ref for option?
-        match self.attrs().copy {
-            true  => quote!( #src_ty),
-            false => quote!(&#src_ty),
+    fn getter_ret_ty(&self) -> Type {
+        // copy permitted, direct return
+        if self.attrs().copy {
+            return self.origin.ty.clone();
+        }
+        
+        let ty = &self.origin.ty;
+        if let Some(inner_ty) = parse::util::unwrap_option(ty) {
+            if parse::util::is_string(inner_ty) {
+                // type is Option<String>
+                parse_quote!(Option<&str>)
+            } else {
+                // type is Option<_>
+                parse_quote!(Option<&#inner_ty>)
+            }
+        } else {
+            if parse::util::is_string(ty) {
+                // type is String
+                parse_quote!(&str)
+            } else {
+                // Any other type
+                parse_quote!(&#ty)
+            }
         }
     }
     fn getter_ret_expr(&self) -> TokenStream {
         let ident = self.ident();
-        match self.attrs().copy {
-            true =>  quote!( self.#ident),
-            false => quote!(&self.#ident),
+        let inner = quote!(self.#ident);
+        
+        // copy permitted, direct return
+        if self.attrs().copy {
+            return inner;
+        }
+        
+        let ty = &self.origin.ty;
+        if let Some(inner_ty) = parse::util::unwrap_option(ty) {
+            if parse::util::is_string(inner_ty) {
+                // type is Option<String>
+                quote!(#inner.as_ref().map(|s| s.as_str()))
+            } else {
+                // type is Option<_>
+                quote!(#inner.as_ref())
+            }
+        } else {
+            if parse::util::is_string(ty) {
+                // type is String
+                quote!(#inner.as_str())
+            } else {
+                // Any other type
+                quote!(&#inner)
+            }
         }
     }
     pub(super) fn getter_tokens(&self) -> TokenStream {

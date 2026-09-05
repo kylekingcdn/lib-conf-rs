@@ -50,6 +50,14 @@ pub fn unwrap_option(ty: &Type) -> Option<&Type> {
     }
 }
 
+pub fn is_string(ty: &Type) -> bool {
+    if let Type::Path(ty) = ungroup(ty) {
+        ty.path.is_ident("String")
+    } else {
+        false
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

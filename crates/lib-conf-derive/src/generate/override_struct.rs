@@ -1,6 +1,6 @@
 use crate::{
     generate::{util, VariantField},
-    parse::{OriginField, OriginStruct},
+    parse::{self, OriginField, OriginStruct},
 };
 
 use proc_macro2::TokenStream;
@@ -156,26 +156,71 @@ impl OverrideField {
             quote!(#(#[#attrs])*)
         })
     }
+    pub fn ty(&self) -> Type {
+        let mut ty = match self.attrs().override_from {
+            Some(ref ty) => Type::Path(ty.clone()),
+            None => self.origin.flat_ty.clone(),
+        };
+        if !self.attrs().override_required {
+            ty = parse_quote!(Option<#ty>);
+        }
+        ty
+    }
     fn getter_ret_ty(&self) -> Type {
-        // TODO: map String to &str
-        // TODO: as_ref for option?
-        if let Some(ref from_ty) = self.attrs().override_from {
-            let mut inner = from_ty.to_token_stream();
-            if !self.attrs().override_required {
-                inner = quote!(Option::<#inner>);
+        // copy permitted, direct return
+        if self.attrs().copy && self.attrs().override_from.is_none() {
+            if self.attrs().override_required {
+                return self.origin.flat_ty.clone();
             }
-            parse_quote!(&#inner)
-        } else if self.attrs().override_required {
-            self.origin.as_required_return_type()
+            let inner = &self.origin.flat_ty;
+            return parse_quote!(Option<#inner>);
+        }
+
+        let ty = self.ty();
+        if let Some(inner_ty) = parse::util::unwrap_option(&ty) {
+            if parse::util::is_string(inner_ty) {
+                // type is Option<String>
+                parse_quote!(Option<&str>)
+            } else {
+                // type is Option<_>
+                parse_quote!(Option<&#inner_ty>)
+            }
         } else {
-            self.origin.as_optional_return_type()
+            if parse::util::is_string(&ty) {
+                // type is String
+                parse_quote!(&str)
+            } else {
+                // Any other type
+                parse_quote!(&#ty)
+            }
         }
     }
     fn getter_ret_expr(&self) -> TokenStream {
         let ident = self.ident();
-        match self.attrs().copy && self.attrs().override_from.is_none() {
-            true  => quote!( self.#ident),
-            false => quote!(&self.#ident),
+        let inner = quote!(self.#ident);
+        
+        // copy permitted, direct return
+        if self.attrs().copy && self.attrs().override_from.is_none() {
+            return inner;
+        }
+        
+        let ty = self.ty();
+        if let Some(inner_ty) = parse::util::unwrap_option(&ty) {
+            if parse::util::is_string(inner_ty) {
+                // type is Option<String>
+                quote!(#inner.as_ref().map(|s| s.as_str()))
+            } else {
+                // type is Option<_>
+                quote!(#inner.as_ref())
+            }
+        } else {
+            if parse::util::is_string(&ty) {
+                // type is String
+                quote!(#inner.as_str())
+            } else {
+                // Any other type
+                quote!(&#inner)
+            }
         }
     }
     pub(super) fn getter_tokens(&self) -> TokenStream {
@@ -196,17 +241,7 @@ impl OverrideField {
 impl ToTokens for OverrideField {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let ident = self.ident();
-        let ty = if let Some(ref from_ty) = self.attrs().override_from {
-            let mut inner = from_ty.to_token_stream();
-            if !self.attrs().override_required {
-                inner = quote!(Option::<#inner>);
-            }
-            parse_quote!(#inner)
-        } else if self.attrs().override_required {
-            self.origin.as_required_type()
-        } else {
-            self.origin.as_optional_type()
-        };
+        let ty = self.ty();
 
         // regular assign field
         let field_docs = self.docs();

@@ -28,8 +28,8 @@ Rust proc-macro crate providing library authors with first-class configuration f
 - [x] Implement override type mapping for `override_from` and `override_via`
 - [x] Configure `Derive`'s for override & builder generated structs
 - [x] Configure passthrough attrs for both struct and field levels
-- [ ] Return non-copy `Option<_>` getters using `as_ref()`
-- [ ] Return `String`/`Option<String>` getters fns using `as_str()` to
+- [x] Return non-copy `Option<_>` getters using `as_ref()`
+- [z] Return `String`/`Option<String>` getters fns using `as_str()` to
   avoid `&String` return types.
 - [ ] Add gates for serde support to allow for wider consumer compat.
 

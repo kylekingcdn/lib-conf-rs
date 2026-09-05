@@ -10,6 +10,9 @@ pub struct TestConfig {
 
     #[config(copy)]
     pub init_me: bool,
+    
+    #[config(default = Some(String::from("x")))]
+    pub name: Option<String>,
 }
 
 #[test]
@@ -22,4 +25,5 @@ fn main() {
     assert_eq!(config.runtime_only(), &String::from("hunter2"));
     assert_eq!(config.foo(), 5);
     assert_eq!(config.init_me(), true);
+    assert_eq!(config.name(), Some("x"));
 }
