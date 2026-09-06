@@ -18,21 +18,6 @@ Rust proc-macro crate providing library authors with first-class configuration f
 
 ## Progress
 
-### Todo (initial release)
-
-- [x] Handle required fields in `new()` + `builder()` fns, strip `Default` impl
-- [x] Take override in as param if `override_required` is set on any fields,
-  strip `with_override`fn
-  - [x] `override_required`should imply `builder_skip`
-  - [x] `override_required` should not be allowed with default or Option types
-- [x] Implement override type mapping for `override_from` and `override_via`
-- [x] Configure `Derive`'s for override & builder generated structs
-- [x] Configure passthrough attrs for both struct and field levels
-- [x] Return non-copy `Option<_>` getters using `as_ref()`
-- [z] Return `String`/`Option<String>` getters fns using `as_str()` to
-  avoid `&String` return types.
-- [ ] Add gates for serde support to allow for wider consumer compat.
-
 ### Roadmap
 
 - Add default value getters to Config struct
