@@ -24,7 +24,7 @@ fn main() {
     let config = TestConfig::builder(override_config, true)
         .foo(5)
         .build();
-    assert_eq!(config.runtime_only(), &String::from("hunter2"));
+    assert_eq!(config.runtime_only(), "hunter2");
     assert_eq!(config.foo(), 5);
     assert_eq!(config.init_me(), true);
     assert_eq!(config.name(), Some("x"));
