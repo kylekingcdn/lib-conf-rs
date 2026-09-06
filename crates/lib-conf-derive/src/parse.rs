@@ -36,10 +36,12 @@ static STRUCT_SUFFIX_CSV: LazyLock<String> = LazyLock::new(||
     STRUCT_SUFFIXES.iter().map(ToString::to_string).collect::<Vec<_>>().join(", ")
 );
 
-static UNSET_ALIASES: LazyLock<&[&'static str; 3]> = LazyLock::new(|| &[
+#[cfg(feature = "serde")]
+static UNSET_ALIASES: LazyLock<&[&'static str; 4]> = LazyLock::new(|| &[
     "reset",
     "revert",
     "clear",
+    "default",
 ]);
 
 // !- Source config struct
@@ -126,7 +128,7 @@ pub(crate) struct OriginStructAttrs {
 
     pub builder_derives: Vec<TokenStream2>,
     pub builder_attrs: Vec<TokenStream2>,
-    
+
     pub override_derives: Vec<TokenStream2>,
     pub override_attrs: Vec<TokenStream2>,
 }
@@ -242,7 +244,10 @@ impl OriginField {
             None
         }
     }
+    
+    #[cfg(feature = "serde")]
     /// Returns the ident of the unset field, if one should be used
+    #[cfg(feature = "serde")]
     pub fn unset_aliases(&self) -> Vec<String> {
         if self.with_unset_field() {
             let ident = &self.ident;

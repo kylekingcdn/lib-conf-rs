@@ -21,5 +21,6 @@ lib-conf-derive = { version = "0.1.0-pre2", path = "crates/lib-conf-derive" }
 
 [workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }
+bool_assert_comparison = "allow"
 match_bool = "allow"
 single_match_else = "allow"

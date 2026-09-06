@@ -63,11 +63,20 @@ impl OverrideStruct {
 }
 // ! Override struct generate methods
 impl OverrideStruct {
-    fn derive_tokens(&self) -> Option<TokenStream> {
-        self.origin.attrs.has_override_derives().then(|| {
+    fn derive_tokens(&self) -> TokenStream {
+        #[cfg(not(feature = "serde"))]
+        let base = quote! { #[derive(Debug, Clone)] };
+        #[cfg(feature = "serde")]
+        let base = quote! { #[derive(Debug, Clone, ::serde::Deserialize)] };
+
+        let custom = self.origin.attrs.has_override_derives().then(|| {
             let derives = &self.origin.attrs.override_derives;
             quote!(#[derive(#(#derives),*)])
-        })
+        });
+        quote! {
+            #base
+            #custom
+        }
     }
     fn attr_tokens(&self) -> Option<TokenStream> {
         self.origin.attrs.has_override_attrs().then(|| {
@@ -81,8 +90,10 @@ impl OverrideStruct {
             let ident = field.phantom_ident();
             let ty = &field.ty;
 
+            #[cfg(feature = "serde")]
+            out.extend(quote!(#[serde(default)]));
+
             out.extend(quote! {
-                #[serde(default)]
                 #ident: ::std::marker::PhantomData<#ty>,
             });
         }
@@ -100,7 +111,6 @@ impl OverrideStruct {
         let generics = &self.origin.generics;
         let where_clause = &generics.where_clause;
         quote! {
-            #[derive(Debug, Clone, ::serde::Deserialize)]
             #derives
             #attrs
             pub struct #struct_ident #generics
@@ -239,9 +249,14 @@ impl OverrideField {
     }
 }
 impl ToTokens for OverrideField {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         let ident = self.ident();
         let ty = self.ty();
+        
+        #[cfg(feature = "serde")]
+        let vis = quote!(pub(crate));
+        #[cfg(not(feature = "serde"))]
+        let vis = quote!(pub);
 
         // regular assign field
         let field_docs = self.docs();
@@ -249,20 +264,25 @@ impl ToTokens for OverrideField {
         let field = quote! {
             #field_docs
             #attrs
-            pub(crate) #ident: #ty,
+            #vis #ident: #ty,
         };
         tokens.extend(field);
 
         // unset field
         if let Some(unset_ident) = self.origin.unset_ident() {
-            let aliases = self.origin.unset_aliases();
-            let unset_field = quote! {
-                #[serde(default, #(alias=#aliases),*)]
+            #[cfg(feature = "serde")]
+            {
+                let aliases = self.origin.unset_aliases();
+                tokens.extend(quote! {
+                    #[serde(default, #(alias=#aliases),*)]
+                });
+            }
+            
+            tokens.extend(quote! {
                 /// flag allowing for reverting a builder-configured
                 /// setting at runtime
-                pub(crate) #unset_ident: bool,
-            };
-            tokens.extend(unset_field);
+                #vis #unset_ident: bool,
+            });
         }
     }
 }

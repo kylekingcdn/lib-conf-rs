@@ -1,3 +1,5 @@
+#![cfg(feature = "serde")]
+
 mod common;
 
 #[derive(Debug, Clone, lib_conf_derive::LibConfig)]
