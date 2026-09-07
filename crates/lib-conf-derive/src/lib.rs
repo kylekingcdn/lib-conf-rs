@@ -8,6 +8,7 @@ mod parse;
 
 use proc_macro::TokenStream;
 
+#[doc = include_str!("../doc/attributes.md")]
 #[proc_macro_derive(LibConfig, attributes(config))]
 pub fn derive_lib_config(input: TokenStream) -> TokenStream {
     match lib_config::derive(input) {
