@@ -55,7 +55,7 @@ pub(crate) struct OriginStruct {
     pub suffix: &'static str,
 
     pub attrs: OriginStructAttrs,
-    
+
     pub fields: Vec<Rc<OriginField>>,
 }
 impl OriginStruct {
@@ -195,7 +195,7 @@ impl TryFrom<Vec<Attribute>> for OriginStructAttrs {
                 }
             }
         }
-        
+
         Ok(out)
     }
 }
@@ -244,7 +244,7 @@ impl OriginField {
             None
         }
     }
-    
+
     #[cfg(feature = "serde")]
     /// Returns the ident of the unset field, if one should be used
     #[cfg(feature = "serde")]
@@ -270,7 +270,7 @@ impl OriginField {
     pub fn as_fn_param_tokens(&self) -> TokenStream2 {
         let ident = &self.ident;
         let ty = &self.ty;
-        
+
         quote!(#ident: #ty)
     }
 }
@@ -332,7 +332,7 @@ impl TryFrom<Field> for OriginField {
                 }
             }
         }
-        
+
         // manually handle mut ex validation on first pass for attr passthrough
         if let Some(attr_ident) = seen.get(&FieldAttr::OverrideAttr) {
             for incompat in FieldAttr::OverrideAttr.incompatible_attrs() {
@@ -344,7 +344,7 @@ impl TryFrom<Field> for OriginField {
                 }
             }
         }
-        
+
         // parse standard attrs into FieldAttrs struct
         parsed.attrs = FieldAttrs::try_from(standard_attrs)?;
 
@@ -366,11 +366,11 @@ impl TryFrom<Field> for OriginField {
 pub(crate) struct FieldAttrs {
     /// no caveats
     pub copy: bool,
-    
+
     /// incompatible attrs:
     /// - `override_required`
     pub default: Option<AttrExpr>,
-    
+
     /// implies:
     /// - `builder_skip`
     /// - `override_skip`
@@ -409,12 +409,12 @@ pub(crate) struct FieldAttrs {
     /// incompatible types:
     /// - Option<_>
     pub override_required: bool,
-    
+
     /// incompatible:
     /// - `skip_all`
     /// - `override_skip`
     pub override_from: Option<TypePath>,
-    
+
     /// requires:
     /// - `override_from`
     ///

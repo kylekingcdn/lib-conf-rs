@@ -103,20 +103,20 @@ impl BuilderStruct {
     fn new_fn_tokens(&self) -> TokenStream {
         let mut params = Vec::new();
         let mut idents = Vec::new();
-        
+
         if self.override_struct.has_required_fields() {
             let override_ty = self.override_struct.ty();
             params.push(quote!(override_conf: #override_ty));
             idents.push(quote!(override_conf));
         }
         for field in &self.origin.fields {
-            // only other params are config-required and override-optional 
+            // only other params are config-required and override-optional
             if !field.attrs.override_required && field.is_required() {
                 params.push(field.as_fn_param_tokens());
                 idents.push(field.ident.to_token_stream());
             }
         }
-        
+
         let origin_ty = &self.origin.ty;
         let override_assign = if self.override_struct.has_required_fields() {
             quote!(override_conf.clone())
@@ -168,7 +168,7 @@ impl BuilderStruct {
                 self
             }
         };
-        
+
         // skip override clear fn if override has required fields
         if !self.override_struct.has_required_fields() {
             out.extend(quote! {
@@ -181,7 +181,7 @@ impl BuilderStruct {
                 }
             });
         }
-        
+
         out
     }
     fn build_fn_tokens(&self) -> TokenStream {
@@ -190,7 +190,7 @@ impl BuilderStruct {
         let doc_headline = util::doc_line(
             format!("Builds the [`{origin_ident}`]")
         );
-        
+
         let merge_expr =
         if self.override_struct.has_required_fields() {
             quote! {
@@ -205,7 +205,7 @@ impl BuilderStruct {
                 }
             }
         };
-        
+
         quote! {
             #doc_headline
             ///

@@ -208,12 +208,12 @@ impl OverrideField {
     fn getter_ret_expr(&self) -> TokenStream {
         let ident = self.ident();
         let inner = quote!(self.#ident);
-        
+
         // copy permitted, direct return
         if self.attrs().copy && self.attrs().override_from.is_none() {
             return inner;
         }
-        
+
         let ty = self.ty();
         if let Some(inner_ty) = parse::util::unwrap_option(&ty) {
             if parse::util::is_string(inner_ty) {
@@ -252,7 +252,7 @@ impl ToTokens for OverrideField {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let ident = self.ident();
         let ty = self.ty();
-        
+
         #[cfg(feature = "serde")]
         let vis = quote!(pub(crate));
         #[cfg(not(feature = "serde"))]
@@ -277,7 +277,7 @@ impl ToTokens for OverrideField {
                     #[serde(default, #(alias=#aliases),*)]
                 });
             }
-            
+
             tokens.extend(quote! {
                 /// flag allowing for reverting a builder-configured
                 /// setting at runtime

@@ -13,10 +13,10 @@ where
     pub def_t: T,
 
     pub opt_t: Option<T>,
-    
+
     #[config(override_skip, copy)]
     pub opt_s: Option<S>,
-    
+
     #[config(skip_all, default = true)]
     pub all_skipped: bool,
 }
@@ -79,7 +79,7 @@ fn override_works() {
     assert_eq!(override_config.opt_t(), Some(String::from(RUNTIME_VAL)).as_ref());
 
     // TODO: add unset getters for consistency
-    
+
     let config = builder_default()
         .req_t(String::from(COMPILE_VAL))
         .def_t(String::from(COMPILE_VAL))
@@ -91,6 +91,6 @@ fn override_works() {
     assert_eq!(config.def_t(), &String::default()); // has unset
     assert_eq!(config.opt_t(), Some(String::from(RUNTIME_VAL)).as_ref());
     assert_eq!(config.opt_s(), Some(true)); // has skip override
-    
+
     println!("output config: {config:#?}");
 }

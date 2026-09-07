@@ -62,8 +62,8 @@ impl ConfigStruct {
         }
         for field in &self.fields {
             let ident = &field.ident();
-            
-            let assign = 
+
+            let assign =
             // assign from override_conf
             if field.attrs().override_required {
                 let mut inner = quote!(override_conf.#ident.clone());
@@ -84,14 +84,14 @@ impl ConfigStruct {
             else if field.origin.is_required() {
                 // add to params
                 params.push(field.origin.as_fn_param_tokens());
-                
+
                 ident.to_token_stream()
             }
             // from default
             else {
                 field.origin.default().unwrap().to_token_stream()
             };
-            
+
             fields.push(quote!(#ident: #assign));
         }
         quote! {
@@ -103,21 +103,21 @@ impl ConfigStruct {
             }
         }
     }
-    
+
     // TODO: create ConstructorParams struct w/:
     // - opt override conf field containing list of idents + types of req. fields
-    
+
     fn builder_fn_tokens(&self) -> TokenStream {
         let mut params = Vec::new();
         let mut idents = Vec::new();
-        
+
         if self.override_struct.has_required_fields() {
             let override_ty = self.override_struct.ty();
             params.push(quote!(override_conf: #override_ty));
             idents.push(quote!(override_conf));
         }
         for field in &self.origin.fields {
-            // only other params are config-required and override-optional 
+            // only other params are config-required and override-optional
             if !field.attrs.override_required && field.is_required() {
                 params.push(field.as_fn_param_tokens());
                 idents.push(field.ident.to_token_stream());
@@ -206,7 +206,7 @@ impl ConfigStruct {
 impl ToTokens for ConfigStruct {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         tokens.extend(self.impl_tokens());
-        
+
         if !self.override_struct.has_required_fields()
         && !self.origin.has_required_fields() {
             // all config + override fields must be optional for default impl
@@ -226,7 +226,7 @@ impl ConfigField {
         if self.attrs().copy {
             return self.origin.ty.clone();
         }
-        
+
         let ty = &self.origin.ty;
         if let Some(inner_ty) = parse::util::unwrap_option(ty) {
             if parse::util::is_string(inner_ty) {
@@ -249,12 +249,12 @@ impl ConfigField {
     fn getter_ret_expr(&self) -> TokenStream {
         let ident = self.ident();
         let inner = quote!(self.#ident);
-        
+
         // copy permitted, direct return
         if self.attrs().copy {
             return inner;
         }
-        
+
         let ty = &self.origin.ty;
         if let Some(inner_ty) = parse::util::unwrap_option(ty) {
             if parse::util::is_string(inner_ty) {
@@ -292,7 +292,7 @@ impl ConfigField {
         let ident = self.ident();
 
         let temp_assign = quote!(let val = #override_var_ident.#ident.clone(););
-        
+
         let mut assign = if let Some(_from_ty) = &self.attrs().override_from {
             let mut inner = quote!(val);
             if let Some(via_ty) = &self.attrs().override_via {

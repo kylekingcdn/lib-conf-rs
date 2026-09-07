@@ -85,7 +85,7 @@ impl AppendDoc {
     pub fn source(&self) -> &Vec<Attribute> {
         &self.source
     }
-    
+
     pub fn line(&mut self, line: impl Display) {
         // TODO: assert has no newlines?
         self.append.push(line.to_string());

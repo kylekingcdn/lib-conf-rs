@@ -22,7 +22,7 @@ pub(crate) enum StructAttr {
     Derive,
     BuilderDerive,
     OverrideDerive,
-    
+
     Attr,
     BuilderAttr,
     OverrideAttr,
@@ -134,7 +134,7 @@ pub(crate) enum FieldAttr {
     ConfigSkipGetter,
 
     BuilderSkip,
-    
+
     OverrideAttr,
     OverrideSkip,
     OverrideRequired,

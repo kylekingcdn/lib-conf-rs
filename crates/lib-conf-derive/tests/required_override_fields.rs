@@ -6,13 +6,13 @@ mod common;
 pub struct TestConfig {
     #[config(override_required)]
     pub runtime_only: String,
-    
+
     #[config(copy, default = 1)]
     pub foo: u16,
 
     #[config(copy)]
     pub init_me: bool,
-    
+
     #[config(default = Some(String::from("x")))]
     pub name: Option<String>,
 }
