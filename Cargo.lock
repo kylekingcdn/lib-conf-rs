@@ -154,14 +154,14 @@ dependencies = [
 
 [[package]]
 name = "lib-conf"
-version = "0.2.0-pre1"
+version = "0.2.0"
 dependencies = [
  "lib-conf-derive",
 ]
 
 [[package]]
 name = "lib-conf-derive"
-version = "0.2.0-pre1"
+version = "0.2.0"
 dependencies = [
  "config",
  "dotenvy",
