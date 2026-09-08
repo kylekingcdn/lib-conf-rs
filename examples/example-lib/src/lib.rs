@@ -1,60 +1,55 @@
-#![allow(unused)]
-
 use lib_conf::LibConfig;
 use secrecy::SecretString;
 use std::time::Duration;
 
 #[derive(Debug, Clone, LibConfig)]
 pub struct MySdkConfig {
-    /// Enables logging of the current sdk version during startup
-    //
     // example notes:
-    // - implicit default (e.g `#[config_builder(default)]`) is prohibited as the
-    //   expression is directly used to show the default value.
+    // - implicit default (e.g `#[config(default)]`, no `= ..`) is prohibited
+    //   as the expression is directly in docs (to denote library default).
+    /// Enables logging of the current sdk version during startup
     #[config(copy, default = false)]
     print_version: bool,
 
-    /// API token (can only be set st runtime via override config)
+    // example notes:
+    // - can not be configured with the Builder.
+    // - only supports configuration via `MySdkOverrideConfig`
+    /// API token
     #[config(builder_skip)]
     api_token: Option<SecretString>,
 
+    /// Path to use for file logging.
+    ///
+    /// If unset, no logs are written to files.
     log_file_path: Option<String>,
 
-    // /// Some text that uniquely identifies the running instance (can only be set at runtime, required)
-    // NOTE: making an override-only option required effectively forces your users into using env parsing via crates
-    // such as `dotenvy`, `config`.
-    //
-    // Unless your crate is intended for local/internal use or is a "supporting" crate for
-    // your own binary, **this pattern is strongly discouraged**.
-    // #[config_builder(skip)]
-    // #[override_config(required)]
-    // instance_id: String,
-
     /// Refresh interval for content
-    #[config(copy, default = Duration::from_secs(30), override_from = u64, override_via = InternalSecNewtype)]
+    #[config(
+        copy, default = Duration::from_secs(30),
+        override_from = u64, override_via = SecondsAdapter,
+    )]
     refresh_interval: Duration,
 
+    // example notes:
+    // - can only be set using the builder
+    // - runtime-configuration is disabled for this field
     /// Name of the connecting client
-    ///
-    /// Testing multiline comment
-    ///
-    /// What will attrs look like
-    // can only be set from init code
-    // no default value, so this will be placed as a required param in the builder constructor
     #[config(override_skip)]
     client_name: Option<String>,
 }
 
-// one-off internal type used as an intermediate type for override -> config
+/// Non-public struct used as an intermediate type to handle type conversion
+/// between override -> config for mapped type
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct SecondsAdapter(pub u64);
 
-struct InternalSecNewtype(u64);
-impl From<u64> for InternalSecNewtype {
-    fn from(secs: u64) -> Self {
-        Self(secs)
+impl From<u64> for SecondsAdapter {
+    fn from(val: u64) -> Self {
+        Self(val)
     }
 }
-impl From<InternalSecNewtype> for Duration {
-    fn from(secs: InternalSecNewtype) -> Self {
-        Self::from_secs(secs.0)
+impl From<SecondsAdapter> for Duration {
+    fn from(adapter: SecondsAdapter) -> Self {
+        Self::from_secs(adapter.0)
     }
 }
