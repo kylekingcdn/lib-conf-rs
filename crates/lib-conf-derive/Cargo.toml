@@ -13,7 +13,7 @@ workspace = true
 
 [features]
 default = []
-serde = []
+serde = ["secrecy/serde", "url/serde"]
 syn-debug = ["syn/extra-traits"]
 
 [dependencies]
@@ -29,8 +29,9 @@ proc-macro = true
 [dev-dependencies]
 config = { version = "0.15.25", default-features = false }
 dotenvy = "0.15.7"
-secrecy = { version = "0.10.3", features = ["serde"] }
-serde = { version = "1.0.229", features = ["alloc", "derive"] }
+secrecy = "0.10.3"
+serde = { version = "1.0.229", features = ["derive"] }
+url =  { version = "2.5.8", features = ["serde"] } # no-serde support broken?
 
 [package.metadata.docs.rs]
 all-features = true
