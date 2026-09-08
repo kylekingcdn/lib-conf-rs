@@ -154,7 +154,7 @@ impl BuilderStruct {
             ///[`build()`](Self::build) method.
             ///
             /// Any previous calls to [`with_override()`](Self::with_override)
-            /// in the builder chain will have no effect on the resulting
+            /// in the builder chain will have no affect on the resulting
             /// config.
             ///
             /// The order in which this is chained with the builder's setter
