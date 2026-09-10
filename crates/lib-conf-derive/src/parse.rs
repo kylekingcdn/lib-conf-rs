@@ -382,11 +382,11 @@ pub(crate) struct FieldAttrs {
     /// - `override_via`
     pub skip_all: bool,
 
-    /// imcompatible:
+    /// incompatible:
     /// - `skip_all`
     pub config_skip_getter: bool,
 
-    /// imcompatible:
+    /// incompatible:
     /// - `skip_all`
     /// - `override_required`
     pub builder_skip: bool,

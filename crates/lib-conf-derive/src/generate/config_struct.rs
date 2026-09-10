@@ -315,7 +315,7 @@ impl ConfigField {
                 } else
             }
         });
-        // wrapped in brackets to allow for conditional preceeding if {..} else
+        // wrapped in brackets to allow for conditional preceding if {..} else
         let mut setter = quote! {
             {
                 self.#ident = #assign;

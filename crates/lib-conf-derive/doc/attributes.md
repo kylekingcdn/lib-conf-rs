@@ -348,7 +348,7 @@ pub struct MySdkConfig {
 By default, fields in the `Override` struct will always be wrapped in an `Option`, even if the
 source type is fully required (non-`Option`, no `default` attr).
 
-This is the default behaviour because the `Override` struct is an additonal layer used to allow
+This is the default behaviour because the `Override` struct is an additional layer used to allow
 overriding `Builder`-configured (or library-provided default) settings. It is by design that
 integrating the `Override` struct is entirely optional. It's available to dependant crates that wish
 to support runtime configuration of your library, and seamlessly absent for those that don't.

@@ -154,7 +154,7 @@ impl BuilderStruct {
             ///[`build()`](Self::build) method.
             ///
             /// Any previous calls to [`with_override()`](Self::with_override)
-            /// in the builder chain will have no affect on the resulting
+            /// in the builder chain will have no effect on the resulting
             /// config.
             ///
             /// The order in which this is chained with the builder's setter
@@ -210,7 +210,7 @@ impl BuilderStruct {
             #doc_headline
             ///
             /// Values present in an override config (if supplied) will replace
-            /// corresponding assigments made using the builder.
+            /// corresponding assignments made using the builder.
             #[must_use]
             pub fn build(self) -> #origin_ty {
                 #merge_expr
