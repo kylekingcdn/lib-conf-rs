@@ -1,6 +1,10 @@
 [workspace]
 resolver = "3"
-members = ["crates/*", "examples/*"]
+members = [
+    "crates/*",
+    "examples/*/bin*",
+    "examples/*/lib",
+]
 
 [workspace.package]
 description = "Proc-macro providing library authors with first-class configuration for their end-users"
