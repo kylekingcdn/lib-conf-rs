@@ -12,11 +12,9 @@ schemas/
 # config
 .env
 *.env
-!examples/**/*.env
-!tests/**/*.env
 !examples/*/.env
-!tests/.env
-!tests/*/.env
+!examples/**/.env
+!/crates/lib-conf-derive/tests/*.env
 
 # platform
 .DS_Store
