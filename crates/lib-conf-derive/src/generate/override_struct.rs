@@ -144,11 +144,60 @@ impl OverrideStruct {
             }
         }
     }
+    fn default_impl_tokens(&self) -> TokenStream {
+        assert!(!self.has_required_fields());
+
+        let struct_ident = &self.ident;
+
+        // fields
+        let mut fields = TokenStream::new();
+        for field in &self.fields {
+            // guaranteed to be Option since there are no required fields
+            let ident = field.ident();
+            fields.extend(quote!(#ident: None,));
+
+            // unset field
+            if let Some(unset_ident) = field.origin.unset_ident() {
+                fields.extend(quote!(#unset_ident: false,));
+            }
+        }
+        // phantom fields
+        let mut phantoms = TokenStream::new();
+        for field in &self.phantom_fields {
+            let ident = field.phantom_ident();
+            phantoms.extend(quote!(#ident: ::std::marker::PhantomData,));
+        }
+        // generics
+        let (
+            impl_generics,
+            ty_generics,
+            where_clause,
+        ) = self.origin.generics.split_for_impl();
+
+        // #[allow(clippy::redundant_field_names)] added for:
+        //   https://github.com/rust-lang/rust-clippy/issues/17525
+        quote! {
+            #[automatically_derived]
+            #[allow(clippy::redundant_field_names)]
+            impl #impl_generics Default for #struct_ident #ty_generics #where_clause {
+                fn default() -> Self {
+                    Self {
+                        #fields
+                        #phantoms
+                    }
+                }
+            }
+        }
+    }
 }
 impl ToTokens for OverrideStruct {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         tokens.extend(self.struct_tokens());
         tokens.extend(self.impl_tokens());
+        if !self.has_required_fields() {
+            // all fields must be optional for default impl
+            tokens.extend(self.default_impl_tokens());
+        }
     }
 }
 
