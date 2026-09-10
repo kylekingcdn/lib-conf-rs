@@ -134,12 +134,11 @@ impl ConfigStruct {
         }
     }
     fn getter_fns_tokens(&self) -> TokenStream {
-        TokenStream::from_iter(
-            self.fields
-                .iter()
-                .filter(|f| !f.attrs().skip_config_getter())
-                .map(ConfigField::getter_tokens)
-        )
+        self.fields
+            .iter()
+            .filter(|f| !f.attrs().skip_config_getter())
+            .map(ConfigField::getter_tokens)
+            .collect()
     }
     fn merge_fn_tokens(&self) -> TokenStream {
         let override_ty = &self.override_struct.ty();

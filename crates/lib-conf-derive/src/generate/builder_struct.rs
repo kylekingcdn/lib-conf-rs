@@ -136,8 +136,7 @@ impl BuilderStruct {
         }
     }
     fn setter_fns_tokens(&self) -> TokenStream {
-        let fields = self.fields.iter().map(BuilderField::setter_tokens);
-        TokenStream::from_iter(fields)
+        self.fields.iter().map(BuilderField::setter_tokens).collect()
     }
     fn override_fns_tokens(&self) -> TokenStream {
         let override_ty = &self.override_struct.ty();

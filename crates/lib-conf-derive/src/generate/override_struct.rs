@@ -124,10 +124,10 @@ impl OverrideStruct {
     }
     fn getter_fns_tokens(&self) -> TokenStream {
         // TODO: add unset getter
-        let fields = self.fields
+        self.fields
             .iter()
-            .map(OverrideField::getter_tokens);
-        TokenStream::from_iter(fields)
+            .map(OverrideField::getter_tokens)
+            .collect()
     }
     fn impl_tokens(&self) -> TokenStream {
         let ident = &self.ident;

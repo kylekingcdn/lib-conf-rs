@@ -42,7 +42,7 @@ pub fn doc_line(text: impl Display) -> TokenStream {
     let line = if text.is_empty() {
         String::new()
     } else {
-        format!(" {}", text.clone().trim())
+        format!(" {}", text.trim())
     };
 
     quote! {
