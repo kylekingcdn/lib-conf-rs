@@ -31,14 +31,14 @@ helper methods.
 
 Attribute documentation can be found on [docs.rs](https://docs.rs/lib-conf-derive/latest/lib_conf_derive/derive.LibConfig.html).
 
-## Usage demo
-
-For a brief demonstration of the capabilities provided by`lib-conf`, consider the following:
-
 ## Examples
 
 Please see the [examples](https://github.com/kylekingcdn/lib-conf-rs/tree/main/examples) directory
 and accompanying `README.md` file for real-world usage examples.
+
+## Usage demo
+
+For a brief demonstration of the capabilities provided by`lib-conf`, consider the following:
 
 ### The library
 
