@@ -4,6 +4,7 @@ members = [
     "crates/*",
     "examples/*/bin*",
     "examples/*/lib",
+    "examples/readme",
 ]
 
 [workspace.package]

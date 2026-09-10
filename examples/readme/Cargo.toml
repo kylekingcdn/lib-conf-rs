@@ -1,0 +1,25 @@
+[package]
+name = "example-readme"
+description.workspace = true
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+name = "crab_log"
+
+[[bin]]
+name = "example-readme"
+path = "src/bin.rs"
+
+[dependencies]
+config = { workspace = true }
+dotenvy = { workspace = true }
+lib-conf = { workspace = true, features = ["serde"] }
+serde = { workspace = true, features = ["derive"] }
+
+[lints]
+workspace = true
