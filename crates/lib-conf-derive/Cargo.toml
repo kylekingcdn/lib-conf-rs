@@ -17,21 +17,21 @@ serde = ["secrecy/serde", "url/serde"]
 syn-debug = ["syn/extra-traits"]
 
 [dependencies]
-prettyplease = "0.3.0"
-proc-macro2 = "1.0.107"
-quote = "1.0.47"
-syn = "3.0.4"
-thiserror = "2.0.20"
+prettyplease = { workspace = true }
+proc-macro2 = { workspace = true }
+quote = { workspace = true }
+syn = { workspace = true }
+thiserror = { workspace = true }
 
 [lib]
 proc-macro = true
 
 [dev-dependencies]
-config = { version = "0.15.25", default-features = false }
-dotenvy = "0.15.7"
-secrecy = "0.10.3"
-serde = { version = "1.0.229", features = ["derive"] }
-url =  { version = "2.5.8", features = ["serde"] } # no-serde support broken?
+config = { workspace = true }
+dotenvy = { workspace = true }
+secrecy = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+url =  { workspace = true, features = ["serde"] } # no-serde support broken?
 
 [package.metadata.docs.rs]
 all-features = true
