@@ -4,36 +4,195 @@ Rust proc-macro crate providing library authors with first-class configuration f
 
 ## Overview
 
-Included is a `LibConfig` derive macro to be used on named structs containing fields used to publicly configure your library.
+Included is a `LibConfig` derive macro to be used on named structs containing fields used to
+publicly configure your library.
 
-This derive macro generates a builder struct, an override struct (for runtime configuration), and helper methods.
+This derive macro generates a builder struct, an override struct (for runtime configuration), and
+helper methods.
 
 ### Features
 
 - Provides ready-to-use runtime configuration of your library for dependant binaries
 - Automatic builder generation
-- Runtime revert to library defined default
+- Supports runtime revert of manually configured settings to library defined default
 - Inline evaluation of library defined defaults
     - Default expression gets copied into docs of all associated fn's, preventing doc drift
-- Runtime-only initialization of fields, deterring hard-coding of sensitive values
+- Supports runtime-only initialization of fields, deterring hard-coding of sensitive values
 - Supports `serde`-optional libraries
 - Full support for structs utilizing generics
-
-### Resources
-
-For more details, the following resources are provided:
-
-- [Feature flags](#feature-flags)
-- [Attribute reference](#attribute-reference)
-- [Examples](https://github.com/kylekingcdn/lib-conf-rs/tree/main/examples)
-- [Explanation of generated code](#generation)
-- [Roadmap](#roadmap)
 
 [**crates.io**](https://crates.io/crates/lib-conf)
 |
 [**Docs**](https://docs.rs/lib-conf/latest)
 |
 [**GitHub**](https://github.com/kylekingcdn/lib-conf-rs)
+
+## Attribute reference
+
+Attribute documentation can be found on [docs.rs](https://docs.rs/lib-conf-derive/latest/lib_conf_derive/derive.LibConfig.html).
+
+## Usage demo
+
+For a brief demonstration of the capabilities provided by`lib-conf`, consider the following:
+
+## Examples
+
+Please see the [examples](https://github.com/kylekingcdn/lib-conf-rs/tree/main/examples) directory
+and accompanying `README.md` file for real-world usage examples.
+
+### The library
+
+A new logging library, `crab-log`, wishes to expose some settings to it's dependant crates.
+This library provides a standard `CrabLogConfig` struct with various options.
+
+It uses the `LibConfig` derive provided by `lib-conf`, and specifies a few attributes - one of
+which handles setting default values.
+
+```rust,ignore
+use lib_conf::LibConfig;
+
+#[derive(Debug, Clone, LibConfig)]
+pub struct CrabLogConfig {
+    /// Enables the Logger library
+    #[config(copy, default = true)]
+    pub(crate) enabled: bool,
+
+    /// Enables verbose logging
+    #[config(copy, default = false)]
+    pub(crate) verbose: bool,
+
+    /// Enables file logging at the given path
+    ///
+    /// If no path is provided, file logging is disabled.
+    pub(crate) log_file_path: Option<String>,
+}
+```
+
+The `LibConfig` derive generates a builder struct, `CrabLogConfigBuilder`.
+
+It also generates a second struct, `CrabLogOverrideConfig`, which can be used to handle
+configuration at runtime.
+
+### The binary
+
+Later, a Rust developer (who unfortunately hasn't heard of `tracing`) wants to use `crab-log` in
+their binary.
+
+They're currently handling runtime configuration by loading a `.env` file with the help of
+the `dotenvy` and `config` crates.
+
+```rust,ignore
+mod conf {
+    use config::Config;
+
+    /// Runtime configuration for my app
+    #[derive(Debug, Clone, Deserialize)]
+    pub struct AppRuntimeConfig {
+        pub db: DbConfig,
+    }
+    impl AppRuntimeConfig {
+        /// loads runtime config from .env file
+        pub fn try_load() -> Result<Self, Box<dyn std::error::Error>> {
+            dotenvy::dotenv()?;
+
+            let parsed = Config::builder()
+                .add_source(config::Environment::with_prefix("APP").separator("__"))
+                .build()?
+                .try_deserialize()?;
+
+            Ok(parsed)
+        }
+    }
+
+    #[derive(Debug, Clone, serde::Deserialize)]
+    pub struct DbConfig {
+        pub url: String,
+    }
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let runtime_config = conf::AppRuntimeConfig::try_load()?;
+    println!("Runtime config: {runtime_config:#?}");
+
+    Ok(())
+}
+```
+
+To setup `crab-log` in their app, they add a `CrabLogOverrideConfig` field to
+their runtime config struct, `AppRuntimeConfig`:
+
+```rust,ignore
+/// Runtime configuration for my app
+#[derive(Debug, Clone, Deserialize)]
+pub struct AppRuntimeConfig {
+    pub db: DbConfig,
+
+    #[serde(default)]
+    pub crab: CrabLogOverrideConfig,
+}
+```
+
+To initialize `crab-log`, they use the provided builder and pass in the override config
+from `AppRuntimeConfig`:
+
+```rust,ignore
+let runtime_config = conf::AppRuntimeConfig::try_load()?;
+
+let crab_config = CrabLogConfig::builder()
+    .verbose(true)
+    .with_override(runtime_config.crab)
+    .build();
+```
+
+They are able to configure `crab-log` with the builder, of course.
+
+More importantly however, they can now ***set***, ***override***, or even ***revert***
+the settings from their `.env` file:
+
+```env
+APP__DB__URL=http://localhost:5432/postgres
+
+APP__CRAB__LOG_FILE_PATH=/tmp/out.log
+APP__CRAB__VERBOSE_UNSET=true
+```
+
+The fully working code for this demo can be found under [`examples/readme`](https://github.com/kylekingcdn/lib-conf-rs/tree/main/examples/readme).
+
+For a more detailed version of this demo, see [`examples/1-typical`](https://github.com/kylekingcdn/lib-conf-rs/tree/main/examples/1-typical).
+
+## Installation
+
+If `serde` is a mandatory dependency of your crate, you will likely want to add `lib-conf` with
+the `standard` feature enabled:
+
+```shell
+$ cargo add lib-conf --features standard
+```
+
+> `Cargo.toml` equivalent:
+>
+> ```toml
+> [dependencies]
+> lib-conf = { version = "0.2", features = ["standard"] }
+> ```
+
+---
+
+Otherwise, if `serde` is gated by a feature flag, you can add `lib-conf` with it's default features,
+and then include `serde` support in your own feature flag, e.g.
+
+```toml
+[features]
+serde = [
+    # ...
+    "lib-conf/serde",
+]
+
+[dependencies]
+lib-conf = "0.2"
+```
+
+A breakdown of all available feature flags can be found below
 
 ## Feature flags
 
@@ -45,7 +204,8 @@ Only the `derive` feature is enabled by default.
 
 Enables what we believe to be the most common set of desired features.
 
-This is provided as a feature group to allow for automatic opt-in of new, common use-case features introduced in future releases.
+This is provided as a feature group to allow for automatic opt-in of new, common use-case features
+introduced in future releases.
 
 Currently includes: `derive`, `serde`
 
@@ -59,25 +219,20 @@ This feature exists to allow for simple exclusion if other macro crates are also
 
 Enables automatically deriving `Deserialize` on the `Override`struct.
 
-This will also drop the visibility of `Override` fields from `pub` to `pub(crate)`, deterring manual, non-runtime initialization of the `Override` struct.
+This will also drop the visibility of `Override` fields from `pub` to `pub(crate)`, deterring
+manual, non-runtime initialization of the `Override` struct.
 
 If `serde` is a mandatory dependency of your library, you should always have this feature enabled.
 
-Otherwise, if `serde` is optional, you can include this feature in your `serde` feature gate to allow for full support in dependant crates that use `serde`, while retaining compatibility with crates which do not want to depend on `serde`.
+Otherwise, if `serde` is optional, you can include this feature in your `serde` feature gate to
+allow for full support in dependant crates that use `serde`, while retaining compatibility with
+crates which do not want to depend on `serde`.
 
 ### `syn-debug`
 
 Enables the `extra-traits` feature of `syn`.
 
 This is almost certainly only useful for internal development and likely shouldn't be enabled.
-
-## Attribute reference
-
-Attribute documentation can be found on [docs.rs](https://docs.rs/lib-conf-derive/latest/lib_conf_derive/derive.LibConfig.html) or in the [following markdown file](https://github.com/kylekingcdn/lib-conf-rs/blob/main/crates/lib-conf-derive/doc/attributes.md).
-
-## Examples
-
-Please see the [examples](https://github.com/kylekingcdn/lib-conf-rs/tree/main/example) directory and accompanying `README.md` file for real-world usage examples.
 
 ## Generation
 
@@ -89,8 +244,10 @@ Deriving `LibConfig` on a '`MyLibraryConfig`' named struct will generate:
 
 **An override settings struct:** `MyLibraryOverrideConfig`
 
-- Provides consumers with a `serde::Deserialize` variant of the settings struct, allowing for out-of-the-box runtime adjustment of settings
-  - designed to fit the configuration pattern already in-use by the binary. E.g. using `config` to load settings from various files or env variables, or using `dotenvy` to pull from a `.env` file
+- Provides consumers with a `serde::Deserialize` variant of the settings struct, allowing for
+  out-of-the-box runtime adjustment of settings
+  - designed to fit the configuration pattern already in-use by the binary. E.g. using `config` to
+    load settings from various files or env variables, or using `dotenvy` to pull from a `.env` file
 
 **impl's on the *derive* struct**: `MyLibraryConfig`
 
@@ -102,13 +259,56 @@ Deriving `LibConfig` on a '`MyLibraryConfig`' named struct will generate:
 
 ### Benefits of builder/override pattern
 
-- Provide's out-of-the-box runtime configuration, bypassing the common need for binary-authors to manually create settings fields/structs used to initialize your library
+- Provide's out-of-the-box runtime configuration, bypassing the common need for binary-authors to
+  manually create settings fields/structs used to initialize your library
 - Supports adjusting settings at runtime that were not configured using the builder
 - Allows for overriding settings at runtime that were configured using the builder
-- Supports reverting settings at runtime that were configured using the builder - back to library-defined defaults
+- Supports reverting settings at runtime that were configured using the builder - back to library
+  defined defaults
 - Allows for mapping values from deserialize-supported types, without relying on `serde_as`
 - Retains compatibility in serde-optional libraries via feature flags
-- Allows for gating fields to runtime-only initialization, which can greatly deter hard-coding of sensitive values (e.g. API tokens, database credentials, etc.)
+- Allows for gating fields to runtime-only initialization, which can greatly deter hard-coding of
+  sensitive values (e.g. API tokens, database credentials, etc.)
+
+### Notes
+
+#### Config struct name suffix
+
+To infer the name to be used for the `Override` struct, `lib-conf` uses a
+static list of struct suffixes to match your config struct against.
+
+The following suffixes are currently supported:
+
+- `Config` (or `Conf`)
+- `Options` (or `Opts`)
+- `Parameters` (or `Params`)
+- `Settings`
+
+*Support for additional suffixes or custom naming schemes via attributes may be added in the future*.
+
+#### Aliases for *`*_unset`* fields
+
+The `unset` field has additional `serde` aliases to allow for reverting a
+field to the library default using a few common words.
+
+Currently supported are:
+
+- `unset`
+- `reset`
+- `revert`
+- `clear`
+- `default`
+
+For example, to revert a field named `foo` to it's library-defined default via a
+`.env` file, any of the following would work:
+
+```env
+FOO_UNSET=true   # or
+FOO_RESET=true   # or
+FOO_REVERT=true  # or
+FOO_CLEAR=true   # or
+FOO_DEFAULT=true
+```
 
 ## Progress
 
@@ -116,7 +316,7 @@ Deriving `LibConfig` on a '`MyLibraryConfig`' named struct will generate:
 
 - Add default value getters to Config struct
 - Generate .env.example util fn for consumers, using defaults + required
-- Add/confirm offical support for nested usage
+- Add/confirm official support for nested usage
   - e.g. `lib1 -> lib2 -> bin`, where both libs use `lib-conf` and both
     are exposed to binary
   - Support lib2 exposing a subset of lib1 options to bin
