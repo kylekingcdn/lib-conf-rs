@@ -32,7 +32,7 @@ checksum = "1aaf95b3e5c8f23aa320147307562d361db0ae0d51242340f558153b4eb2439b"
 
 [[package]]
 name = "example-readme"
-version = "0.2.0"
+version = "0.2.1-pre1"
 dependencies = [
  "config",
  "dotenvy",
@@ -155,14 +155,14 @@ dependencies = [
 
 [[package]]
 name = "lib-conf"
-version = "0.2.0"
+version = "0.2.1-pre1"
 dependencies = [
  "lib-conf-derive",
 ]
 
 [[package]]
 name = "lib-conf-derive"
-version = "0.2.0"
+version = "0.2.1-pre1"
 dependencies = [
  "config",
  "dotenvy",
@@ -178,14 +178,14 @@ dependencies = [
 
 [[package]]
 name = "lib-conf-example1-bin-classic"
-version = "0.2.0"
+version = "0.2.1-pre1"
 dependencies = [
  "lib-conf-example1-lib",
 ]
 
 [[package]]
 name = "lib-conf-example1-bin-override"
-version = "0.2.0"
+version = "0.2.1-pre1"
 dependencies = [
  "config",
  "dotenvy",
@@ -196,7 +196,7 @@ dependencies = [
 
 [[package]]
 name = "lib-conf-example1-lib"
-version = "0.2.0"
+version = "0.2.1-pre1"
 dependencies = [
  "lib-conf",
  "serde",
