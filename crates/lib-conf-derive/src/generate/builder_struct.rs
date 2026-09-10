@@ -124,9 +124,12 @@ impl BuilderStruct {
             quote!(None)
         };
 
+        // #[allow(clippy::redundant_field_names)] added for:
+        //   https://github.com/rust-lang/rust-clippy/issues/17525
         quote! {
             /// Constructs a new builder instance
             #[must_use]
+            #[allow(clippy::redundant_field_names)]
             pub fn new(#(#params),*) -> Self {
                 Self {
                     override_conf: #override_assign,

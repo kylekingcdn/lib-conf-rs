@@ -94,8 +94,11 @@ impl ConfigStruct {
 
             fields.push(quote!(#ident: #assign));
         }
+        // #[allow(clippy::redundant_field_names)] added for:
+        //   https://github.com/rust-lang/rust-clippy/issues/17525
         quote! {
             #[must_use]
+            #[allow(clippy::redundant_field_names)]
             pub(crate) fn new(#(#params),*) -> Self {
                 Self {
                     #(#fields),*
