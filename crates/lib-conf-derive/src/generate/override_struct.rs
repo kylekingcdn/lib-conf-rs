@@ -123,7 +123,6 @@ impl OverrideStruct {
         }
     }
     fn getter_fns_tokens(&self) -> TokenStream {
-        // TODO: add unset getter
         self.fields
             .iter()
             .map(OverrideField::getter_tokens)
@@ -287,6 +286,9 @@ impl OverrideField {
         let docs = self.docs();
         let ty = self.getter_ret_ty();
         let ret = self.getter_ret_expr();
+        // include the unset_getter here so that it appears immediately after
+        // the normal getter
+        let unset_getter = self.unset_getter_tokens();
 
         quote! {
             #docs
@@ -294,7 +296,25 @@ impl OverrideField {
             pub fn #ident(&self) -> #ty {
                 #ret
             }
+
+            #unset_getter
         }
+
+    }
+    pub(super) fn unset_getter_tokens(&self) -> Option<TokenStream> {
+        self.origin.unset_ident().map(|unset_ident| {
+            let ident = self.ident();
+            let docs_txt = format!("Returns true if the `{ident}` unset field has been explicitly set to true");
+            let docs = util::doc_line(docs_txt);
+
+            quote! {
+                #docs
+                #[must_use]
+                pub fn #unset_ident(&self) -> bool {
+                    self.#unset_ident
+                }
+            }
+        })
     }
 }
 impl ToTokens for OverrideField {
