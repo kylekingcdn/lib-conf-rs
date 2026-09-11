@@ -122,21 +122,12 @@ pub struct Conf {{
 
         // ! fields
         let mut fields = Vec::new();
-        if self.has_optional_fields() {
-            if self.has_required_fields() {
-                fields.push("Each field is optional unless explicitly stated otherwise.\n".to_string());
-            } else {
-                fields.push("Every field is optional.\n".to_string());
-            }
-        }
+        let mut unset_fields = Vec::new();
         if origin_has_opt_fields {
-            let unset_aliases = parse::UNSET_ALIASES.iter().map(|s| format!("`{s}`")).collect::<Vec<_>>().join(", ");
-            fields.push(format!(
-"> **Note**: for each of [`{origin_ident}`]'s optional fields, there is an additional `{{}}_unset` field.
->
-> If set to `true`, the associated field will have it's value reverted to the library default.
->
-> The following unset aliases are also supported: {unset_aliases}\n"
+            unset_fields.push(format!(
+"For each of [`{origin_ident}`]'s optional fields, there is an additional `{{}}_unset` field.
+
+If set to `true`, the associated field will have it's value reverted to the library default.\n"
             ));
         }
         for field in &self.fields {
@@ -149,9 +140,23 @@ pub struct Conf {{
             let ty = field.flat_ty().to_token_stream().to_string().replace(' ', "");
             fields.push(format!("- `{field_ident}: {ty}{suffix}`"));
             if let Some(unset_ident) = field.origin.unset_ident() {
-                fields.push(format!("  - `{unset_ident}: bool`"));
+                unset_fields.push(format!("- `{unset_ident}: bool`"));
             }
         }
+        if self.has_optional_fields() {
+            if self.has_required_fields() {
+                fields.push("\n**Note**: Each override field is optional unless explicitly stated otherwise.".to_string());
+            } else {
+                fields.push("\n**Note**: All override fields are optional.".to_string());
+            }
+        }
+        if !unset_fields.is_empty() {
+            fields.push("\n## Unset fields\n".to_string());
+
+            let unset_aliases = parse::UNSET_ALIASES.iter().map(|s| format!("`{s}`")).collect::<Vec<_>>().join(", ");
+            unset_fields.push(format!("\n**Note**: The following unset aliases are also supported: {unset_aliases}"));
+        }
+        fields = fields.into_iter().chain(unset_fields).collect();
         let fields = fields.join("\n");
 
         // !- output
