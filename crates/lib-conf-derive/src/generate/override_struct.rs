@@ -46,11 +46,17 @@ impl OverrideStruct {
             phantom_fields,
         }
     }
+    pub fn ident(&self) -> &Ident {
+        &self.ident
+    }
     pub fn ty(&self) -> &Type {
         &self.ty
     }
     pub fn has_required_fields(&self) -> bool {
-        self.fields.iter().any(super::VariantField::is_required)
+        self.fields.iter().any(OverrideField::is_required)
+    }
+    pub fn has_optional_fields(&self) -> bool {
+        self.fields.iter().any(OverrideField::is_optional)
     }
     fn generate_ident(origin_ident: &Ident, suffix: &'static str) -> Ident {
         let ident_str = origin_ident.to_string();
@@ -208,17 +214,23 @@ impl OverrideField {
     pub fn is_required(&self) -> bool {
         self.attrs().override_required
     }
+    pub fn is_optional(&self) -> bool {
+        !self.attrs().override_required
+    }
     fn attr_tokens(&self) -> Option<TokenStream> {
         self.origin.has_override_attrs().then(|| {
             let attrs = &self.origin.override_attrs;
             quote!(#(#[#attrs])*)
         })
     }
-    pub fn ty(&self) -> Type {
-        let mut ty = match self.attrs().override_from {
+    pub fn flat_ty(&self) -> Type {
+        match self.attrs().override_from {
             Some(ref ty) => Type::Path(ty.clone()),
             None => self.origin.flat_ty.clone(),
-        };
+        }
+    }
+    pub fn ty(&self) -> Type {
+        let mut ty = self.flat_ty();
         if !self.attrs().override_required {
             ty = parse_quote!(Option<#ty>);
         }

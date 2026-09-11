@@ -62,6 +62,9 @@ impl OriginStruct {
     pub fn has_required_fields(&self) -> bool {
         self.fields.iter().any(|f| f.is_required())
     }
+    pub fn has_optional_fields(&self) -> bool {
+        self.fields.iter().any(|f| f.is_optional())
+    }
     pub fn has_generics(&self) -> bool {
         self.generics.type_params().next().is_some()
     }
