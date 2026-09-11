@@ -37,7 +37,7 @@ static STRUCT_SUFFIX_CSV: LazyLock<String> = LazyLock::new(||
 );
 
 #[cfg(feature = "serde")]
-static UNSET_ALIASES: LazyLock<&[&'static str; 4]> = LazyLock::new(|| &[
+pub static UNSET_ALIASES: LazyLock<&[&'static str; 4]> = LazyLock::new(|| &[
     "reset",
     "revert",
     "clear",

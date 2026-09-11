@@ -66,7 +66,108 @@ impl OverrideStruct {
         let prefix = &ident_str[..suf_index];
         format_ident!("{prefix}Override{suffix}")
     }
+
+    #[cfg(not(feature = "serde"))]
+    fn struct_docs(&self) -> String {
+        let origin_ident = &self.origin.ident;
+        format!(
+"Provides support for configuring [`{origin_ident}`] at run-time.
+
+**Note**: `serde` support is disabled. This struct must be manually initialized. It is provided to allow for retained override/unset support")
+    }
+
+    #[cfg(feature = "serde")]
+    fn struct_docs(&self) -> String {
+        let origin_ident = &self.origin.ident;
+        let ident = &self.ident;
+        let origin_has_opt_fields = self.origin.has_optional_fields();
+
+        // ! overview features
+        let mut support = Vec::new();
+        support.push("This struct can be used to:".to_string());
+        support.push(format!("- *Set* [`{origin_ident}`] fields"));
+        support.push(format!("- *Override* assignments made using [`{origin_ident}Builder`]"));
+        if origin_has_opt_fields {
+            support.push("- *Revert* field assignments back to library-defined defaults".to_string());
+        }
+        let support = support.join("\n");
+
+        // ! overview
+        let overview = format!(
+"Provides support for configuring [`{origin_ident}`] at run-time.
+
+A common method of rust app configuration is deserializing a config file or env vars into a *'Config'* struct at run-time.
+
+`{ident}` is provided for just this case.
+
+{support}"
+        );
+
+        // ! example
+        let mut default_attr = String::new();
+        if !self.has_required_fields() {
+            default_attr.push_str("#[serde(default)]\n    ");
+        }
+        let example = format!(
+"```rust,ignore
+#[derive(Debug, Clone, Deserialize)]
+pub struct Conf {{
+    api: ApiConf,
+    // ..
+    {default_attr}_: {ident},
+}}
+```"
+        );
+
+        // ! fields
+        let mut fields = Vec::new();
+        if self.has_optional_fields() {
+            if self.has_required_fields() {
+                fields.push("Each field is optional unless explicitly stated otherwise.\n".to_string());
+            } else {
+                fields.push("Every field is optional.\n".to_string());
+            }
+        }
+        if origin_has_opt_fields {
+            let unset_aliases = parse::UNSET_ALIASES.iter().map(|s| format!("`{s}`")).collect::<Vec<_>>().join(", ");
+            fields.push(format!(
+"> **Note**: for each of [`{origin_ident}`]'s optional fields, there is an additional `{{}}_unset` field.
+>
+> If set to `true`, the associated field will have it's value reverted to the library default.
+>
+> The following unset aliases are also supported: {unset_aliases}\n"
+            ));
+        }
+        for field in &self.fields {
+            let mut suffix = String::new();
+            if field.is_required() {
+                suffix.push_str("  // mandatory");
+            }
+
+            let field_ident = field.ident();
+            let ty = field.flat_ty().to_token_stream().to_string().replace(' ', "");
+            fields.push(format!("- `{field_ident}: {ty}{suffix}`"));
+            if let Some(unset_ident) = field.origin.unset_ident() {
+                fields.push(format!("  - `{unset_ident}: bool`"));
+            }
+        }
+        let fields = fields.join("\n");
+
+        // !- output
+        format!(
+"{overview}
+
+# Example
+
+{example}
+
+# Fields
+
+{fields}"
+        )
+    }
 }
+
 // ! Override struct generate methods
 impl OverrideStruct {
     fn derive_tokens(&self) -> TokenStream {
@@ -106,6 +207,7 @@ impl OverrideStruct {
         out
     }
     fn struct_tokens(&self) -> TokenStream {
+        let docs = util::doc_lines_split(self.struct_docs(), false);
         let derives = self.derive_tokens();
         let attrs = self.attr_tokens();
         let struct_ident = &self.ident;
@@ -117,6 +219,7 @@ impl OverrideStruct {
         let generics = &self.origin.generics;
         let where_clause = &generics.where_clause;
         quote! {
+            #docs
             #derives
             #attrs
             pub struct #struct_ident #generics
