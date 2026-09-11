@@ -1,0 +1,30 @@
+[package]
+name = "lib-conf-ports"
+description = "`lib-conf` implementations for 3rd party crates"
+#version.workspace = true
+version = "0.2.3-pre1"
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+license.workspace = true
+publish = true
+
+[lints]
+workspace = true
+
+[features]
+# feature groups
+default = []
+# module gates
+sqlx-postgres = ["sqlx/postgres", "dep:log", "dep:secrecy", "dep:serde"]
+
+[dependencies]
+lib-conf = { workspace = true, optional = true, features = ["serde"] }
+log = { workspace = true, optional = true, features = ["serde"] }
+secrecy = { workspace = true, optional = true, features = ["serde"] }
+serde = { workspace = true, optional = true, features = ["derive"] }
+sqlx = { workspace = true, optional = true }
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
