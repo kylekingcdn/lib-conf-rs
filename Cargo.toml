@@ -30,11 +30,13 @@ config = { version = "0.15.25", default-features = false }
 dotenvy = "0.15.7"
 lib-conf = { version = "0.2.3", path = "crates/lib-conf" }
 lib-conf-derive = { version = "0.2.3", path = "crates/lib-conf-derive" }
+log = { version = "0.4.18", default-features = false }
 prettyplease = "0.3.0"
 proc-macro2 = "1.0.107"
 quote = "1.0.47"
 serde = "1.0.229"
 secrecy = "0.10.3"
+sqlx = { version = "0.8.6", default-features = false }
 syn = "3.0.4"
 thiserror = "2.0.20"
 url = "2.5.8"
