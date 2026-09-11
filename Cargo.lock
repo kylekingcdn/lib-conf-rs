@@ -136,20 +136,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "example-readme"
-version = "0.2.1"
-dependencies = [
- "config",
- "dotenvy",
- "lib-conf",
- "serde",
-]
-
-[[package]]
 name = "example1-bin-classic"
 version = "0.2.1"
 dependencies = [
- "lib-conf-example1-lib",
+ "lib-conf-example-1",
 ]
 
 [[package]]
@@ -158,7 +148,7 @@ version = "0.2.1"
 dependencies = [
  "config",
  "dotenvy",
- "lib-conf-example1-lib",
+ "lib-conf-example-1",
  "secrecy",
  "serde",
 ]
@@ -169,7 +159,7 @@ version = "0.2.1"
 dependencies = [
  "config",
  "dotenvy",
- "lib-conf-example1-lib",
+ "lib-conf-example-1",
  "secrecy",
  "serde",
 ]
@@ -180,7 +170,7 @@ version = "0.2.1"
 dependencies = [
  "config",
  "dotenvy",
- "lib-conf-example2-lib",
+ "lib-conf-example-2",
  "secrecy",
  "serde",
 ]
@@ -191,7 +181,7 @@ version = "0.2.1"
 dependencies = [
  "config",
  "dotenvy",
- "lib-conf-example3-lib",
+ "lib-conf-example-3",
  "secrecy",
  "serde",
 ]
@@ -391,7 +381,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "lib-conf-example1-lib"
+name = "lib-conf-example-1"
 version = "0.2.1"
 dependencies = [
  "lib-conf",
@@ -399,7 +389,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "lib-conf-example2-lib"
+name = "lib-conf-example-2"
 version = "0.2.1"
 dependencies = [
  "lib-conf",
@@ -407,9 +397,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "lib-conf-example3-lib"
+name = "lib-conf-example-3"
 version = "0.2.1"
 dependencies = [
+ "lib-conf",
+ "serde",
+]
+
+[[package]]
+name = "lib-conf-example-readme"
+version = "0.2.1"
+dependencies = [
+ "config",
+ "dotenvy",
  "lib-conf",
  "serde",
 ]

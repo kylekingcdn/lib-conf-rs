@@ -7,6 +7,6 @@ license = "MIT"
 publish = false
 
 [dependencies]
-example2-lib = { path = "../lib", package = "lib-conf-example2-lib" }
+example2-lib = { path = "../lib", package = "lib-conf-example-2" }
 dotenvy = "0.15.7"
 secrecy = "0.10.3"

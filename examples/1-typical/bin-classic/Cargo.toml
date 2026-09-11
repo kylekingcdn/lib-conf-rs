@@ -8,7 +8,7 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
-example1-lib = { path = "../lib", package = "lib-conf-example1-lib" }
+example1-lib = { path = "../lib", package = "lib-conf-example-1" }
 
 [lints]
 workspace = true

@@ -1,4 +1,5 @@
 #![allow(unused, clippy::pedantic)]
+pub(crate) use lib_conf_example_readme::crab_log; // emulate dep
 
 use crab_log::CrabLogConfig;
 
@@ -16,6 +17,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 mod conf {
+    use super::crab_log; // emulate dep
+
     use config::Config;
     use crab_log::{CrabLogConfig, CrabLogOverrideConfig};
     use serde::Deserialize;

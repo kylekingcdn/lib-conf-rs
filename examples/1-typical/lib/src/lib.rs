@@ -1,3 +1,4 @@
+//! This is an example library for [`lib_conf`] and does not provide actual functionality.
 #![allow(unused, clippy::pedantic)]
 
 use crate::internal::SecondsAdapter;

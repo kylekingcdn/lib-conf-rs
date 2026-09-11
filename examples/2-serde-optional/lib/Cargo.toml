@@ -1,5 +1,6 @@
 [package]
-name = "lib-conf-example2-lib"
+name = "lib-conf-example-2"
+description = "This is an example for `lib_conf` and does not provide actual functionality."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

@@ -8,7 +8,7 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
-example3-lib = { path = "../lib", package = "lib-conf-example3-lib" }
+example3-lib = { path = "../lib", package = "lib-conf-example-3" }
 config = { workspace = true }
 dotenvy = { workspace = true }
 secrecy = { workspace = true, features = ["serde"] }
