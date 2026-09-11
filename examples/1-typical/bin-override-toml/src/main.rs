@@ -14,6 +14,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let example1_config = Example1Config::builder()
         .log_file_path(Some("/tmp/test.log".to_string()))
         .log_rotate_interval(Duration::from_secs(1))
+        .verbose(true)
         .with_override(runtime_config.ex1)
         .build();
     println!("Library config: {example1_config:#?}");
@@ -30,7 +31,7 @@ mod conf {
     #[derive(Debug, Clone, Deserialize)]
     pub struct DbConfig {
         pub url: SecretString,
-        pub max_connections: u32,
+        pub max_connections: Option<u32>,
     }
 
     /// Runtime configuration for my app
@@ -43,11 +44,11 @@ mod conf {
         pub db: DbConfig
     }
     impl AppRuntimeConfig {
-        /// loads runtime config from .env file
+        /// loads runtime config from a config file (toml, json, yaml, etc)
         pub fn try_load() -> Result<Self, Box<dyn Error>> {
             dotenvy::dotenv()?;
             let parsed = Config::builder()
-                .add_source(config::Environment::with_prefix("APP").separator("__"))
+                .add_source(config::File::with_name("config.toml"))
                 .build()?
                 .try_deserialize()?;
 

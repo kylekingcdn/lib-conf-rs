@@ -1,5 +1,5 @@
 [package]
-name = "example1-bin-classic"
+name = "example1-bin-override-dotenv"
 description.workspace = true
 version.workspace = true
 edition.workspace = true
@@ -10,6 +10,10 @@ publish.workspace = true
 
 [dependencies]
 example1-lib = { path = "../lib", package = "lib-conf-example1-lib" }
+config = { workspace = true }
+dotenvy = { workspace = true }
+secrecy = { workspace = true, features = ["serde"] }
+serde = { workspace = true, features = ["derive"] }
 
 [lints]
 workspace = true

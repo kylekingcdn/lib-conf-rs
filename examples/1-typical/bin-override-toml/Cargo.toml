@@ -1,5 +1,5 @@
 [package]
-name = "lib-conf-example1-bin-override"
+name = "example1-bin-override-toml"
 description.workspace = true
 version.workspace = true
 edition.workspace = true
@@ -10,7 +10,7 @@ publish.workspace = true
 
 [dependencies]
 example1-lib = { path = "../lib", package = "lib-conf-example1-lib" }
-config = { workspace = true }
+config = { workspace = true, default-features = true }
 dotenvy = { workspace = true }
 secrecy = { workspace = true, features = ["serde"] }
 serde = { workspace = true, features = ["derive"] }

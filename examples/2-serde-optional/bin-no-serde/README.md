@@ -1,7 +1,6 @@
-# `example2-serde-optional`
+# `example2-bin-no-serde`
 
-Typical usage in a library where `serde` is a mandatory dependency
-
+This example highlights consumer integration with no-serde runtime config
 
 > [!NOTE]
 > The remaining examples will not contain the extra 'noise' fields.

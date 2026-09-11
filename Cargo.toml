@@ -6,6 +6,10 @@ members = [
     "examples/*/lib",
     "examples/readme",
 ]
+exclude = [
+    # FIXME: broken due to feature unification?
+    "examples/2-serde-optional/bin-no-serde",
+]
 
 [workspace.package]
 description = "Proc-macro providing library authors with first-class configuration for their end-users"

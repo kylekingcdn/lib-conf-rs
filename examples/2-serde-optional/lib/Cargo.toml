@@ -1,5 +1,5 @@
 [package]
-name = "example1-bin-classic"
+name = "lib-conf-example2-lib"
 description.workspace = true
 version.workspace = true
 edition.workspace = true
@@ -7,9 +7,15 @@ rust-version.workspace = true
 repository.workspace = true
 license.workspace = true
 publish.workspace = true
+#publish = true # TODO: enable
+
+[features]
+default = []
+serde = ["dep:serde", "lib-conf/serde"]
 
 [dependencies]
-example1-lib = { path = "../lib", package = "lib-conf-example1-lib" }
+lib-conf = { workspace = true }
+serde = { workspace = true, optional = true, features = ["derive"] }
 
 [lints]
 workspace = true

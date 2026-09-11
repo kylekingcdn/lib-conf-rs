@@ -1,0 +1,7 @@
+[db]
+url = "postgresql://postgres@localhost:5432/postgres"
+kax_connections = 10
+
+[ex1]
+log_rotate_interval = 1800
+verbose_unset = true

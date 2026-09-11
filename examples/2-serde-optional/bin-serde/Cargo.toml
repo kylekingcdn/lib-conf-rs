@@ -1,0 +1,19 @@
+[package]
+name = "example2-bin-serde"
+description.workspace = true
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+example2-lib = { path = "../lib", package = "lib-conf-example2-lib", features = ["serde"]}
+config = { workspace = true }
+dotenvy = { workspace = true }
+secrecy = { workspace = true, features = ["serde"] }
+serde = { workspace = true, features = ["derive"] }
+
+[lints]
+workspace = true
