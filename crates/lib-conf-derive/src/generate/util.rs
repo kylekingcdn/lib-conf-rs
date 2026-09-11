@@ -37,20 +37,24 @@ pub fn bare_default_impl_tokens(
 // !- Doc attr addition helper
 
 /// Handles trim + prefix of leading space
-pub fn doc_line(text: impl Display) -> TokenStream {
+pub fn doc_line(text: impl Display, trim: bool) -> TokenStream {
     let line = text.to_string();
-    doc_lines(vec![&line])
+    doc_lines(vec![&line], trim)
 }
 
 /// Handles trim + prefix of leading space
-pub fn doc_lines(lines: Vec<&str>) -> TokenStream {
+pub fn doc_lines(lines: Vec<&str>, trim: bool) -> TokenStream {
     let lines: Vec<_> = lines.into_iter().map(|s| {
         let text = s.to_string();
-        let trim = text.trim();
-        if trim.is_empty() {
+        let trimmed = if trim {
+            text.trim()
+        } else {
+            &text
+        };
+        if trimmed.is_empty() {
             String::new()
         } else {
-            format!(" {}", trim)
+            format!(" {trimmed}")
         }
     }).collect();
 
@@ -59,8 +63,8 @@ pub fn doc_lines(lines: Vec<&str>) -> TokenStream {
     }
 }
 /// Handles line split + trim + prefix of leading space
-pub fn doc_lines_split(lines: impl Display) -> TokenStream {
-    doc_lines(lines.to_string().lines().collect())
+pub fn doc_lines_split(lines: impl Display, trim: bool) -> TokenStream {
+    doc_lines(lines.to_string().lines().collect(), trim)
 }
 
 #[cfg_attr(feature = "syn-debug", derive(Debug))]
@@ -99,7 +103,7 @@ impl AppendDoc {
         self.append.push(String::new());
     }
     pub fn to_append_tokens(&self) -> TokenStream {
-        doc_lines(self.append.iter().map(|s| s.as_str()).collect())
+        doc_lines(self.append.iter().map(String::as_str).collect(), true)
     }
 }
 impl From<Vec<Attribute>> for AppendDoc {

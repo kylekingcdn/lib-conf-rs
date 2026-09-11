@@ -93,7 +93,7 @@ impl BuilderStruct {
         ty
     }
     fn struct_tokens(&self) -> TokenStream {
-        let docs = util::doc_lines_split(self.struct_docs());
+        let docs = util::doc_lines_split(self.struct_docs(), true);
         let derives = self.derive_tokens();
         let attrs = self.attr_tokens();
         let struct_ident = &self.ident;
@@ -204,7 +204,7 @@ impl BuilderStruct {
         let origin_ident = &self.origin.ident;
         let origin_ty = &self.origin.ty;
         let doc_headline = util::doc_line(
-            format!("Builds the [`{origin_ident}`]")
+            format!("Builds the [`{origin_ident}`]"), true
         );
 
         let merge_expr =

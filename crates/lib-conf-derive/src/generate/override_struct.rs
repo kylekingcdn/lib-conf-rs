@@ -305,7 +305,7 @@ impl OverrideField {
         self.origin.unset_ident().map(|unset_ident| {
             let ident = self.ident();
             let docs_txt = format!("Returns true if the `{ident}` unset field has been explicitly set to true");
-            let docs = util::doc_line(docs_txt);
+            let docs = util::doc_line(docs_txt, true);
 
             quote! {
                 #docs
