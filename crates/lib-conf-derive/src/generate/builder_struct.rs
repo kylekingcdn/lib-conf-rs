@@ -56,6 +56,18 @@ impl BuilderStruct {
     pub fn generate_builder_ident(origin_ident: &Ident) -> Ident {
         format_ident!("{}Builder", origin_ident)
     }
+    fn struct_docs(&self) -> String {
+        let override_ident = self.override_struct.ident();
+        let origin_ident = &self.origin.ident;
+        let ident = &self.ident;
+        format!(
+            "Provides a builder used to configure [`{origin_ident}`] at compile-time.
+        
+            Can be constructed using either [`{origin_ident}::builder()`] or [`{ident}::new()`].
+            
+            For run-time congiguration of `{origin_ident}`, see [`{override_ident}`]."
+        )
+    }
 }
 
 // ! Builder struct generate methods
@@ -81,6 +93,7 @@ impl BuilderStruct {
         ty
     }
     fn struct_tokens(&self) -> TokenStream {
+        let docs = util::doc_lines_split(self.struct_docs());
         let derives = self.derive_tokens();
         let attrs = self.attr_tokens();
         let struct_ident = &self.ident;
@@ -89,6 +102,7 @@ impl BuilderStruct {
         let generics = &self.origin.generics;
         let where_clause = &generics.where_clause;
         quote! {
+            #docs
             #[derive(Debug, Clone)]
             #derives
             #attrs
@@ -268,6 +282,7 @@ impl BuilderField {
         let docs = self.docs();
         quote! {
             #docs
+            #[must_use]
             pub fn #ident(mut self, val: #ty) -> Self {
                 self.inner.#ident = val;
                 self
