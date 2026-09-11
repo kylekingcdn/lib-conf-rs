@@ -94,7 +94,7 @@ impl std::ops::Add<CrabLogOverrideConfig> for CrabLogConfig {
 ///
 /// Can be constructed using either [`CrabLogConfig::builder()`] or [`CrabLogConfigBuilder::new()`].
 ///
-/// For run-time congiguration of `CrabLogConfig`, see [`CrabLogOverrideConfig`].
+/// For run-time configuration of `CrabLogConfig`, see [`CrabLogOverrideConfig`].
 #[derive(Debug, Clone)]
 pub struct CrabLogConfigBuilder {
     pub(crate) inner: CrabLogConfig,

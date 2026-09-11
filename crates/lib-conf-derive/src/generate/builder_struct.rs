@@ -65,7 +65,7 @@ impl BuilderStruct {
 
             Can be constructed using either [`{origin_ident}::builder()`] or [`{ident}::new()`].
 
-            For run-time congiguration of `{origin_ident}`, see [`{override_ident}`]."
+            For run-time configuration of `{origin_ident}`, see [`{override_ident}`]."
         )
     }
 }
