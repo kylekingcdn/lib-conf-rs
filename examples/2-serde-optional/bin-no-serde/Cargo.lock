@@ -13,20 +13,20 @@ name = "example2-bin-no-serde"
 version = "0.0.0"
 dependencies = [
  "dotenvy",
- "lib-conf-example2-lib",
+ "lib-conf-example-2",
  "secrecy",
 ]
 
 [[package]]
 name = "lib-conf"
-version = "0.2.1"
+version = "0.2.3"
 dependencies = [
  "lib-conf-derive",
 ]
 
 [[package]]
 name = "lib-conf-derive"
-version = "0.2.1"
+version = "0.2.3"
 dependencies = [
  "prettyplease",
  "proc-macro2",
@@ -36,8 +36,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "lib-conf-example2-lib"
-version = "0.2.1"
+name = "lib-conf-example-2"
+version = "0.2.3"
 dependencies = [
  "lib-conf",
 ]
