@@ -137,14 +137,14 @@ dependencies = [
 
 [[package]]
 name = "example1-bin-classic"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "lib-conf-example-1",
 ]
 
 [[package]]
 name = "example1-bin-override-dotenv"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "config",
  "dotenvy",
@@ -155,7 +155,7 @@ dependencies = [
 
 [[package]]
 name = "example1-bin-override-toml"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "config",
  "dotenvy",
@@ -166,7 +166,7 @@ dependencies = [
 
 [[package]]
 name = "example2-bin-serde"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "config",
  "dotenvy",
@@ -177,7 +177,7 @@ dependencies = [
 
 [[package]]
 name = "example3-bin"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "config",
  "dotenvy",
@@ -359,14 +359,14 @@ dependencies = [
 
 [[package]]
 name = "lib-conf"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "lib-conf-derive",
 ]
 
 [[package]]
 name = "lib-conf-derive"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "config",
  "dotenvy",
@@ -382,7 +382,7 @@ dependencies = [
 
 [[package]]
 name = "lib-conf-example-1"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "lib-conf",
  "serde",
@@ -390,7 +390,7 @@ dependencies = [
 
 [[package]]
 name = "lib-conf-example-2"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "lib-conf",
  "serde",
@@ -398,7 +398,7 @@ dependencies = [
 
 [[package]]
 name = "lib-conf-example-3"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "lib-conf",
  "serde",
@@ -406,7 +406,7 @@ dependencies = [
 
 [[package]]
 name = "lib-conf-example-readme"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "config",
  "dotenvy",
