@@ -1,5 +1,4 @@
 // prevent workspace build failures with --all-features
-#![cfg(not(feature = "serde"))]
 #![allow(unused, clippy::pedantic)]
 
 use example2_lib::{Example2Config, Example2Lib, Example2OverrideConfig};
@@ -35,7 +34,7 @@ mod conf {
     impl DbConfig {
         /// loads db config from .env file
         pub fn try_load() -> Result<Self, Box<dyn Error>> {
-            
+
             let max_connections = if let Ok(conn) = env::var("APP__DB__MAX_CONNECTIONS") {
                 Some(conn.parse::<u32>()?)
             } else {

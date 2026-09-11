@@ -1,16 +1,12 @@
 [package]
 name = "example2-bin-no-serde"
-version.workspace = true
-edition.workspace = true
-rust-version.workspace = true
-repository.workspace = true
-license.workspace = true
-publish.workspace = true
+edition = "2024"
+rust-version = "1.91"
+repository = "https://github.com/kylekingcdn/lib-conf-rs"
+license = "MIT"
+publish = false
 
 [dependencies]
 example2-lib = { path = "../lib", package = "lib-conf-example2-lib" }
-dotenvy = { workspace = true }
-secrecy = { workspace = true }
-
-[lints]
-workspace = true
+dotenvy = "0.15.7"
+secrecy = "0.10.3"
