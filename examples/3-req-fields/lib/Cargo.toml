@@ -1,6 +1,5 @@
 [package]
 name = "lib-conf-example3-lib"
-description.workspace = true
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
