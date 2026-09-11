@@ -55,6 +55,7 @@ impl OverrideStruct {
     pub fn has_required_fields(&self) -> bool {
         self.fields.iter().any(OverrideField::is_required)
     }
+    #[allow(dead_code)] // only used w/ serde feature
     pub fn has_optional_fields(&self) -> bool {
         self.fields.iter().any(OverrideField::is_optional)
     }
@@ -317,6 +318,7 @@ impl OverrideField {
     pub fn is_required(&self) -> bool {
         self.attrs().override_required
     }
+    #[allow(dead_code)] // only used w/ serde feature
     pub fn is_optional(&self) -> bool {
         !self.attrs().override_required
     }

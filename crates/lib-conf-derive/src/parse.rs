@@ -62,6 +62,7 @@ impl OriginStruct {
     pub fn has_required_fields(&self) -> bool {
         self.fields.iter().any(|f| f.is_required())
     }
+    #[allow(dead_code)] // only used w/ serde feature
     pub fn has_optional_fields(&self) -> bool {
         self.fields.iter().any(|f| f.is_optional())
     }
