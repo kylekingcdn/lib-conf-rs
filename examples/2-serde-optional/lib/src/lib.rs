@@ -2,6 +2,7 @@
 
 use lib_conf::LibConfig;
 
+/// Settings for `example2` of `lib-conf`
 #[derive(Debug, Clone, LibConfig)]
 pub struct Example2Config {
     /// Enables verbose logging
@@ -17,6 +18,7 @@ pub struct Example2Config {
     pub(crate) log_file_path: Option<String>,
 }
 
+/// Primary interface for example 2's library
 pub struct Example2Lib {
     _config: Example2Config,
 }

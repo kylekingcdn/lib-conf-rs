@@ -5,6 +5,7 @@ use crate::internal::SecondsAdapter;
 use lib_conf::LibConfig;
 use std::time::Duration;
 
+/// Settings for `example1` of `lib-conf`
 #[derive(Debug, Clone, LibConfig)]
 pub struct Example1Config {
     // - Example Notes
@@ -61,6 +62,7 @@ pub struct Example1Config {
     pub(crate) log_rotate_interval: Duration,
 }
 
+/// Primary interface for example 1's library
 pub struct Example1Lib {
     _config: Example1Config,
 }

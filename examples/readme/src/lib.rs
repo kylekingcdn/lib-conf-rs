@@ -1,5 +1,6 @@
 use lib_conf::LibConfig;
 
+/// Settings for `crab-log`
 #[derive(Debug, Clone, LibConfig)]
 pub struct CrabLogConfig {
     /// Enables the Logger library
