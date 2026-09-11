@@ -62,9 +62,9 @@ impl BuilderStruct {
         let ident = &self.ident;
         format!(
             "Provides a builder used to configure [`{origin_ident}`] at compile-time.
-        
+
             Can be constructed using either [`{origin_ident}::builder()`] or [`{ident}::new()`].
-            
+
             For run-time congiguration of `{origin_ident}`, see [`{override_ident}`]."
         )
     }
