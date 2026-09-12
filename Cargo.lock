@@ -723,7 +723,7 @@ dependencies = [
 
 [[package]]
 name = "lib-conf-ports"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "lib-conf",
  "log",

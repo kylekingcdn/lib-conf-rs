@@ -1,7 +1,7 @@
 [package]
 name = "lib-conf-ports"
 description = "`lib-conf` implementations for 3rd party crates"
-version = "0.2.4"
+version = "0.2.5"
 edition.workspace = true
 rust-version.workspace = true
 repository.workspace = true
@@ -15,7 +15,7 @@ workspace = true
 # feature groups
 default = []
 # module gates
-sqlx-postgres = ["sqlx/postgres", "dep:log", "dep:secrecy", "dep:serde"]
+sqlx-postgres = ["sqlx/postgres", "dep:lib-conf", "dep:log", "dep:secrecy", "dep:serde"]
 
 [dependencies]
 lib-conf = { workspace = true, optional = true, features = ["serde"] }
