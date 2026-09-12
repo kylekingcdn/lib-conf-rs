@@ -357,7 +357,7 @@ This attribute reverts this behaviour, enforcing presence of this field at runti
 
 > Note: the following explanation uses a fake deriving struct name of `MySdkConfig` to improve legibility.
 
-An undesirable consequence - the `MySdkOverrideConfig` struct loses it's `Default` impl as it now has a
+An undesirable consequence - the `MySdkOverrideConfig` struct loses its `Default` impl as it now has a
 required field.
 
 - To account for this, the `MySdkConfig::builder()` and `MySdkConfigBuilder::new()` functions now require
@@ -393,7 +393,7 @@ pub struct MySdkConfig {
 - Incompatible attributes: `default`, `skip_all`, `builder_skip`, `override_skip`
 - Incompatible types: `Option<_>`
 - Runtime configuration is now mandatory and is no longer opt-in
-- The `Builder` struct loses it's `with_override()` method
+- The `Builder` struct loses its `with_override()` method
 - The `Builder` struct must be initialized with an `Override` config
 - No setter is available for this field in the `Builder` struct
 

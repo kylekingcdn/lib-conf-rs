@@ -127,7 +127,7 @@ pub struct Conf {{
             unset_fields.push(format!(
 "For each of [`{origin_ident}`]'s optional fields, there is an additional `{{}}_unset` field.
 
-If set to `true`, the associated field will have it's value reverted to the library default.\n"
+If set to `true`, the associated field will have its value reverted to the library default.\n"
             ));
         }
         for field in &self.fields {
