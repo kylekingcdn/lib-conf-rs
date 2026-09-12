@@ -32,28 +32,48 @@ use std::time::Duration;
 ///
 /// // ..
 ///
-/// let pg_runtime_conf = my_app_config.db.clone();
-/// let db_url = pg_runtime_conf.url_exposed();
-///
-/// let pg_pool_opts = PgPoolConfig::builder()
+/// let pg_conf = PgPoolConfig::builder()
+///    .migrate(false) // prevent migrating unless explicitly enabled at runtime
 ///    .max_connections(15)
-///    .with_override(pg_runtime_conf)
-///    .build()
-///    .as_pool_options();
+///    .with_override(my_app_config.db.clone())
+///    .build();
 ///
-/// if let Some(db_url) = db_url.as_ref() {
-///     let db_pool_res = pg_pool_opts.connect_lazy(db_url);
+/// if let Some(db_url) = pg_conf.url_exposed().as_ref() {
+///     let migrate = pg_conf.migrate();
+///     let pool_options = pg_conf.into_pool_options();
+///
+/// #   #[allow(unused)]
+///     if let Ok(pool) = pool_options.connect_lazy(db_url) {
+///         if migrate {
+///             println!("Running migrations");
+///             // would probably run this next...
+///             // sqlx::migrate!().run(&pool).await.expect("Migrations run");
+///         } else {
+///             println!("Skipping migrations");
+///         }
+///     }
 /// }
 /// ```
 #[derive(Debug, Clone, LibConfig)]
 pub struct PgPoolConfig {
     /// URL of the database
     ///
-    /// This is a supplementary field added by `lib-conf-ports` for convenience
+    /// This is a supplementary field added by `lib-conf-ports` for convenience.
     ///
     /// **Note**: this field can only be set at run-time.
     #[config(builder_skip)]
     pub(crate) url: Option<SecretString>,
+
+    /// Indicates to the application whether or not migrations should run.
+    ///
+    /// This is a supplementary field added by `lib-conf-ports` for convenience.
+    ///
+    /// Out of the box, this setting has no impact. It is intended to be used as
+    /// runtime-adjustable control-flow for migration handling.
+    ///
+    /// See the [`PgPoolConfig`] struct-level docs for example usage.
+    #[config(copy, default = true)]
+    pub(crate) migrate: bool,
 
     /// Maximum number of connections that this pool should maintain
     ///
