@@ -19,14 +19,14 @@ dependencies = [
 
 [[package]]
 name = "lib-conf"
-version = "0.2.3"
+version = "0.3.0"
 dependencies = [
  "lib-conf-derive",
 ]
 
 [[package]]
 name = "lib-conf-derive"
-version = "0.2.3"
+version = "0.3.0"
 dependencies = [
  "prettyplease",
  "proc-macro2",
@@ -37,7 +37,7 @@ dependencies = [
 
 [[package]]
 name = "lib-conf-example-2"
-version = "0.2.3"
+version = "0.3.0"
 dependencies = [
  "lib-conf",
 ]

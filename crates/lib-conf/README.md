@@ -211,26 +211,36 @@ Enables what we believe to be the most common set of desired features.
 This is provided as a feature group to allow for automatic opt-in of new, common use-case features
 introduced in future releases.
 
-Currently includes: `derive`, `serde`
+Currently includes: `derive`, `serde`, `adapter`
 
 ### `derive`
 
-If disabled, this crate provides nothing.
+- Exposes the `LibConfig` derive macro - the core functionality of this crate.
 
-This feature exists to allow for simple exclusion if other macro crates are also feature gated.
+If you're unsure whether or not you need this feature - then yes, you do.
+
+Exists to prevent future breaking changes if portions of the macro code are offloaded.
 
 ### `serde`
 
-Enables automatically deriving `Deserialize` on the `Override`struct.
+- Enables automatically deriving `Deserialize` on the `Override`struct
+- Decreases `Override` field visibility from `pub` to `pub(crate)` 
 
-This will also drop the visibility of `Override` fields from `pub` to `pub(crate)`, deterring
-manual, non-runtime initialization of the `Override` struct.
+If `serde` is a mandatory dependency of your library, you should enable this.
 
-If `serde` is a mandatory dependency of your library, you should always have this feature enabled.
+If `serde` is optional, you can include this feature in your `serde` feature gate.
 
-Otherwise, if `serde` is optional, you can include this feature in your `serde` feature gate to
-allow for full support in dependant crates that use `serde`, while retaining compatibility with
-crates which do not want to depend on `serde`.
+### `adapter`
+
+- Exposes a small set of commonly used conversion handlers for `override_via`.
+  - e.g. Deserialize duration as seconds, minutes, etc.
+
+While new adapters will likely be added in the future, this feature will only ever be concerned
+with core types. 
+
+In other words, this feature will never introduce new dependencies.
+
+New adapters targeting 3rd party types will always be gated by a dedicated feature.
 
 ### `syn-debug`
 

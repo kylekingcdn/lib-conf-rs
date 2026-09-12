@@ -1,10 +1,11 @@
-use crate::common::adapter::SecondsAdapter;
-
 /// Re-export of [`log::LevelFilter`](https://docs.rs/log/latest/log/enum.LevelFilter.html).
 ///
 pub use log::LevelFilter;
 
-use lib_conf::LibConfig;
+use lib_conf::{
+    adapter::duration::SecondsAdapter,
+    LibConfig,
+};
 use secrecy::{ExposeSecret, SecretString};
 use sqlx::postgres::PgPoolOptions;
 use std::time::Duration;

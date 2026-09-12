@@ -14,7 +14,9 @@ workspace = true
 [features]
 # feature groups
 default = ["derive"]
-standard = ["derive", "serde"]
+standard = ["derive", "serde", "adapter"]
+# lib-conf features
+adapter = []
 # dep gates
 derive = ["dep:lib-conf-derive"]
 # passthrough flags

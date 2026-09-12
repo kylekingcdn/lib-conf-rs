@@ -5,3 +5,7 @@
 #[cfg(feature = "derive")]
 #[cfg_attr(docsrs, doc(cfg(feature = "derive")))]
 pub use lib_conf_derive::LibConfig;
+
+#[cfg(feature = "adapter")]
+#[cfg_attr(docsrs, doc(cfg(feature = "adapter")))]
+pub mod adapter;

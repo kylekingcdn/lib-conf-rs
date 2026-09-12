@@ -13,7 +13,7 @@ exclude = [
 
 [workspace.package]
 description = "Proc-macro providing library authors with first-class configuration for their end-users"
-version = "0.2.3"
+version = "0.3.0"
 edition = "2024"
 rust-version = "1.91"
 repository = "https://github.com/kylekingcdn/lib-conf-rs"
@@ -28,8 +28,8 @@ opt-level = 3
 [workspace.dependencies]
 config = { version = "0.15.25", default-features = false }
 dotenvy = "0.15.7"
-lib-conf = { version = "0.2.3", path = "crates/lib-conf" }
-lib-conf-derive = { version = "0.2.3", path = "crates/lib-conf-derive" }
+lib-conf = { version = "0.3.0", path = "crates/lib-conf" }
+lib-conf-derive = { version = "0.3.0", path = "crates/lib-conf-derive" }
 log = { version = "0.4.18", default-features = false }
 prettyplease = "0.3.0"
 proc-macro2 = "1.0.107"

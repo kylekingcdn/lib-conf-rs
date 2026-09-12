@@ -78,6 +78,9 @@ impl Example1Lib {
 mod internal {
     use super::*;
 
+    // NOTE: `lib-conf` natively provides this adapter (requires `adapter` feature)z
+    // It's redefined here to serve as an example for your own adapters.
+
     /// Handles mapping durations provided at runtime (chose to use sec units, but it's up to you)
     pub struct SecondsAdapter(u64);
 
