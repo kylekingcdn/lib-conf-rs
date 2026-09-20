@@ -202,11 +202,11 @@ A breakdown of all available feature flags can be found below
 
 ### `default`
 
-Only the `derive` feature is enabled by default.
+- Only the `derive` feature is enabled by default.
 
 ### `standard`
 
-Enables what we believe to be the most common set of desired features.
+- Enables what we believe to be the most common set of desired features.
 
 This is provided as a feature group to allow for automatic opt-in of new, common use-case features
 introduced in future releases.
@@ -219,12 +219,10 @@ Currently includes: `derive`, `serde`, `adapter`
 
 If you're unsure whether or not you need this feature - then yes, you do.
 
-Exists to prevent future breaking changes if portions of the macro code are offloaded.
-
 ### `serde`
 
 - Enables automatically deriving `Deserialize` on the `Override`struct
-- Decreases `Override` field visibility from `pub` to `pub(crate)` 
+- Decreases `Override` field visibility from `pub` to `pub(crate)`
 
 If `serde` is a mandatory dependency of your library, you should enable this.
 
@@ -236,7 +234,7 @@ If `serde` is optional, you can include this feature in your `serde` feature gat
   - e.g. Deserialize duration as seconds, minutes, etc.
 
 While new adapters will likely be added in the future, this feature will only ever be concerned
-with core types. 
+with core types.
 
 In other words, this feature will never introduce new dependencies.
 
@@ -248,7 +246,7 @@ New adapters targeting 3rd party types will always be gated by a dedicated featu
 
 ### `syn-debug`
 
-Enables the `extra-traits` feature of `syn`.
+- Enables the `extra-traits` feature of `syn`.
 
 This is almost certainly only useful for internal development and likely shouldn't be enabled.
 
