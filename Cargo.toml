@@ -39,6 +39,7 @@ secrecy = "0.10.3"
 sqlx = { version = "0.8.6", default-features = false }
 syn = "3.0.4"
 thiserror = "2.0.20"
+tracing = { version = "0.1.44", default-features = false }
 url = "2.5.8"
 
 [workspace.lints.clippy]

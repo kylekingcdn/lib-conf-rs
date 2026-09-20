@@ -242,6 +242,10 @@ In other words, this feature will never introduce new dependencies.
 
 New adapters targeting 3rd party types will always be gated by a dedicated feature.
 
+### `adapter-tracing-level`
+
+- Provides an adapter for deserializing [`tracing::Level`](https://docs.rs/tracing/latest/tracing/struct.Level.html) fields at run-time.
+
 ### `syn-debug`
 
 Enables the `extra-traits` feature of `syn`.

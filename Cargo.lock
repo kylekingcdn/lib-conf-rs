@@ -669,6 +669,7 @@ name = "lib-conf"
 version = "0.3.0"
 dependencies = [
  "lib-conf-derive",
+ "tracing",
 ]
 
 [[package]]
