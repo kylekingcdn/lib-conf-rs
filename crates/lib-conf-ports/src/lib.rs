@@ -1,5 +1,8 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![deny(rustdoc::broken_intra_doc_links)]
+#![warn(missing_docs)]
+#![warn(unreachable_pub)]
+
 #![doc = include_str!("../README.md")]
 
 #[cfg(feature = "sqlx-postgres")]
