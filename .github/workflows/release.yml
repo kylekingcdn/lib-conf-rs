@@ -39,6 +39,9 @@ jobs:
       - &install-rust
         name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+      - &install-semver-checks
+        name: Install semver-checks
+        uses: taiki-e/install-action@cargo-semver-checks
       - id: pr
         name: Run release-plz release-pr
         uses: release-plz/action@v0.5
@@ -71,6 +74,7 @@ jobs:
     steps:
       - *checkout
       - *install-rust
+      - *install-semver-checks
       - id: release
         name: Run release-plz release
         uses: release-plz/action@v0.5
