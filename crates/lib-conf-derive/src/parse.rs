@@ -164,10 +164,14 @@ impl TryFrom<Vec<Attribute>> for OriginStructAttrs {
                 // - Ok(None for non-`doc` attrs
                 if let Some(doc_attr) = util::try_parse_doc_attrs(&attr)? {
                     out.doc_attrs.push(doc_attr);
-                }
-                // unknown attr that we were able to get a key of
-                else if let Some(ident) = attr.path().get_ident() {
-                    eprintln!("Ignoring unknown struct attribute: {ident}");
+                } else {
+                    // unknown attr that we were able to get a key of
+                    #[cfg(feature = "syn-debug")]
+                    {
+                        if let Some(ident) = attr.path().get_ident() {
+                            eprintln!("Ignoring unknown struct attribute: {ident}");
+                        }
+                    }
                 }
                 continue;
             }
@@ -305,10 +309,14 @@ impl TryFrom<Field> for OriginField {
                 // - Ok(None for non-`doc` attrs
                 if let Some(doc_attr) = util::try_parse_doc_attrs(&attr)? {
                     parsed.doc_attrs.push(doc_attr);
-                }
-                // unknown attr that we were able to get a key of
-                else if let Some(ident) = attr.path().get_ident() {
-                    eprintln!("Ignoring unknown field attribute: {ident}");
+                } else {
+                    // unknown attr that we were able to get a key of
+                    #[cfg(feature = "syn-debug")]
+                    {
+                        if let Some(ident) = attr.path().get_ident() {
+                            eprintln!("Ignoring unknown field attribute: {ident}");
+                        }
+                    }
                 }
                 continue;
             }
