@@ -9,11 +9,33 @@ release_always = false
 # https://release-plz.dev/docs/config#the-pr_labels-field
 pr_labels = ["release"]
 
+# Disable GitHub tag generation by default (enable on a per-package basis)
+git_tag_enable = false
+
+# Disable changelogs by default (enable on a per-package basis)
+changelog_update = false
+
 # Disable GitHub release generation
 git_release_enable = false
 
 # Organize release branches in hierarchy
 pr_branch_prefix = "release-plz/"
+
+[[package]]
+name = "lib-conf"
+changelog_include = ["lib-conf-derive"]
+git_tag_enable = true
+changelog_update = true
+
+[[package]]
+name = "lib-conf-derive"
+git_tag_enable = true
+changelog_update = true
+
+[[package]]
+name = "lib-conf-ports"
+git_tag_enable = true
+changelog_update = true
 
 [changelog]
 protect_breaking_commits = true

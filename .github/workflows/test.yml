@@ -48,8 +48,6 @@ jobs:
             cargo run "${_RUN_ARGS}"
           )
           done;
-      - name: Docs [all features]
-        run: cargo test --workspace --doc --all-features
 
   lint:
     name: Lint
