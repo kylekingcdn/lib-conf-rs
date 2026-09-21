@@ -31,6 +31,26 @@ jobs:
       - name: Docs [all features]
         run: cargo test --workspace --doc --all-features
 
+      - name: Run examples
+        shell: bash
+        run: |
+          for BIN_TOML in examples/*/*bin*/Cargo.toml; do
+          BIN="$(dirname "${BIN_TOML}")"
+          (
+            cd "${BIN}"
+
+            NAME="${BIN/examples\//}";
+            echo -e "\n\e[1;95m Running example\e[0m - \e[49;36m${NAME}\e[0m\n";
+
+            if [[ "${BIN}" != *'-no-serde'* ]]; then
+                _RUN_ARGS='--all-features'
+            fi;
+            cargo run "${_RUN_ARGS}"
+          )
+          done;
+      - name: Docs [all features]
+        run: cargo test --workspace --doc --all-features
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
