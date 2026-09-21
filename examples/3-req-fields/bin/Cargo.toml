@@ -1,6 +1,6 @@
 [package]
 name = "example3-bin"
-version.workspace = true
+version = "0.3.1"
 edition.workspace = true
 rust-version.workspace = true
 repository.workspace = true
