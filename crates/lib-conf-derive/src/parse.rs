@@ -123,7 +123,7 @@ impl TryFrom<TokenStream> for OriginStruct {
         }
         // parse #[config(..)] attrs into structured opts
         let attrs = OriginStructAttrs::try_from_grouped(grouped.standard, grouped.proxied)?;
-        
+
         // parse fields
         let fields: Vec<OriginField> = fields.named.into_iter().map(|f|
             OriginField::try_from_field(f, ids.clone())
@@ -153,7 +153,7 @@ pub(crate) struct OriginStructAttrs {
 
     pub override_derives: Vec<TokenStream2>,
     pub override_attrs: Vec<TokenStream2>,
-    
+
     pub example_field_name: String,
 }
 impl OriginStructAttrs {
@@ -174,7 +174,7 @@ impl OriginStructAttrs {
         proxied: Vec<ProxiedAttr<StructAttr>>,
     ) -> Result<Self, syn::Error> {
         let mut out = Self::default();
-        
+
         for attr in standard {
             match attr.meta {
                 Meta::Path(_path) => {
@@ -199,7 +199,7 @@ impl OriginStructAttrs {
                 }
             }
         }
-        
+
         for attr in proxied {
             #[allow(clippy::match_wildcard_for_single_variants)]
             match attr.variant {
@@ -267,11 +267,11 @@ impl OriginField {
     pub(crate) fn has_override_attrs(&self) -> bool {
         !self.attrs.override_attrs.is_empty()
     }
-    
+
     pub(crate) fn is_conditional(&self) -> bool {
         !self.passthrough_attrs.cfg.is_empty()
     }
-    
+
     /// Whether the override struct should have an unset field
     pub(crate) fn with_unset_field(&self) -> bool {
         self.is_optional() && !self.attrs.skip_override_field()
@@ -413,7 +413,7 @@ pub(crate) struct FieldAttrs {
     /// - `skip_all`
     /// - `override_skip`
     pub override_from: Option<TypePath>,
-    
+
     pub override_from_copy: bool,
 
     /// requires:

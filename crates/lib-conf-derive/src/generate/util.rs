@@ -154,7 +154,7 @@ pub(crate) trait Document: Sized {
         }
         self
     }
-    
+
     #[must_use]
     #[doc(hidden)]
     fn header(self, level: u8, text: impl Display) -> Self {
@@ -639,13 +639,13 @@ impl DerivedLink {
         } else {
             format!("{}", self.struct_ident)
         };
-        
+
         let ref_path = if let Some(member) = &member {
             format!("{}::{member}", self.struct_ident)
         } else {
             format!("{}", self.struct_ident)
         };
-        
+
         Link::new(name, ref_path).mono()
     }
 
@@ -661,7 +661,7 @@ impl DerivedLink {
     pub(crate) fn trait_only(self) -> Link {
         self.build(Option::<&String>::None, false).scope(LinkScope::Trait)
     }
-    
+
     /// Includes only the function in the link name
     #[must_use]
     pub(crate) fn function(self, ident: impl Display) -> Link {
@@ -687,7 +687,7 @@ impl DerivedLink {
     pub(crate) fn method_explicit(self, ident: impl Display) -> Link {
         self.build(Some(&ident), true).scope(LinkScope::Method)
     }
-    
+
     /// Includes only the field in the link name
     #[must_use]
     pub(crate) fn field(self, ident: impl Display) -> Link {
@@ -840,7 +840,7 @@ impl<R: TableRow> Display for Row<R> {
 pub trait TableRow {
     fn cols() -> usize;
     fn get(&self, index: usize) -> String;
-    
+
     fn as_vec(&self) -> Vec<String> {
         let mut cols = Vec::new();
         for col in 0..Self::cols()  {
@@ -960,17 +960,17 @@ pub(crate) fn render_expr(tokens: &TokenStream) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn link_simple() {
         // base
         let link = Link::new("MyConfig", "conf::MyConfig");
         assert_eq!(link.to_string().as_str(), "[MyConfig](conf::MyConfig)");
-        
+
         // mononspaced
         let link = Link::new("MyConfig", "conf::MyConfig").mono();
         assert_eq!(link.to_string().as_str(), "[`MyConfig`](conf::MyConfig)");
-        
+
         // setter overrides
         let link = Link::new("MyConfig", "conf::MyConfig")
             .name_path("Config")
