@@ -1,13 +1,19 @@
 use crate::{
     generate::{
         VariantField,
-        util::{self, AppendDoc, CodeBlock, DerivedLink, Doc, Document, Link, Table},
+        util::{self, AppendDoc, DerivedLink, Doc, Document, Link, Table},
     },
     parse::{self, IdentPool, OriginField, OriginStruct},
 };
 
+#[cfg(feature = "serde")]
+use {
+    quote::format_ident,
+    crate::generate::util::CodeBlock,
+};
+
 use proc_macro2::TokenStream;
-use quote::{ToTokens, format_ident, quote};
+use quote::{ToTokens, quote};
 use std::rc::Rc;
 use syn::{Ident, parse_quote, Type};
 
@@ -93,6 +99,7 @@ impl OverrideStruct {
             "- *Reverting* compile-time (or run-time) assignments back to provided defaults"
         )
     }
+    #[cfg(feature = "serde")]
     fn doc_example(&self) -> CodeBlock {
         let ident = self.ident();
         let field_name = format_ident!("{}", &self.origin.attrs.example_field_name);
@@ -158,21 +165,26 @@ impl OverrideStruct {
         let (example_ident, example_default) = self.doc_unset_example()?;
         let origin_link = self.ids().origin_link().struct_only();
 
-        let doc = Doc::new().h2("Revert to default")
+        let mut doc = Doc::new().h2("Revert to default")
         + ()
         + format!("For each of {origin_link}'s optional fields, there is a corresponding **`bool`** with a name in the form of `*_unset`.")
         + ()
         + "If set to `true`, the associated field will have its value reverted to the provided default, e.g."
         + format!("- if `{example_ident}_unset` deserializes to `true`:")
-        + format!("  - `{example_ident}` will be reverted back to the provided default: `{example_default}`")
-        + ()
-        + Doc::new().h3("Unset fields")
-        + ()
+        + format!("  - `{example_ident}` will be reverted back to the provided default: `{example_default}`");
+
+
+        doc += Doc::new().newl().h3("Unset fields").newl()
         + "The following fields are supported:"
         + ()
-        + self.doc_unset_fields_table()
-        + ()
-        + Self::doc_unset_aliases(&example_ident);
+        + self.doc_unset_fields_table();
+
+        #[cfg(feature = "serde")]
+        {
+            doc += Doc::new()
+            + ()
+            + Self::doc_unset_aliases(&example_ident);
+        }
 
         Some(doc)
     }
@@ -221,11 +233,12 @@ impl OverrideStruct {
             table.into()
         }
     }
+    #[cfg(feature = "serde")]
     fn doc_unset_aliases(example_ident: &Ident) -> Doc {
         let mut alias_table = Table::new_1("Alias");
         let mut example_list = Doc::new();
 
-        for alias in *parse::UNSET_ALIASES {
+        for alias in **parse::UNSET_ALIASES {
             alias_table += format!("`{alias}`");
             example_list += format!("- `{example_ident}_{alias}`");
         }
@@ -245,45 +258,41 @@ impl OverrideStruct {
 impl OverrideStruct {
     // ! Struct-based item docs
 
-    #[cfg(not(feature = "serde"))]
     fn struct_docs(&self) -> Doc {
-        self.doc_headline()
-        + ()
-        + "**Note**: `serde` support is disabled. This struct must be manually initialized."
-        + "It is provided to allow for retained override/unset support"
-    }
-
-    // !- TODO: migrate to Doc util
-    #[cfg(feature = "serde")]
-    fn struct_docs(&self) -> Doc {
-        //let origin_ident = self.origin.ident();
-        let override_ident = self.ids().override_ident();
-
         let mut docs = Doc::new()
-        + self.doc_headline()
-        + () // TODO: move to segments
-        + "A common method of rust app configuration is deserializing a config file or env vars into a *'Config'* struct at run-time."
-        + ()
-        + format!("`{override_ident}` is provided for just this case.");
+        + self.doc_headline();
+
+        #[cfg(feature = "serde")]
+        {
+            let override_ident = self.ids().override_ident();
+            docs += Doc::new().newl()
+            + "A common method of rust app configuration is deserializing a config file or env vars into a *'Config'* struct at run-time."
+            + ()
+            + format!("`{override_ident}` is provided for just this case.");
+        }
+        #[cfg(not(feature = "serde"))]
+        {
+            docs += Doc::new().newl()
+            + "**Note**: `serde` support is disabled. This struct must be manually initialized."
+            + "It is provided to allow for retained override/unset support";
+        }
 
         docs = docs.separator()
-        + self.doc_features()
-        + ()
-        + Doc::new().h1("Example")
-        + ()
-        + self.doc_example();
+        + self.doc_features();
+
+        // add deserialization example when serde support is enabled
+        #[cfg(feature = "serde")]
+        {
+            docs += Doc::new().h1("Example").newl()
+            + self.doc_example();
+        }
 
         if let Some(fields_table) = self.doc_fields_table() {
-            docs += Doc::new()
-            + ()
-            + Doc::new().h1("Fields")
-            + ()
-            + fields_table
-            + ();
+            docs += Doc::new().newl().h1("Fields").newl()
+            + fields_table;
 
             if let Some(unset_docs) = self.doc_unset() {
-                docs += Doc::new()
-                + ()
+                docs += Doc::new().newl()
                 + unset_docs;
             }
         }
