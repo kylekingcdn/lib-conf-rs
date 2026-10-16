@@ -5,6 +5,9 @@
 
 #![doc = include_str!("../README.md")]
 
+#[cfg(doctest)]
+mod doctests;
+
 mod generate;
 mod lib_config;
 mod parse;
