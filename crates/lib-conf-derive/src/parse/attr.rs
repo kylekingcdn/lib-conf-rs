@@ -1,3 +1,11 @@
+mod field_attr;
+mod struct_attr;
+
+pub(crate) use self::{
+    field_attr::FieldAttr,
+    struct_attr::StructAttr,
+};
+
 use crate::{
     generate::util::render_expr,
     parse::error::ParseError,
