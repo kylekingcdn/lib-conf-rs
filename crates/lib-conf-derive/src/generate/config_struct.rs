@@ -1,6 +1,6 @@
 use crate::{
     generate::{BuilderStruct, OverrideStruct, util, VariantField},
-    parse::{self, OriginStruct},
+    parse::{self, IdentPool, OriginStruct},
 };
 
 use proc_macro2::TokenStream;
@@ -36,8 +36,11 @@ impl ConfigStruct {
             builder_struct,
         }
     }
-    pub fn ident(&self) -> &Ident {
-        &self.origin.ident
+    pub fn ids(&self) -> &IdentPool {
+        self.origin.ids()
+    }
+    pub fn ident(&self) -> &Rc<Ident> {
+        self.ids().origin_ident()
     }
 }
 // ! Config struct generate methods

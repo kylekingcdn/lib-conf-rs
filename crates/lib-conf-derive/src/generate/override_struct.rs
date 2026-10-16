@@ -1,6 +1,6 @@
 use crate::{
     generate::{util, VariantField},
-    parse::{self, OriginField, OriginStruct},
+    parse::{self, IdentPool, OriginField, OriginStruct},
 };
 
 use proc_macro2::TokenStream;
@@ -16,7 +16,6 @@ pub struct OverrideVariant;
 #[cfg_attr(feature = "syn-debug", derive(Debug))]
 #[derive(Clone)]
 pub struct OverrideStruct {
-    ident: Ident,
     ty: Type,
     fields: Vec<OverrideField>,
 
@@ -35,10 +34,8 @@ impl OverrideStruct {
                 phantom_fields.push(field.clone());
             }
         }
-        let ident = Self::generate_ident(&origin.ident, origin.suffix);
-        let ty = util::build_type(&ident, &origin.generics);
+        let ty = util::build_type(origin.ids().override_ident(), &origin.generics);
         Self {
-            ident,
             ty,
             fields,
 
@@ -46,8 +43,11 @@ impl OverrideStruct {
             phantom_fields,
         }
     }
-    pub fn ident(&self) -> &Ident {
-        &self.ident
+    pub fn ids(&self) -> &IdentPool {
+        self.origin.ids()
+    }
+    pub fn ident(&self) -> &Rc<Ident> {
+        self.ids().override_ident()
     }
     pub fn ty(&self) -> &Type {
         &self.ty
@@ -216,7 +216,7 @@ impl OverrideStruct {
         let docs = util::doc_lines_split(self.struct_docs(), false);
         let derives = self.derive_tokens();
         let attrs = self.attr_tokens();
-        let struct_ident = &self.ident;
+        let struct_ident = self.ident();
         let fields: Vec<_> = self.fields
             .iter()
             .map(ToTokens::into_token_stream)
@@ -244,7 +244,7 @@ impl OverrideStruct {
             .collect()
     }
     fn impl_tokens(&self) -> TokenStream {
-        let ident = &self.ident;
+        let ident = self.ident();
         let getters = self.getter_fns_tokens();
         let (
             impl_generics,
@@ -261,7 +261,7 @@ impl OverrideStruct {
     fn default_impl_tokens(&self) -> TokenStream {
         assert!(!self.has_required_fields());
 
-        let struct_ident = &self.ident;
+        let struct_ident = self.ident();
 
         // fields
         let mut fields = TokenStream::new();

@@ -30,6 +30,9 @@ impl<T> VariantField<T> {
             _variant: PhantomData,
         }
     }
+    pub fn ids(&self) -> &IdentPool {
+        self.origin.ids()
+    }
     pub fn ident(&self) -> &Ident {
         &self.origin.ident
     }

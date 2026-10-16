@@ -106,6 +106,7 @@ impl TryFrom<TokenStream> for OriginStruct {
         let attrs = OriginStructAttrs::try_from(derive_input.attrs)?;
         let fields: Vec<OriginField> = fields.named.into_iter().map(OriginField::try_from).collect::<Result<_,_>>()?;
         let ty = generate::util::build_type(&derive_input.ident, &derive_input.generics);
+        let ids = Rc::new(IdentPool::try_new(derive_input.ident.into())?);
 
         let parsed = Self {
             suffix: Self::resolve_suffix(&derive_input.ident)?,
@@ -218,11 +219,17 @@ pub(crate) struct OriginField {
     pub flat_ty: Type,
     pub is_option: bool,
     pub default: Option<AttrExpr>,
+
+    pub ids: Rc<IdentPool>,
+
     pub attrs: FieldAttrs,
     pub override_attrs: Vec<TokenStream2>,
     pub doc_attrs: Vec<Attribute>,
 }
 impl OriginField {
+    pub fn ids(&self) -> &IdentPool {
+        &self.ids
+    }
     /// Returns true if either `self.is_option` or `self.attrs.has_default()`
     pub fn is_optional(&self) -> bool {
         self.has_default()
@@ -510,5 +517,83 @@ impl TryFrom<Vec<Meta>> for FieldAttrs {
         // validate deps
         attr::validate_deps(&seen)?;
         Ok(out)
+    }
+}
+
+// !- Ident pool
+
+/// Primary type idents, shared by all parse / generate structs to aid with doc refs
+#[cfg_attr(feature = "syn-debug", derive(Debug))]
+pub(crate) struct IdentPool {
+    prefix: Rc<Ident>,
+    suffix: Rc<Ident>,
+
+    origin_ident: Rc<Ident>,
+    builder_ident: Rc<Ident>,
+    override_ident: Rc<Ident>,
+}
+#[allow(dead_code)]
+impl IdentPool {
+    pub fn try_new(origin_ident: Rc<Ident>) -> Result<Self, ParseError> {
+        let (prefix, suffix) = Self::split_origin_ident(&origin_ident)?;
+
+        Ok(Self {
+            prefix: format_ident!("{prefix}").into(),
+            suffix: format_ident!("{suffix}").into(),
+
+            builder_ident: format_ident!("{origin_ident}Builder").into(),
+            override_ident: format_ident!("{prefix}Override{suffix}").into(),
+            origin_ident,
+        })
+    }
+    fn extract_suffix(ident_str: &str) -> Option<&'static str> {
+        for suffix in *STRUCT_SUFFIXES {
+            if ident_str.ends_with(suffix) {
+                return Some(suffix)
+            }
+        }
+        None
+    }
+    fn split_origin_ident(ident: &Ident) -> Result<(String, String), ParseError> {
+        let ident_str = ident.to_string();
+        if let Some(suffix) = Self::extract_suffix(&ident_str) {
+            let suf_index = ident_str.rfind(suffix).unwrap();
+            let prefix = &ident_str[..suf_index];
+
+            Ok((prefix.to_string(), suffix.to_string()))
+        } else {
+            Err(ParseError::UnknownStructSuffix {
+                name: ident_str,
+                suffixes: (*STRUCT_SUFFIX_CSV).clone(),
+                span: ident.span(),
+            })
+        }
+    }
+    pub fn prefix(&self) -> &Rc<Ident> {
+        &self.prefix
+    }
+    pub fn suffix(&self) -> &Rc<Ident> {
+        &self.suffix
+    }
+
+    pub fn origin_ident(&self) -> &Rc<Ident> {
+        &self.origin_ident
+    }
+    pub fn origin_link(&self) -> DerivedLink {
+        DerivedLink::new(&self.origin_ident)
+    }
+
+    pub fn builder_ident(&self) -> &Rc<Ident> {
+        &self.builder_ident
+    }
+    pub fn builder_link(&self) -> DerivedLink {
+        DerivedLink::new(&self.builder_ident)
+    }
+
+    pub fn override_ident(&self) -> &Rc<Ident> {
+        &self.override_ident
+    }
+    pub fn override_link(&self) -> DerivedLink {
+        DerivedLink::new(&self.override_ident)
     }
 }

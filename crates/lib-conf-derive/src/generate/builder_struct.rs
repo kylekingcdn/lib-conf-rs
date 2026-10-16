@@ -1,10 +1,10 @@
 use crate::{
     generate::{OverrideStruct, util, VariantField},
-    parse::OriginStruct,
+    parse::{IdentPool, OriginStruct},
 };
 
 use proc_macro2::TokenStream;
-use quote::{ToTokens, format_ident, quote};
+use quote::{ToTokens, quote};
 use std::rc::Rc;
 use syn::{Ident, Type};
 
@@ -16,14 +16,12 @@ pub struct BuilderVariant;
 #[cfg_attr(feature = "syn-debug", derive(Debug))]
 #[derive(Clone)]
 pub struct BuilderStruct {
-    ident: Ident,
     ty: Type,
     fields: Vec<BuilderField>,
 
     origin: Rc<OriginStruct>,
     override_struct: Rc<OverrideStruct>,
 }
-
 impl BuilderStruct {
     pub fn new(
         origin: Rc<OriginStruct>,
@@ -36,10 +34,8 @@ impl BuilderStruct {
             .map(BuilderField::new)
             .collect();
 
-        let ident = Self::generate_builder_ident(&origin.ident);
-        let ty = util::build_type(&ident, &origin.generics);
+        let ty = util::build_type(origin.ids().builder_ident(), &origin.generics);
         Self {
-            ident,
             ty,
             fields,
 
@@ -47,8 +43,11 @@ impl BuilderStruct {
             override_struct,
         }
     }
-    pub fn ident(&self) -> &Ident {
-        &self.ident
+    pub fn ids(&self) -> &IdentPool {
+        self.origin.ids()
+    }
+    pub fn ident(&self) -> &Rc<Ident> {
+        self.ids().builder_ident()
     }
     pub fn ty(&self) -> &Type {
         &self.ty
@@ -94,9 +93,11 @@ impl BuilderStruct {
     }
     fn struct_tokens(&self) -> TokenStream {
         let docs = util::doc_lines_split(self.struct_docs(), true);
+        // attrs
         let derives = self.derive_tokens();
         let attrs = self.attr_tokens();
-        let struct_ident = &self.ident;
+        // struct
+        let struct_ident = self.ident();
         let origin_ty = &self.origin.ty;
         let override_ty = self.override_field_ty_tokens();
         let generics = &self.origin.generics;
@@ -201,7 +202,7 @@ impl BuilderStruct {
         out
     }
     fn build_fn_tokens(&self) -> TokenStream {
-        let origin_ident = &self.origin.ident;
+        let origin_ident = self.ids().origin_ident();
         let origin_ty = &self.origin.ty;
         let doc_headline = util::doc_line(
             format!("Builds the [`{origin_ident}`]"), true
