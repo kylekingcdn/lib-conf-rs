@@ -12,13 +12,13 @@ use std::rc::Rc;
 use syn::{Ident, parse_quote, Type};
 
 #[derive(Debug, Copy, Clone)]
-pub struct ConfigVariant;
+pub(crate) struct ConfigVariant;
 
 // !- Config struct
 
 #[cfg_attr(feature = "syn-debug", derive(Debug))]
 #[derive(Clone)]
-pub struct ConfigStruct {
+pub(crate) struct ConfigStruct {
     fields: Vec<ConfigField>,
 
     origin: Rc<OriginStruct>,
@@ -26,7 +26,7 @@ pub struct ConfigStruct {
     builder_struct: Rc<BuilderStruct>,
 }
 impl ConfigStruct {
-    pub fn new(origin: Rc<OriginStruct>, override_struct: Rc<OverrideStruct>, builder_struct: Rc<BuilderStruct>) -> Self {
+    pub(crate) fn new(origin: Rc<OriginStruct>, override_struct: Rc<OverrideStruct>, builder_struct: Rc<BuilderStruct>) -> Self {
         let fields = origin.fields
             .iter().cloned()
             .map(ConfigField::new)
@@ -39,10 +39,10 @@ impl ConfigStruct {
             builder_struct,
         }
     }
-    pub fn ids(&self) -> &IdentPool {
+    pub(crate) fn ids(&self) -> &IdentPool {
         self.origin.ids()
     }
-    pub fn ident(&self) -> &Rc<Ident> {
+    pub(crate) fn ident(&self) -> &Rc<Ident> {
         self.ids().origin_ident()
     }
 }
@@ -247,7 +247,7 @@ impl ToTokens for ConfigStruct {
 
 // !- Config struct field
 
-pub type ConfigField = VariantField<ConfigVariant>;
+pub(crate) type ConfigField = VariantField<ConfigVariant>;
 
 impl ConfigField {
     fn getter_ret_ty(&self) -> Type {
@@ -305,15 +305,15 @@ impl ConfigField {
     }
 }
 
-/// ! Field-based doc segments
+// ! Field-based doc segments
 
 impl ConfigField {
 }
 
-/// ! Field-based item docs
+// ! Field-based item docs
 
 impl ConfigField {
-    pub fn getter_docs(&self) -> AppendDoc {
+    pub(crate) fn getter_docs(&self) -> AppendDoc {
         self.append_docs()
         + Doc::new().separator()
         + self.doc_default_val()

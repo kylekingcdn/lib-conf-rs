@@ -12,13 +12,13 @@ use std::rc::Rc;
 use syn::{Ident, Type};
 
 #[derive(Debug, Copy, Clone)]
-pub struct BuilderVariant;
+pub(crate) struct BuilderVariant;
 
 // !- Builder struct
 
 #[cfg_attr(feature = "syn-debug", derive(Debug))]
 #[derive(Clone)]
-pub struct BuilderStruct {
+pub(crate) struct BuilderStruct {
     ty: Type,
     fields: Vec<BuilderField>,
 
@@ -26,7 +26,7 @@ pub struct BuilderStruct {
     override_struct: Rc<OverrideStruct>,
 }
 impl BuilderStruct {
-    pub fn new(
+    pub(crate) fn new(
         origin: Rc<OriginStruct>,
         override_struct: Rc<OverrideStruct>,
     ) -> Self {
@@ -46,13 +46,13 @@ impl BuilderStruct {
             override_struct,
         }
     }
-    pub fn ids(&self) -> &IdentPool {
+    pub(crate) fn ids(&self) -> &IdentPool {
         self.origin.ids()
     }
-    pub fn ident(&self) -> &Rc<Ident> {
+    pub(crate) fn ident(&self) -> &Rc<Ident> {
         self.ids().builder_ident()
     }
-    pub fn ty(&self) -> &Type {
+    pub(crate) fn ty(&self) -> &Type {
         &self.ty
     }
 }
@@ -303,12 +303,12 @@ impl ToTokens for BuilderStruct {
 
 // !- Builder struct field
 
-pub type BuilderField = VariantField<BuilderVariant>;
+pub(crate) type BuilderField = VariantField<BuilderVariant>;
 
 /// ! Field-based doc segments
 
 impl BuilderField {
-    pub fn doc_unset(&self) -> Option<Doc> {
+    pub(crate) fn doc_unset(&self) -> Option<Doc> {
         self.origin.unset_ident().map(|unset_ident| {
             let unset_link = self.ids().override_link().method(&unset_ident);
             let _alias_ref = format!("{unset_link}#unset-fields");
@@ -330,7 +330,7 @@ impl BuilderField {
 /// ! Field-based item docs
 
 impl BuilderField {
-    pub fn setter_docs(&self) -> AppendDoc {
+    pub(crate) fn setter_docs(&self) -> AppendDoc {
         AppendDoc::from(self.origin.passthrough_attrs().doc().clone())
         + self.doc_unset()
         + Doc::new().separator()

@@ -6,7 +6,7 @@ use syn::{
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ParsedDocAttr {
+pub(crate) enum ParsedDocAttr {
     Comment,
     Cfg,
     Other,
@@ -16,7 +16,7 @@ pub enum ParsedDocAttr {
 ///
 /// - `None` if not `doc` attr
 /// - Otherwise `Some(kind)`
-pub fn parse_doc_attrs(attr: &Attribute) -> Option<ParsedDocAttr> {
+pub(crate) fn parse_doc_attrs(attr: &Attribute) -> Option<ParsedDocAttr> {
     attr.path().is_ident(attr::DOC_ATTR).then(|| {
         //eprintln!("parsing doc: {}", attr.to_token_stream());
         #[allow(clippy::collapsible_if)]
@@ -48,7 +48,7 @@ pub fn parse_doc_attrs(attr: &Attribute) -> Option<ParsedDocAttr> {
 ///
 /// - `None` if not `cfg` attr
 /// - Otherwise `Some(keep_attr)`
-pub fn parse_cfg_attribute(attr: &Attribute) -> Option<bool> {
+pub(crate) fn parse_cfg_attribute(attr: &Attribute) -> Option<bool> {
     attr.path().is_ident(attr::CFG).then(|| {
         // brief validation of correct shape before insert
         if let Ok(_cfg_meta_list) = attr.meta.require_list() {
@@ -63,7 +63,7 @@ pub fn parse_cfg_attribute(attr: &Attribute) -> Option<bool> {
 
 // credit: taken from serde
 // https://github.com/serde-rs/serde/blob/a874a1b1bb1cc16cf5ee3b1b7b527af5705742bb/serde_derive/src/internals/mod.rs#L23
-pub fn ungroup(mut ty: &Type) -> &Type {
+pub(crate) fn ungroup(mut ty: &Type) -> &Type {
     while let Type::Group(group) = ty {
         ty = &group.elem;
     }
@@ -72,7 +72,7 @@ pub fn ungroup(mut ty: &Type) -> &Type {
 
 // credit: adapted from serde
 // https://github.com/serde-rs/serde/blob/a874a1b1bb1cc16cf5ee3b1b7b527af5705742bb/serde_derive/src/internals/attr.rs#L1633
-pub fn unwrap_option(ty: &Type) -> Option<&Type> {
+pub(crate) fn unwrap_option(ty: &Type) -> Option<&Type> {
     if let Type::Path(ty) = ungroup(ty)
         && let Some(seg) = ty.path.segments.last()
         && seg.ident == "Option"
@@ -86,7 +86,7 @@ pub fn unwrap_option(ty: &Type) -> Option<&Type> {
     }
 }
 
-pub fn is_string(ty: &Type) -> bool {
+pub(crate) fn is_string(ty: &Type) -> bool {
     if let Type::Path(ty) = ungroup(ty) {
         ty.path.is_ident("String")
     } else {

@@ -12,13 +12,13 @@ use std::rc::Rc;
 use syn::{Ident, parse_quote, Type};
 
 #[derive(Debug, Copy, Clone)]
-pub struct OverrideVariant;
+pub(crate) struct OverrideVariant;
 
 // !- Override struct
 
 #[cfg_attr(feature = "syn-debug", derive(Debug))]
 #[derive(Clone)]
-pub struct OverrideStruct {
+pub(crate) struct OverrideStruct {
     ty: Type,
     fields: Vec<OverrideField>,
 
@@ -26,7 +26,7 @@ pub struct OverrideStruct {
     phantom_fields: Vec<Rc<OriginField>>,
 }
 impl OverrideStruct {
-    pub fn new(origin: Rc<OriginStruct>) -> Self {
+    pub(crate) fn new(origin: Rc<OriginStruct>) -> Self {
         let with_phantoms = origin.use_phantom_fields();
         let mut fields = Vec::new();
         let mut phantom_fields = Vec::new();
@@ -46,29 +46,29 @@ impl OverrideStruct {
             phantom_fields,
         }
     }
-    pub fn ids(&self) -> &IdentPool {
+    pub(crate) fn ids(&self) -> &IdentPool {
         self.origin.ids()
     }
-    pub fn ident(&self) -> &Rc<Ident> {
+    pub(crate) fn ident(&self) -> &Rc<Ident> {
         self.ids().override_ident()
     }
-    pub fn ty(&self) -> &Type {
+    pub(crate) fn ty(&self) -> &Type {
         &self.ty
     }
-    pub fn has_required_fields(&self) -> bool {
+    pub(crate) fn has_required_fields(&self) -> bool {
         self.fields.iter().any(OverrideField::is_required)
     }
     #[allow(dead_code)] // only used w/ serde feature
-    pub fn has_optional_fields(&self) -> bool {
+    pub(crate) fn has_optional_fields(&self) -> bool {
         self.fields.iter().any(OverrideField::is_optional)
     }
-    pub fn has_unset_fields(&self) -> bool {
+    pub(crate) fn has_unset_fields(&self) -> bool {
         self.fields.iter().any(|f| f.origin.with_unset_field())
     }
-    pub fn has_conditional_fields(&self) -> bool {
+    pub(crate) fn has_conditional_fields(&self) -> bool {
         self.fields.iter().any(|f| f.origin.is_conditional())
     }
-    pub fn has_conditional_unset_fields(&self) -> bool {
+    pub(crate) fn has_conditional_unset_fields(&self) -> bool {
         self.fields.iter().any(|f| f.origin.with_unset_field() && f.origin.is_conditional())
     }
 }
@@ -116,11 +116,11 @@ impl OverrideStruct {
 
         let has_required = self.has_required_fields();
         let has_conditional = self.has_conditional_fields();
-        
+
         // Add a notes column if required or conditional fields exist
         let doc = if has_required || has_conditional {
             let mut table = Table::new_3("Name", "Type", "Notes");
-    
+
             for field in &self.fields {
                 let field_ident = field.ident();
                 let ty = field.flat_ty_pretty();
@@ -142,24 +142,22 @@ impl OverrideStruct {
             )
         } else {
             let mut table = Table::new_2("Name", "Type");
-    
+
             for field in &self.fields {
                 let field_ident = field.ident();
                 let ty = field.flat_ty_pretty();
-    
+
                 table += (format!("`{field_ident}`"), format!("`{ty}`"));
             }
             table.into()
         };
-        
+
         Some(doc)
     }
     fn doc_unset(&self) -> Option<Doc> {
-        let Some((example_ident, example_default)) = self.doc_unset_example() else {
-            return None;
-        };
+        let (example_ident, example_default) = self.doc_unset_example()?;
         let origin_link = self.ids().origin_link().struct_only();
-        
+
         let doc = Doc::new().h2("Revert to default")
         + ()
         + format!("For each of {origin_link}'s optional fields, there is a corresponding **`bool`** with a name in the form of `*_unset`.")
@@ -175,7 +173,7 @@ impl OverrideStruct {
         + self.doc_unset_fields_table()
         + ()
         + self.doc_unset_aliases(&example_ident);
-    
+
         Some(doc)
     }
     fn doc_unset_example(&self) -> Option<(Ident, String)> {
@@ -187,17 +185,17 @@ impl OverrideStruct {
                 ));
             }
         }
-        return None;
+        None
     }
     fn doc_unset_fields_table(&self) -> Doc {
         assert!(self.has_unset_fields());
 
         let has_conditional = self.has_conditional_unset_fields();
-        
+
         // Add a notes column if conditional fields exist
         if has_conditional {
             let mut table = Table::new_2("Name", "Notes");
-    
+
             for field in &self.fields {
                 if let Some(ident) = field.origin.unset_ident() {
                     let note = field.has_cfg_attrs().then_some("<span align=\"center\">❔</span>");
@@ -214,7 +212,7 @@ impl OverrideStruct {
             + "- All `unset` fields are optional"
         } else {
             let mut table = Table::new_1("Name");
-    
+
             for field in &self.fields {
                 if let Some(ident) = field.origin.unset_ident() {
                     table += format!("`{ident}`");
@@ -231,7 +229,7 @@ impl OverrideStruct {
             alias_table += format!("`{alias}`");
             example_list += format!("- `{example_ident}_{alias}`");
         }
-        
+
         Doc::new().h3("Unset aliases")
         + ()
         + "Defaults can also be restored using the following aliases"
@@ -260,13 +258,13 @@ impl OverrideStruct {
     fn struct_docs(&self) -> Doc {
         //let origin_ident = self.origin.ident();
         let override_ident = self.ids().override_ident();
-    
+
         let mut docs = Doc::new()
         + self.doc_headline()
         + () // TODO: move to segments
         + "A common method of rust app configuration is deserializing a config file or env vars into a *'Config'* struct at run-time."
         + ()
-        + format!("`{override_ident}` is provided for just this case.");    
+        + format!("`{override_ident}` is provided for just this case.");
 
         docs = docs.separator()
         + self.doc_features()
@@ -465,33 +463,33 @@ impl ToTokens for OverrideStruct {
 
 // !- Override struct field
 
-pub type OverrideField = VariantField<OverrideVariant>;
+pub(crate) type OverrideField = VariantField<OverrideVariant>;
 
 impl OverrideField {
-    pub fn is_required(&self) -> bool {
+    pub(crate) fn is_required(&self) -> bool {
         self.attrs().override_required
     }
     #[allow(dead_code)] // only used w/ serde feature
-    pub fn is_optional(&self) -> bool {
+    pub(crate) fn is_optional(&self) -> bool {
         !self.attrs().override_required
     }
-    pub fn supports_copy(&self) -> bool {
+    pub(crate) fn supports_copy(&self) -> bool {
         if self.attrs().override_from.is_some() {
             self.attrs().override_from_copy
         } else {
             self.attrs().copy
         }
     }
-    pub fn flat_ty(&self) -> Type {
+    pub(crate) fn flat_ty(&self) -> Type {
         match self.attrs().override_from {
             Some(ref ty) => Type::Path(ty.clone()),
             None => self.origin.flat_ty.clone(),
         }
     }
-    pub fn flat_ty_pretty(&self) -> String {
-        self.flat_ty().to_token_stream().to_string().replace(" ", "")
+    pub(crate) fn flat_ty_pretty(&self) -> String {
+        self.flat_ty().to_token_stream().to_string().replace(' ', "")
     }
-    pub fn ty(&self) -> Type {
+    pub(crate) fn ty(&self) -> Type {
         let mut ty = self.flat_ty();
         if !self.attrs().override_required {
             ty = parse_quote!(Option<#ty>);
@@ -508,7 +506,7 @@ impl OverrideField {
     }
     fn getter_ret_ty(&self) -> Type {
         let ty = self.ty();
-        
+
         // copy permitted, direct return
         if self.supports_copy() {
             return ty;
@@ -580,13 +578,13 @@ impl OverrideField {
 impl OverrideField {
     // ! Field-based item docs
 
-    pub fn field_docs(&self) -> AppendDoc {
+    pub(crate) fn field_docs(&self) -> AppendDoc {
         self.append_docs()
         + Doc::new().separator()
         + self.doc_default_val()
     }
     // TODO: add expandable unset aliases list
-    pub fn getter_docs(&self) -> AppendDoc {
+    pub(crate) fn getter_docs(&self) -> AppendDoc {
         self.append_docs()
         + Doc::new().separator()
         + self.doc_default_val()

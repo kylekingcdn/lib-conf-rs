@@ -26,13 +26,13 @@ pub(crate) enum StructAttr {
     ExampleFieldName,
 }
 impl StructAttr {
-    pub const DERIVE: &str = "derive";
-    pub const BUILDER_DERIVE: &'static str = "builder_derive";
-    pub const OVERRIDE_DERIVE: &'static str = "override_derive";
-    pub const ATTR: &'static str = "attr";
-    pub const BUILDER_ATTR: &'static str = "builder_attr";
-    pub const OVERRIDE_ATTR: &'static str = "override_attr";
-    pub const EXAMPLE_FIELD_NAME: &str = "example_field_name";
+    pub(crate) const DERIVE: &str = "derive";
+    pub(crate) const BUILDER_DERIVE: &'static str = "builder_derive";
+    pub(crate) const OVERRIDE_DERIVE: &'static str = "override_derive";
+    pub(crate) const ATTR: &'static str = "attr";
+    pub(crate) const BUILDER_ATTR: &'static str = "builder_attr";
+    pub(crate) const OVERRIDE_ATTR: &'static str = "override_attr";
+    pub(crate) const EXAMPLE_FIELD_NAME: &str = "example_field_name";
 }
 
 // ! Struct attr trait impls
@@ -125,7 +125,7 @@ impl TryFrom<Ident> for StructAttr {
 
 // ! Struct attr statics
 
-pub static STRUCT_ATTR_SHAPES: LazyLock<HashMap<StructAttr, Vec<Shape>>> = LazyLock::new(|| [
+pub(super) static STRUCT_ATTR_SHAPES: LazyLock<HashMap<StructAttr, Vec<Shape>>> = LazyLock::new(|| [
     (StructAttr::Derive,            vec![Shape::List]),
     (StructAttr::BuilderDerive,     vec![Shape::List]),
     (StructAttr::OverrideDerive,    vec![Shape::List]),
@@ -136,17 +136,17 @@ pub static STRUCT_ATTR_SHAPES: LazyLock<HashMap<StructAttr, Vec<Shape>>> = LazyL
 ].into());
 
 /// Attributes that depend on other attrs being present
-pub static STRUCT_ATTR_DEPS: LazyLock<HashMap<StructAttr, Vec<StructAttr>>> = LazyLock::new(|| [
+pub(super) static STRUCT_ATTR_DEPS: LazyLock<HashMap<StructAttr, Vec<StructAttr>>> = LazyLock::new(|| [
 ].into());
 
 /// (Associated) attributes that can't be used simultaneously
 /// (AKA mutually exclusive)
 ///
 /// NOTE: only one side of the exclusivity is required
-pub static STRUCT_ATTR_MUT_EX: LazyLock<HashMap<StructAttr, Vec<StructAttr>>> = LazyLock::new(|| [
+pub(super) static STRUCT_ATTR_MUT_EX: LazyLock<HashMap<StructAttr, Vec<StructAttr>>> = LazyLock::new(|| [
 ].into());
 
-pub static STRUCT_ATTR_IMPLICIT: LazyLock<HashMap<StructAttr, Vec<StructAttr>>> = LazyLock::new(|| [
+pub(super) static STRUCT_ATTR_IMPLICIT: LazyLock<HashMap<StructAttr, Vec<StructAttr>>> = LazyLock::new(|| [
 ].into());
 
 static STRUCT_ATTR_EMPTY_VEC: LazyLock<Vec<StructAttr>> = LazyLock::new(|| [

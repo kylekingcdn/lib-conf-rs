@@ -39,7 +39,7 @@ pub(crate) enum ParseError {
     MissingRequiredAttr { name: &'static str, span: Span },
 }
 impl ParseError {
-    pub fn span(self) -> Span {
+    pub(crate) fn span(self) -> Span {
         match self {
             Self::EnumUnsupported(span) |
             Self::UnionUnsupported(span) |
@@ -61,7 +61,7 @@ impl ParseError {
             Self::MissingAttrDep { present, .. } => present.span(),
         }
     }
-    pub fn error(self) -> Error {
+    pub(crate) fn error(self) -> Error {
         self.into()
     }
 }

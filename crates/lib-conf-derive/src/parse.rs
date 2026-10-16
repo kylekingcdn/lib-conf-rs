@@ -39,7 +39,7 @@ static STRUCT_SUFFIX_CSV: LazyLock<String> = LazyLock::new(||
 );
 
 #[cfg(feature = "serde")]
-pub static UNSET_ALIASES: LazyLock<&[&'static str; 4]> = LazyLock::new(|| &[
+pub(crate) static UNSET_ALIASES: LazyLock<&[&'static str; 4]> = LazyLock::new(|| &[
     "reset",
     "revert",
     "clear",
@@ -65,34 +65,34 @@ pub(crate) struct OriginStruct {
     passthrough_attrs: PassthroughAttrs,
 }
 impl OriginStruct {
-    pub fn ids(&self) -> &IdentPool {
+    pub(crate) fn ids(&self) -> &IdentPool {
         &self.ids
     }
     // ! Attributes
-    pub fn _passthrough_attrs(&self) -> &PassthroughAttrs {
+    pub(crate) fn _passthrough_attrs(&self) -> &PassthroughAttrs {
         &self.passthrough_attrs
     }
-    pub fn cfg_tokens(&self) -> TokenStream2 {
+    pub(crate) fn cfg_tokens(&self) -> TokenStream2 {
         self.passthrough_attrs.cfg_tokens()
     }
-    pub fn doc_cfg_tokens(&self) -> TokenStream2 {
+    pub(crate) fn doc_cfg_tokens(&self) -> TokenStream2 {
         self.passthrough_attrs.doc_cfg_tokens()
     }
-    pub fn _doc_attrs(&self) -> &Vec<Attribute> {
+    pub(crate) fn _doc_attrs(&self) -> &Vec<Attribute> {
         &self.passthrough_attrs.doc
     }
     // ! Helpers
-    pub fn has_required_fields(&self) -> bool {
+    pub(crate) fn has_required_fields(&self) -> bool {
         self.fields.iter().any(|f| f.is_required())
     }
     #[allow(dead_code)] // only used w/ serde feature
-    pub fn has_optional_fields(&self) -> bool {
+    pub(crate) fn has_optional_fields(&self) -> bool {
         self.fields.iter().any(|f| f.is_optional())
     }
-    pub fn has_generics(&self) -> bool {
+    pub(crate) fn has_generics(&self) -> bool {
         self.generics.type_params().next().is_some()
     }
-    pub fn use_phantom_fields(&self) -> bool {
+    pub(crate) fn use_phantom_fields(&self) -> bool {
         self.has_generics()
     }
 }
@@ -119,7 +119,7 @@ impl TryFrom<TokenStream> for OriginStruct {
         let ids = Rc::new(IdentPool::try_new(derive_input.ident.into())?);
         let grouped = GroupedAttrs::<StructAttr>::try_from(derive_input.attrs)?;
         if grouped.standard.is_empty() {
-            return Err(ParseError::MissingRequiredAttrHelper { ident: (**ids.origin_ident()).clone() })?;
+            Err(ParseError::MissingRequiredAttrHelper { ident: (**ids.origin_ident()).clone() })?;
         }
         // parse #[config(..)] attrs into structured opts
         let attrs = OriginStructAttrs::try_from_grouped(grouped.standard, grouped.proxied)?;
@@ -157,16 +157,16 @@ pub(crate) struct OriginStructAttrs {
     pub example_field_name: String,
 }
 impl OriginStructAttrs {
-    pub fn has_builder_derives(&self) -> bool {
+    pub(crate) fn has_builder_derives(&self) -> bool {
         !self.builder_derives.is_empty()
     }
-    pub fn has_override_derives(&self) -> bool {
+    pub(crate) fn has_override_derives(&self) -> bool {
         !self.override_derives.is_empty()
     }
-    pub fn has_builder_attrs(&self) -> bool {
+    pub(crate) fn has_builder_attrs(&self) -> bool {
         !self.builder_attrs.is_empty()
     }
-    pub fn has_override_attrs(&self) -> bool {
+    pub(crate) fn has_override_attrs(&self) -> bool {
         !self.override_attrs.is_empty()
     }
     fn try_from_grouped(
@@ -242,42 +242,42 @@ pub(crate) struct OriginField {
     pub passthrough_attrs: PassthroughAttrs,
 }
 impl OriginField {
-    pub fn ids(&self) -> &IdentPool {
+    pub(crate) fn ids(&self) -> &IdentPool {
         &self.ids
     }
     // ! Attributes
-    pub fn passthrough_attrs(&self) -> &PassthroughAttrs {
+    pub(crate) fn passthrough_attrs(&self) -> &PassthroughAttrs {
         &self.passthrough_attrs
     }
     // ! Helpers
     /// Returns true if either `self.is_option` or `self.attrs.has_default()`
-    pub fn is_optional(&self) -> bool {
+    pub(crate) fn is_optional(&self) -> bool {
         self.has_default()
     }
-    pub fn is_required(&self) -> bool {
+    pub(crate) fn is_required(&self) -> bool {
         !self.is_optional()
     }
-    pub fn has_default(&self) -> bool {
+    pub(crate) fn has_default(&self) -> bool {
         self.default.is_some()
     }
-    pub fn default(&self) -> Option<&AttrExpr> {
+    pub(crate) fn default(&self) -> Option<&AttrExpr> {
         self.default.as_ref()
     }
-    pub fn has_override_attrs(&self) -> bool {
+    pub(crate) fn has_override_attrs(&self) -> bool {
         !self.attrs.override_attrs.is_empty()
     }
     
-    pub fn is_conditional(&self) -> bool {
+    pub(crate) fn is_conditional(&self) -> bool {
         !self.passthrough_attrs.cfg.is_empty()
     }
     
     /// Whether the override struct should have an unset field
-    pub fn with_unset_field(&self) -> bool {
+    pub(crate) fn with_unset_field(&self) -> bool {
         self.is_optional() && !self.attrs.skip_override_field()
     }
 
     /// Returns the ident of the unset field, if one should be used
-    pub fn unset_ident(&self) -> Option<Ident> {
+    pub(crate) fn unset_ident(&self) -> Option<Ident> {
         if self.with_unset_field() {
             let ident = &self.ident;
             Some(format_ident!("{ident}_unset"))
@@ -288,7 +288,7 @@ impl OriginField {
 
     /// Returns the ident of the unset field, if one should be used
     #[cfg(feature = "serde")]
-    pub fn unset_aliases(&self) -> Vec<String> {
+    pub(crate) fn unset_aliases(&self) -> Vec<String> {
         if self.with_unset_field() {
             let ident = &self.ident;
             UNSET_ALIASES
@@ -300,14 +300,14 @@ impl OriginField {
         }
     }
     /// Returns the ident used for corresponding phantom field
-    pub fn phantom_ident(&self) -> Ident {
+    pub(crate) fn phantom_ident(&self) -> Ident {
         let ident = &self.ident;
         format_ident!("_{ident}")
     }
     /// Returns the field as a function param declaration
     ///
     /// e.g. `my_field: MyType<T>`
-    pub fn as_fn_param_tokens(&self) -> TokenStream2 {
+    pub(crate) fn as_fn_param_tokens(&self) -> TokenStream2 {
         let ident = &self.ident;
         let ty = &self.ty;
 
@@ -427,13 +427,13 @@ pub(crate) struct FieldAttrs {
     pub override_attrs: Vec<TokenStream2>,
 }
 impl FieldAttrs {
-    pub fn skip_config_getter(&self) -> bool {
+    pub(crate) fn skip_config_getter(&self) -> bool {
         self.skip_all || self.config_skip_getter
     }
-    pub fn skip_builder_setter(&self) -> bool {
+    pub(crate) fn skip_builder_setter(&self) -> bool {
         self.skip_all || self.builder_skip || self.override_required
     }
-    pub fn skip_override_field(&self) -> bool {
+    pub(crate) fn skip_override_field(&self) -> bool {
         self.skip_all || self.override_skip
     }
 
@@ -503,7 +503,7 @@ pub(crate) struct IdentPool {
 }
 #[allow(dead_code)]
 impl IdentPool {
-    pub fn try_new(origin_ident: Rc<Ident>) -> Result<Self, ParseError> {
+    pub(crate) fn try_new(origin_ident: Rc<Ident>) -> Result<Self, ParseError> {
         let (prefix, suffix) = Self::split_origin_ident(&origin_ident)?;
 
         Ok(Self {
@@ -538,31 +538,31 @@ impl IdentPool {
             })
         }
     }
-    pub fn prefix(&self) -> &Rc<Ident> {
+    pub(crate) fn prefix(&self) -> &Rc<Ident> {
         &self.prefix
     }
-    pub fn suffix(&self) -> &Rc<Ident> {
+    pub(crate) fn suffix(&self) -> &Rc<Ident> {
         &self.suffix
     }
 
-    pub fn origin_ident(&self) -> &Rc<Ident> {
+    pub(crate) fn origin_ident(&self) -> &Rc<Ident> {
         &self.origin_ident
     }
-    pub fn origin_link(&self) -> DerivedLink {
+    pub(crate) fn origin_link(&self) -> DerivedLink {
         DerivedLink::new(&self.origin_ident)
     }
 
-    pub fn builder_ident(&self) -> &Rc<Ident> {
+    pub(crate) fn builder_ident(&self) -> &Rc<Ident> {
         &self.builder_ident
     }
-    pub fn builder_link(&self) -> DerivedLink {
+    pub(crate) fn builder_link(&self) -> DerivedLink {
         DerivedLink::new(&self.builder_ident)
     }
 
-    pub fn override_ident(&self) -> &Rc<Ident> {
+    pub(crate) fn override_ident(&self) -> &Rc<Ident> {
         &self.override_ident
     }
-    pub fn override_link(&self) -> DerivedLink {
+    pub(crate) fn override_link(&self) -> DerivedLink {
         DerivedLink::new(&self.override_ident)
     }
 }

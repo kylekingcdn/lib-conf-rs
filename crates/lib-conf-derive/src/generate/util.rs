@@ -10,14 +10,14 @@ use syn::{Attribute, Generics, Ident, Type, parse_quote};
 
 // !- Token manipulation
 
-pub fn build_type(ident: &Ident, generics: &Generics) -> Type {
+pub(crate) fn build_type(ident: &Ident, generics: &Generics) -> Type {
     let ty_gen = generics.split_for_impl().1;
     parse_quote!(#ident #ty_gen)
 }
 
 // !- Common trait impls
 
-pub fn bare_default_impl_tokens(
+pub(crate) fn bare_default_impl_tokens(
     ident: &Ident,
     generics: &Generics,
     cfg_attrs: TokenStream,
@@ -43,13 +43,13 @@ pub fn bare_default_impl_tokens(
 // !- Doc attr addition helper
 
 /// Handles trim + prefix of leading space
-pub fn doc_line(text: impl Display, trim: bool) -> TokenStream {
+pub(crate) fn doc_line(text: impl Display, trim: bool) -> TokenStream {
     let line = text.to_string();
     doc_lines(vec![&line], trim)
 }
 
 /// Handles trim + prefix of leading space
-pub fn doc_lines(lines: Vec<&str>, trim: bool) -> TokenStream {
+pub(crate) fn doc_lines(lines: Vec<&str>, trim: bool) -> TokenStream {
     let lines: Vec<_> = lines.into_iter().map(|s| {
         let text = s.to_string();
         let trimmed = if trim {
@@ -69,14 +69,14 @@ pub fn doc_lines(lines: Vec<&str>, trim: bool) -> TokenStream {
     }
 }
 /// Handles line split + trim + prefix of leading space
-pub fn doc_lines_split(lines: impl Display, trim: bool) -> TokenStream {
+pub(crate) fn doc_lines_split(lines: impl Display, trim: bool) -> TokenStream {
     doc_lines(lines.to_string().lines().collect(), trim)
 }
 
 // !- Document trait
 
 /// Docs helper trait
-pub trait Document: Sized {
+pub(crate) trait Document: Sized {
     /// Intended for use by trait implementors only
     #[must_use]
     fn insert(self, line: impl Display) -> Self;
@@ -344,7 +344,7 @@ pub(crate) struct AppendDoc {
 }
 #[allow(dead_code)]
 impl AppendDoc {
-    pub fn new(source: Vec<Attribute>) -> Self {
+    pub(crate) fn new(source: Vec<Attribute>) -> Self {
         for attr in &source {
             assert!(attr.path().is_ident(DOC_ATTR));
         }
@@ -353,10 +353,10 @@ impl AppendDoc {
             append: Doc::default(),
         }
     }
-    pub fn source(&self) -> &Vec<Attribute> {
+    pub(crate) fn source(&self) -> &Vec<Attribute> {
         &self.source
     }
-    pub fn appended(&self) -> &Doc {
+    pub(crate) fn appended(&self) -> &Doc {
         &self.append
     }
 }
@@ -489,7 +489,7 @@ where
 
 #[allow(dead_code)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum LinkScope {
+pub(crate) enum LinkScope {
     Implicit,
     Module,
     Struct,
@@ -501,7 +501,7 @@ pub enum LinkScope {
     Variant,
 }
 impl LinkScope {
-    pub fn scope_name(self) -> Option<&'static str> {
+    pub(crate) fn scope_name(self) -> Option<&'static str> {
         match self {
             Self::Implicit => None,
             Self::Module => Some("module"),
@@ -514,10 +514,10 @@ impl LinkScope {
             Self::Variant => Some("variant"),
         }
     }
-    pub fn ref_prefix(self) -> Option<String> {
+    pub(crate) fn ref_prefix(self) -> Option<String> {
         self.scope_name().map(|s| format!("{s}@"))
     }
-    pub fn name_suffix(self) -> Option<&'static str> {
+    pub(crate) fn name_suffix(self) -> Option<&'static str> {
         match self {
             Self::Method |
             Self::Function => Some("()"),
@@ -527,7 +527,7 @@ impl LinkScope {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Link {
+pub(crate) struct Link {
     name_path: String,
     ref_path: String,
     scope: LinkScope,
@@ -535,7 +535,7 @@ pub struct Link {
     mono: bool,
 }
 impl Link {
-    pub fn new(name_path: impl Display, ref_path: impl Display) -> Self {
+    pub(crate) fn new(name_path: impl Display, ref_path: impl Display) -> Self {
         Self{
             name_path: name_path.to_string(),
             ref_path: ref_path.to_string(),
@@ -546,36 +546,36 @@ impl Link {
     }
 
     #[must_use]
-    pub fn name_path(mut self, name: impl Display) -> Self {
+    pub(crate) fn name_path(mut self, name: impl Display) -> Self {
         self.name_path = name.to_string();
         self
     }
     #[must_use]
-    pub fn ref_path(mut self, ref_path: impl Display) -> Self {
+    pub(crate) fn ref_path(mut self, ref_path: impl Display) -> Self {
         self.ref_path = ref_path.to_string();
         self
     }
     #[must_use]
-    pub fn scope(mut self, scope: LinkScope) -> Self {
+    pub(crate) fn scope(mut self, scope: LinkScope) -> Self {
         self.scope = scope;
         self
     }
     #[must_use]
-    pub fn fragment(mut self, s: impl Display) -> Self {
+    pub(crate) fn fragment(mut self, s: impl Display) -> Self {
         let s = s.to_string();
         self.fragment = (!s.is_empty()).then_some(s);
         self
     }
     #[must_use]
-    pub fn mono(mut self) -> Self {
+    pub(crate) fn mono(mut self) -> Self {
         self.mono = true;
         self
     }
 
     #[must_use]
-    pub fn build_name(&self) -> String {
-        let name = self.name_path.replace("[", "\\[");
-        let name = name.replace("]", "\\]");
+    pub(crate) fn build_name(&self) -> String {
+        let name = self.name_path.replace('[', "\\[");
+        let name = name.replace(']', "\\]");
         // hacky method to fix names that were pre-escaped
         let name = name.replace("\\\\[", "\\[");
         let name = name.replace("\\\\]", "\\]");
@@ -589,14 +589,14 @@ impl Link {
         out
     }
     #[must_use]
-    pub fn build_ref(&self) -> String {
+    pub(crate) fn build_ref(&self) -> String {
         let prefix = self.scope.ref_prefix().unwrap_or_default();
         let fragment = self.build_fragment();
 
-        format!("{prefix}{}{fragment}", &self.ref_path)
+        format!("{prefix}{}{fragment}", self.ref_path)
     }
     #[must_use]
-    pub fn build_fragment(&self) -> String {
+    pub(crate) fn build_fragment(&self) -> String {
         if let Some(fragment) = &self.fragment && !fragment.is_empty() {
             format!("#{fragment}")
         } else {
@@ -604,7 +604,7 @@ impl Link {
         }
     }
     #[must_use]
-    pub fn build(&self) -> String {
+    pub(crate) fn build(&self) -> String {
         let link_name = self.build_name();
         let link_ref = self.build_ref();
 
@@ -620,11 +620,11 @@ impl Display for Link {
 /// Wrapper around `Link` for simpler linking to derived structs/fns/etc
 ///
 /// Since derived items will all be in scope, only the type's ident is required
-pub struct DerivedLink {
+pub(crate) struct DerivedLink {
     struct_ident: Ident,
 }
 impl DerivedLink {
-    pub fn new(struct_ident: &Ident) -> Self {
+    pub(crate) fn new(struct_ident: &Ident) -> Self {
         Self {
             struct_ident: struct_ident.clone(),
         }
@@ -633,85 +633,85 @@ impl DerivedLink {
     fn build(self, member: Option<impl Display>, include_struct: bool) -> Link {
         let name = if let Some(member) = &member {
             if include_struct {
-                format!("{}::{member}", &self.struct_ident)
+                format!("{}::{member}", self.struct_ident)
             } else {
                 format!("{member}")
             }
         } else {
-            format!("{}", &self.struct_ident)
+            format!("{}", self.struct_ident)
         };
         
         let ref_path = if let Some(member) = &member {
-            format!("{}::{member}", &self.struct_ident)
+            format!("{}::{member}", self.struct_ident)
         } else {
-            format!("{}", &self.struct_ident)
+            format!("{}", self.struct_ident)
         };
         
         Link::new(name, ref_path).mono()
     }
 
     #[must_use]
-    pub fn struct_only(self) -> Link {
+    pub(crate) fn struct_only(self) -> Link {
         self.build(Option::<&String>::None, false).scope(LinkScope::Struct)
     }
     #[must_use]
-    pub fn enum_only(self) -> Link {
+    pub(crate) fn enum_only(self) -> Link {
         self.build(Option::<&String>::None, false).scope(LinkScope::Enum)
     }
     #[must_use]
-    pub fn trait_only(self) -> Link {
+    pub(crate) fn trait_only(self) -> Link {
         self.build(Option::<&String>::None, false).scope(LinkScope::Trait)
     }
     
     /// Includes only the function in the link name
     #[must_use]
-    pub fn function(self, ident: impl Display) -> Link {
+    pub(crate) fn function(self, ident: impl Display) -> Link {
         self.build(Some(ident), false).scope(LinkScope::Function)
     }
     /// Includes the containing type in the link name as well.
     ///
     /// Helps make links more intuitive when linking to members of another type
     #[must_use]
-    pub fn function_explicit(self, ident: impl Display) -> Link {
+    pub(crate) fn function_explicit(self, ident: impl Display) -> Link {
         self.build(Some(ident), true).scope(LinkScope::Function)
     }
 
     /// Includes only the method in the link name
     #[must_use]
-    pub fn method(self, ident: impl Display) -> Link {
+    pub(crate) fn method(self, ident: impl Display) -> Link {
         self.build(Some(ident), false).scope(LinkScope::Method)
     }
     /// Includes the containing type in the link name as well.
     ///
     /// Helps make links more intuitive when linking to members of another type
     #[must_use]
-    pub fn method_explicit(self, ident: impl Display) -> Link {
+    pub(crate) fn method_explicit(self, ident: impl Display) -> Link {
         self.build(Some(ident), true).scope(LinkScope::Method)
     }
     
     /// Includes only the field in the link name
     #[must_use]
-    pub fn field(self, ident: impl Display) -> Link {
+    pub(crate) fn field(self, ident: impl Display) -> Link {
         self.build(Some(ident), false).scope(LinkScope::Field)
     }
     /// Includes the containing type in the link name as well.
     ///
     /// Helps make links more intuitive when linking to members of another type
     #[must_use]
-    pub fn field_explicit(self, ident: impl Display) -> Link {
+    pub(crate) fn field_explicit(self, ident: impl Display) -> Link {
         self.build(Some(ident), true).scope(LinkScope::Field)
     }
 
     /// Includes only the variant in the link name
     #[must_use]
-    pub fn variant(self, ident: impl Display) -> Link {
+    pub(crate) fn variant(self, ident: impl Display) -> Link {
         self.build(Some(ident), false).scope(LinkScope::Variant)
     }
     /// Includes the containing type in the link name as well.
     ///
     /// Helps make links more intuitive when linking to members of another type
     #[must_use]
-    pub fn variant_explicit(self, ident: impl Display) -> Link {
+    pub(crate) fn variant_explicit(self, ident: impl Display) -> Link {
         self.build(Some(ident), true).scope(LinkScope::Variant)
     }
 }
@@ -752,7 +752,7 @@ impl<R: TableRow> Table<R> {
 }
 impl<R: TableRow> Display for Table<R> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "{}", &self.header)?;
+        writeln!(f, "{}", self.header)?;
         writeln!(f, "{}", Self::build_separator())?;
         for row in &self.rows {
             writeln!(f, "{row}")?;
@@ -942,7 +942,7 @@ static RENDER_SUFFIX: &str = ";";
 //
 /// Pretty renders non-litstr expressions pulled in from atts, in an incredibly
 ///hacky fashion
-pub fn render_expr(tokens: &TokenStream) -> Option<String> {
+pub(crate) fn render_expr(tokens: &TokenStream) -> Option<String> {
     let content = format!("{RENDER_PREFIX}{tokens}{RENDER_SUFFIX}");
     if let Ok(parsed) = syn::parse_file(&content) {
         let pretty = prettyplease::unparse(&parsed);

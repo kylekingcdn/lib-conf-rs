@@ -23,9 +23,9 @@ use syn::{
 
 // !- Attribute keys
 
-pub static HELPER_ATTR_CONFIG: &str = "config";
-pub static CFG: &str = "cfg";
-pub static DOC_ATTR: &str = "doc";
+pub(crate) static HELPER_ATTR_CONFIG: &str = "config";
+pub(crate) static CFG: &str = "cfg";
+pub(crate) static DOC_ATTR: &str = "doc";
 
 // !- Grouped attrs
 
@@ -117,11 +117,10 @@ impl<Variant: AttrVariant> TryFrom<Vec<Attribute>> for GroupedAttrs<Variant> {
         out.validate_proxied_compat(&seen)?;
 
         // error on missing required
-        if !Variant::required_set().is_empty() {
-            if let Some(span) = first_helper_span {
+        if !Variant::required_set().is_empty()
+            && let Some(span) = first_helper_span {
                 Self::validate_required_present(&seen, span)?;
             }
-        }
         // error on implicit attr specified
         Self::validate_implicit(&seen)?;
         // error on incompatible attrs
@@ -215,7 +214,7 @@ impl<Variant: AttrVariant> GroupedAttrs<Variant> {
 
 #[cfg_attr(feature = "syn-debug", derive(Debug))]
 #[derive(Clone)]
-pub struct StandardAttr<Variant: AttrVariant> {
+pub(crate) struct StandardAttr<Variant: AttrVariant> {
     /// The path as the attr family variant
     pub variant: Variant,
 
@@ -232,7 +231,7 @@ pub struct StandardAttr<Variant: AttrVariant> {
 
 #[cfg_attr(feature = "syn-debug", derive(Debug))]
 #[derive(Clone)]
-pub struct ProxiedAttr<Variant: AttrVariant> {
+pub(crate) struct ProxiedAttr<Variant: AttrVariant> {
     /// The path as the attr family variant
     /// ///
     /// E.g, `some_attrs` in `#[config(some_attrs(allow(dead_code)))]`
@@ -272,13 +271,13 @@ impl PassthroughAttrs {
             #(#attrs)*
         }
     }
-    pub fn doc(&self) -> &Vec<Attribute> {
+    pub(crate) fn doc(&self) -> &Vec<Attribute> {
         &self.doc
     }
-    pub fn doc_cfg_tokens(&self) -> TokenStream {
+    pub(crate) fn doc_cfg_tokens(&self) -> TokenStream {
         Self::tokens(&self.doc_cfg)
     }
-    pub fn cfg_tokens(&self) -> TokenStream {
+    pub(crate) fn cfg_tokens(&self) -> TokenStream {
         Self::tokens(&self.cfg)
     }
 }
@@ -408,10 +407,10 @@ pub(crate) enum AttrExpr {
     Call(ExprCall),
 }
 impl AttrExpr {
-    pub fn none_expr() -> Self {
+    pub(crate) fn none_expr() -> Self {
         Self::Path(parse_quote!(None))
     }
-    pub fn to_pretty_string(&self) -> String {
+    pub(crate) fn to_pretty_string(&self) -> String {
         let tokens = self.to_token_stream();
         if let Some(pretty) = render_expr(&tokens) {
             pretty
@@ -419,16 +418,15 @@ impl AttrExpr {
             tokens.to_string()
         }
     }
-    pub fn require_str(self, ident: &Ident) -> Result<String, ParseError> {
+    pub(crate) fn require_str(self, ident: &Ident) -> Result<String, ParseError> {
         let span = self.span();
-        if let Self::Lit(expr) = self {
-            if let Lit::Str(lit) = expr.lit {
+        if let Self::Lit(expr) = self
+            && let Lit::Str(lit) = expr.lit {
                 return Ok(lit.value());
             }
-        }
         Err(ParseError::ExpectedStrExpr { ident: ident.clone(), span })
     }
-    pub fn span(&self) -> Span {
+    pub(crate) fn span(&self) -> Span {
         match self {
             Self::Lit(expr) => expr.span(),
             Self::Path(expr) => expr.span(),

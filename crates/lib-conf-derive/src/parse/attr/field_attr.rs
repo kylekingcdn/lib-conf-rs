@@ -31,20 +31,20 @@ pub(crate) enum FieldAttr {
     OverrideVia,
 }
 impl FieldAttr {
-    pub const COPY: &'static str = "copy";
-    pub const DEFAULT: &'static str = "default";
-    pub const SKIP_ALL: &'static str = "skip_all";
+    pub(crate) const COPY: &'static str = "copy";
+    pub(crate) const DEFAULT: &'static str = "default";
+    pub(crate) const SKIP_ALL: &'static str = "skip_all";
 
-    pub const CONFIG_SKIP_GETTER: &'static str = "config_skip_getter";
+    pub(crate) const CONFIG_SKIP_GETTER: &'static str = "config_skip_getter";
 
-    pub const BUILDER_SKIP: &'static str = "builder_skip";
+    pub(crate) const BUILDER_SKIP: &'static str = "builder_skip";
 
-    pub const OVERRIDE_ATTR: &'static str = "override_attr";
-    pub const OVERRIDE_SKIP: &'static str = "override_skip";
-    pub const OVERRIDE_REQUIRED: &'static str = "override_required";
-    pub const OVERRIDE_FROM: &'static str = "override_from";
-    pub const OVERRIDE_FROM_COPY: &'static str = "override_from_copy";
-    pub const OVERRIDE_VIA: &'static str = "override_via";
+    pub(crate) const OVERRIDE_ATTR: &'static str = "override_attr";
+    pub(crate) const OVERRIDE_SKIP: &'static str = "override_skip";
+    pub(crate) const OVERRIDE_REQUIRED: &'static str = "override_required";
+    pub(crate) const OVERRIDE_FROM: &'static str = "override_from";
+    pub(crate) const OVERRIDE_FROM_COPY: &'static str = "override_from_copy";
+    pub(crate) const OVERRIDE_VIA: &'static str = "override_via";
 }
 
 // ! Field attr trait impls
@@ -147,7 +147,7 @@ impl TryFrom<Ident> for FieldAttr {
 // ! Field attr statics
 
 /// Attributes that depend on other attrs being present
-pub static FIELD_ATTR_DEPS: LazyLock<HashMap<FieldAttr, Vec<FieldAttr>>> = LazyLock::new(|| [
+pub(super) static FIELD_ATTR_DEPS: LazyLock<HashMap<FieldAttr, Vec<FieldAttr>>> = LazyLock::new(|| [
     (FieldAttr::OverrideFromCopy, vec![FieldAttr::OverrideFrom]),
     (FieldAttr::OverrideVia,      vec![FieldAttr::OverrideFrom]),
 ].into());
@@ -156,7 +156,7 @@ pub static FIELD_ATTR_DEPS: LazyLock<HashMap<FieldAttr, Vec<FieldAttr>>> = LazyL
 /// (AKA mutually exclusive)
 ///
 /// NOTE: only one side of the exclusivity is required
-pub static FIELD_ATTR_MUT_EX: LazyLock<HashMap<FieldAttr, Vec<FieldAttr>>> = LazyLock::new(|| [
+pub(super) static FIELD_ATTR_MUT_EX: LazyLock<HashMap<FieldAttr, Vec<FieldAttr>>> = LazyLock::new(|| [
     (FieldAttr::OverrideRequired, vec![
         FieldAttr::Default,
         // FieldAttr::BuilderSkip, // covered by implicit
@@ -181,7 +181,7 @@ pub static FIELD_ATTR_MUT_EX: LazyLock<HashMap<FieldAttr, Vec<FieldAttr>>> = Laz
     ]),
 ].into());
 
-pub static FIELD_ATTR_IMPLICIT: LazyLock<HashMap<FieldAttr, Vec<FieldAttr>>> = LazyLock::new(|| [
+pub(super) static FIELD_ATTR_IMPLICIT: LazyLock<HashMap<FieldAttr, Vec<FieldAttr>>> = LazyLock::new(|| [
     (FieldAttr::SkipAll, vec![
         FieldAttr::ConfigSkipGetter,
         FieldAttr::BuilderSkip,
@@ -201,7 +201,7 @@ static FIELD_ATTR_OPT_INCOMPAT: LazyLock<Vec<FieldAttr>> = LazyLock::new(|| [
 static FIELD_ATTR_REQUIRED: LazyLock<Vec<FieldAttr>> = LazyLock::new(|| [
 ].into());
 
-pub static FIELD_ATTR_SHAPES: LazyLock<HashMap<FieldAttr, Vec<Shape>>> = LazyLock::new(|| [
+pub(super) static FIELD_ATTR_SHAPES: LazyLock<HashMap<FieldAttr, Vec<Shape>>> = LazyLock::new(|| [
     (FieldAttr::Copy,               vec![Shape::Flag]),
     (FieldAttr::Default,            vec![Shape::KeyValue]),
     (FieldAttr::SkipAll,            vec![Shape::Flag]),

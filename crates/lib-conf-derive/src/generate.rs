@@ -22,41 +22,41 @@ use syn::Ident;
 
 #[cfg_attr(feature = "syn-debug", derive(Debug))]
 #[derive(Clone)]
-pub struct VariantField<T> {
+pub(crate) struct VariantField<T> {
     origin: Rc<OriginField>,
     _variant: PhantomData<T>,
 }
 impl<T> VariantField<T> {
-    pub fn new(origin: Rc<OriginField>) -> Self {
+    pub(crate) fn new(origin: Rc<OriginField>) -> Self {
         Self {
             origin,
             _variant: PhantomData,
         }
     }
-    pub fn ids(&self) -> &IdentPool {
+    pub(crate) fn ids(&self) -> &IdentPool {
         self.origin.ids()
     }
-    pub fn ident(&self) -> &Ident {
+    pub(crate) fn ident(&self) -> &Ident {
         &self.origin.ident
     }
-    pub fn attrs(&self) -> &FieldAttrs {
+    pub(crate) fn attrs(&self) -> &FieldAttrs {
         &self.origin.attrs
     }
-    pub fn doc_default_val(&self) -> Option<String> {
+    pub(crate) fn doc_default_val(&self) -> Option<String> {
         self.origin.default().map(|def|
             format!("- Library default: **`{}`**", def.to_pretty_string())
         )
     }
-    pub fn append_docs(&self) -> AppendDoc {
+    pub(crate) fn append_docs(&self) -> AppendDoc {
         self.origin.passthrough_attrs().doc().clone().into()
     }
-    pub fn cfg_tokens(&self) -> TokenStream {
+    pub(crate) fn cfg_tokens(&self) -> TokenStream {
         self.origin.passthrough_attrs().cfg_tokens()
     }
-    pub fn has_cfg_attrs(&self) -> bool {
+    pub(crate) fn has_cfg_attrs(&self) -> bool {
         !self.origin.passthrough_attrs().cfg.is_empty()
     }
-    pub fn doc_cfg_tokens(&self) -> TokenStream {
+    pub(crate) fn doc_cfg_tokens(&self) -> TokenStream {
         self.origin.passthrough_attrs().doc_cfg_tokens()
     }
 }

@@ -5,7 +5,7 @@ use quote::quote;
 use std::rc::Rc;
 use syn::Error;
 
-pub fn derive(input: TokenStream) -> Result<TokenStream, Error> {
+pub(crate) fn derive(input: TokenStream) -> Result<TokenStream, Error> {
     let output = {
         let origin = Rc::new(OriginStruct::try_from(input)?);
 
