@@ -201,6 +201,7 @@ impl OriginStructAttrs {
         }
         
         for attr in proxied {
+            #[allow(clippy::match_wildcard_for_single_variants)]
             match attr.variant {
                 StructAttr::Attr => {
                     out.builder_attrs.push(attr.inner.clone());

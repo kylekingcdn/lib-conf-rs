@@ -172,7 +172,7 @@ impl OverrideStruct {
         + ()
         + self.doc_unset_fields_table()
         + ()
-        + self.doc_unset_aliases(&example_ident);
+        + Self::doc_unset_aliases(&example_ident);
 
         Some(doc)
     }
@@ -221,7 +221,7 @@ impl OverrideStruct {
             table.into()
         }
     }
-    fn doc_unset_aliases(&self, example_ident: &Ident) -> Doc {
+    fn doc_unset_aliases(example_ident: &Ident) -> Doc {
         let mut alias_table = Table::new_1("Alias");
         let mut example_list = Doc::new();
 

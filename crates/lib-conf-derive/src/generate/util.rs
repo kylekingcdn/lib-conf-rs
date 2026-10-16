@@ -20,8 +20,8 @@ pub(crate) fn build_type(ident: &Ident, generics: &Generics) -> Type {
 pub(crate) fn bare_default_impl_tokens(
     ident: &Ident,
     generics: &Generics,
-    cfg_attrs: TokenStream,
-    doc_cfg_attrs: TokenStream,
+    cfg_attrs: &TokenStream,
+    doc_cfg_attrs: &TokenStream,
 ) -> TokenStream {
     let (
         impl_generics,
@@ -249,8 +249,7 @@ impl From<String> for Doc {
 impl From<CodeBlock> for Doc {
     fn from(block: CodeBlock) -> Self {
         Self {
-            lines: block.build_lines(),
-            ..Default::default()
+            lines: block.build_lines()
         }
     }
 }
@@ -630,7 +629,7 @@ impl DerivedLink {
         }
     }
     #[must_use]
-    fn build(self, member: Option<impl Display>, include_struct: bool) -> Link {
+    fn build(self, member: Option<&impl Display>, include_struct: bool) -> Link {
         let name = if let Some(member) = &member {
             if include_struct {
                 format!("{}::{member}", self.struct_ident)
@@ -666,53 +665,53 @@ impl DerivedLink {
     /// Includes only the function in the link name
     #[must_use]
     pub(crate) fn function(self, ident: impl Display) -> Link {
-        self.build(Some(ident), false).scope(LinkScope::Function)
+        self.build(Some(&ident), false).scope(LinkScope::Function)
     }
     /// Includes the containing type in the link name as well.
     ///
     /// Helps make links more intuitive when linking to members of another type
     #[must_use]
     pub(crate) fn function_explicit(self, ident: impl Display) -> Link {
-        self.build(Some(ident), true).scope(LinkScope::Function)
+        self.build(Some(&ident), true).scope(LinkScope::Function)
     }
 
     /// Includes only the method in the link name
     #[must_use]
     pub(crate) fn method(self, ident: impl Display) -> Link {
-        self.build(Some(ident), false).scope(LinkScope::Method)
+        self.build(Some(&ident), false).scope(LinkScope::Method)
     }
     /// Includes the containing type in the link name as well.
     ///
     /// Helps make links more intuitive when linking to members of another type
     #[must_use]
     pub(crate) fn method_explicit(self, ident: impl Display) -> Link {
-        self.build(Some(ident), true).scope(LinkScope::Method)
+        self.build(Some(&ident), true).scope(LinkScope::Method)
     }
     
     /// Includes only the field in the link name
     #[must_use]
     pub(crate) fn field(self, ident: impl Display) -> Link {
-        self.build(Some(ident), false).scope(LinkScope::Field)
+        self.build(Some(&ident), false).scope(LinkScope::Field)
     }
     /// Includes the containing type in the link name as well.
     ///
     /// Helps make links more intuitive when linking to members of another type
     #[must_use]
     pub(crate) fn field_explicit(self, ident: impl Display) -> Link {
-        self.build(Some(ident), true).scope(LinkScope::Field)
+        self.build(Some(&ident), true).scope(LinkScope::Field)
     }
 
     /// Includes only the variant in the link name
     #[must_use]
     pub(crate) fn variant(self, ident: impl Display) -> Link {
-        self.build(Some(ident), false).scope(LinkScope::Variant)
+        self.build(Some(&ident), false).scope(LinkScope::Variant)
     }
     /// Includes the containing type in the link name as well.
     ///
     /// Helps make links more intuitive when linking to members of another type
     #[must_use]
     pub(crate) fn variant_explicit(self, ident: impl Display) -> Link {
-        self.build(Some(ident), true).scope(LinkScope::Variant)
+        self.build(Some(&ident), true).scope(LinkScope::Variant)
     }
 }
 
@@ -739,7 +738,7 @@ impl<R: TableRow> Table<R> {
     pub fn cols()  -> usize {
         R::cols()
     }
-    fn build_row(cols: &Vec<String>) -> String {
+    fn build_row(cols: &[String]) -> String {
         format!("| {} |", cols.join(" | "))
     }
     fn build_separator() -> String {

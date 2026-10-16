@@ -203,7 +203,7 @@ impl ConfigStruct {
     fn default_impl_tokens(&self) -> TokenStream {
         let cfg_attrs = self.origin.cfg_tokens();
         let doc_cfg_attrs = self.origin.doc_cfg_tokens();
-        util::bare_default_impl_tokens(self.ident(), &self.origin.generics, cfg_attrs, doc_cfg_attrs)
+        util::bare_default_impl_tokens(self.ident(), &self.origin.generics, &cfg_attrs, &doc_cfg_attrs)
     }
     fn add_impl_tokens(&self) -> TokenStream {
         let ident = self.ident();

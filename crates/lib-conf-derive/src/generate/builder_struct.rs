@@ -57,12 +57,12 @@ impl BuilderStruct {
     }
 }
 
-/// ! Struct-based doc segments
+// ! Struct-based doc segments
 
 impl BuilderStruct {
 }
 
-/// ! Struct-based item docs
+// ! Struct-based item docs
 
 impl BuilderStruct {
     fn struct_docs(&self) -> Doc {
@@ -260,7 +260,7 @@ impl BuilderStruct {
     fn default_impl_tokens(&self) -> TokenStream {
         let cfg_attrs = self.origin.cfg_tokens();
         let doc_cfg_attrs = self.origin.doc_cfg_tokens();
-        util::bare_default_impl_tokens(self.ident(), &self.origin.generics, cfg_attrs, doc_cfg_attrs)
+        util::bare_default_impl_tokens(self.ident(), &self.origin.generics, &cfg_attrs, &doc_cfg_attrs)
     }
     fn impl_tokens(&self) -> TokenStream {
         let struct_ident = self.ident();
@@ -305,7 +305,7 @@ impl ToTokens for BuilderStruct {
 
 pub(crate) type BuilderField = VariantField<BuilderVariant>;
 
-/// ! Field-based doc segments
+// ! Field-based doc segments
 
 impl BuilderField {
     pub(crate) fn doc_unset(&self) -> Option<Doc> {
@@ -327,7 +327,7 @@ impl BuilderField {
     }
 }
 
-/// ! Field-based item docs
+// ! Field-based item docs
 
 impl BuilderField {
     pub(crate) fn setter_docs(&self) -> AppendDoc {
