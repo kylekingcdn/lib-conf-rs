@@ -34,6 +34,7 @@ Can contain multiple derives and can be specified multiple times.
 ```rust
 # use lib_conf_derive::LibConfig;
 #[derive(Debug, Clone, Copy, LibConfig)]
+#[config(example_field_name = "my_sdk")]
 #[config(derive(Copy))]
 pub struct MySdkConfig {
     #[config(copy, default = false)]
@@ -68,6 +69,7 @@ structs if the `serde` feature is enabled.
 ```rust
 # use lib_conf_derive::LibConfig;
 #[derive(Debug, Clone, LibConfig)]
+#[config(example_field_name = "my_sdk")]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize))] // derive Deserialize on this struct
 #[cfg_attr(feature = "serde", config(builder_derive(serde::Deserialize)))] // derive on builder
 pub struct MySdkConfig {
@@ -82,6 +84,7 @@ For `serde`-mandatory, this would be done as follows:
 # {
 # use lib_conf_derive::LibConfig;
 #[derive(Debug, Clone, LibConfig, serde::Deserialize)] // derive Deserialize on this struct
+#[config(example_field_name = "my_sdk")]
 #[config(builder_derive(serde::Deserialize))] // derive Deserialize on the Builder struct
 pub struct MySdkConfig {
     // ...
@@ -105,6 +108,7 @@ Can contain multiple derives and can be specified multiple times.
 ```rust
 # use lib_conf_derive::LibConfig;
 #[derive(Debug, Clone, LibConfig)]
+#[config(example_field_name = "my_sdk")]
 #[config(override_derive(serde::Serialize))]
 pub struct MySdkConfig {
     // ...
@@ -128,6 +132,7 @@ Can contain multiple attributes and can be specified multiple times.
 ```rust
 # use lib_conf_derive::LibConfig;
 #[derive(Debug, Clone, LibConfig)]
+#[config(example_field_name = "my_sdk")]
 #[config(attr(non_exhaustive))]
 pub struct MySdkConfig {
     // ...
@@ -145,6 +150,7 @@ Can contain multiple attributes and can be specified multiple times.
 ```rust
 # use lib_conf_derive::LibConfig;
 #[derive(Debug, Clone, LibConfig)]
+#[config(example_field_name = "my_sdk")]
 #[config(builder_attr(non_exhaustive))]
 pub struct MySdkConfig {
     // ...
@@ -162,6 +168,7 @@ Can contain multiple attributes and can be specified multiple times.
 ```rust
 # use lib_conf_derive::LibConfig;
 #[derive(Debug, Clone, LibConfig)]
+#[config(example_field_name = "my_sdk")]
 #[config(override_attr(non_exhaustive))]
 pub struct MySdkConfig {
     // ...
@@ -185,6 +192,7 @@ support `Copy`.
 ```rust
 # use lib_conf_derive::LibConfig;
 #[derive(Debug, Clone, LibConfig)]
+#[config(example_field_name = "my_sdk")]
 pub struct MySdkConfig {
     #[config(copy)]
     pub(crate) worker_count: Option<u8>,
@@ -210,6 +218,7 @@ Can be used on both `Option<_>` and non-`Option<_>` types.
 ```rust
 # use lib_conf_derive::LibConfig;
 #[derive(Debug, Clone, LibConfig)]
+#[config(example_field_name = "my_sdk")]
 pub struct MySdkConfig {
     #[config(default = false)]
     pub(crate) debug_mode: bool,
@@ -250,6 +259,7 @@ attributes.
 ```rust
 # use lib_conf_derive::LibConfig;
 #[derive(Debug, Clone, LibConfig)]
+#[config(example_field_name = "my_sdk")]
 pub struct MySdkConfig {
     #[config(skip_all)]
     pub(crate) some_internal_only_state: Option<bool>,
@@ -282,6 +292,7 @@ use lib_conf::LibConfig;
 use secrecy::SecretString;
 
 #[derive(Debug, Clone, LibConfig)]
+#[config(example_field_name = "my_sdk")]
 pub struct MySdkConfig {
     #[config(config_skip_getter)]
     pub(crate) api_token: Option<SecretString>,
@@ -306,6 +317,7 @@ use lib_conf::LibConfig;
 use secrecy::SecretString;
 
 #[derive(Debug, Clone, LibConfig)]
+#[config(example_field_name = "my_sdk")]
 pub struct MySdkConfig {
     #[config(builder_skip)]
     pub(crate) api_token: Option<SecretString>,
@@ -327,6 +339,7 @@ Can be used to prevent runtime adjustment of a setting.
 ```rust
 # use lib_conf_derive::LibConfig;
 #[derive(Debug, Clone, LibConfig)]
+#[config(example_field_name = "my_sdk")]
 pub struct MySdkConfig {
     #[config(override_skip)]
     pub(crate) client_version: Option<String>,
@@ -381,6 +394,7 @@ use lib_conf::LibConfig;
 use secrecy::SecretString;
 
 #[derive(Debug, Clone, LibConfig)]
+#[config(example_field_name = "my_sdk")]
 pub struct MySdkConfig {
     #[config(override_required)]
     pub(crate) api_token: SecretString,
@@ -410,6 +424,7 @@ This is most useful for types that lack or have undesired/incompatible `Deserial
 ```rust
 # use lib_conf_derive::LibConfig;
 #[derive(Debug, Clone, LibConfig)]
+#[config(example_field_name = "my_sdk")]
 pub struct MySdkConfig {
     #[config(override_from = bool, copy, default = ModuleSupport::Automatic)]
     pub(crate) proxy_module_enabled: ModuleSupport,
@@ -469,6 +484,7 @@ use lib_conf::LibConfig;
 use std::time::Duration;
 
 #[derive(Debug, Clone, LibConfig)]
+#[config(example_field_name = "my_sdk")]
 pub struct MySdkConfig {
     #[config(
         copy, default = Duration::from_secs(30),
@@ -514,6 +530,7 @@ use lib_conf::LibConfig;
 use url::Url;
 
 #[derive(Debug, Clone, LibConfig)]
+#[config(example_field_name = "my_sdk")]
 pub struct MySdkConfig {
     #[config(override_attr(serde(alias = "db_url")))]
     pub(crate) database_url: Option<Url>,
