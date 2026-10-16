@@ -1,4 +1,4 @@
-use super::attr::{FieldAttr, Shape};
+use super::attr::Shape;
 
 use proc_macro2::Span;
 use syn::{Error, Ident};
@@ -17,10 +17,10 @@ pub(crate) enum ParseError {
     UnknownStructSuffix { name: String, suffixes: String, span: Span },
     #[error("Unknown attribute: '{ident}'")]
     UnknownAttr { ident: Ident },
-    //#[error("Invalid attribute expression type: {expr:?}")]
-    //InvalidAttrExpr { span: Span, expr: Expr },
     #[error("Invalid attribute expression type")]
     InvalidAttrExpr { span: Span },
+    #[error("Expected string expr value, e.g. `#[config({ident} = \"..\")]`")]
+    ExpectedStrExpr { ident: Ident, span: Span },
     #[error("Attribute '{ident}' specified multiple times")]
     DuplicateAttr { ident: Ident },
     #[error("Attribute '{ident}' cannot be used with '{other}'")]
@@ -30,9 +30,13 @@ pub(crate) enum ParseError {
     #[error("Unexpected shape {shape:#?} for attribute '{ident}'")]
     InvalidAttrShape { ident: Ident, shape: Shape },
     #[error("Missing attribute '{missing}', which is required while using '{present}'")]
-    MissingAttrDep { present: Ident, missing: FieldAttr },
+    MissingAttrDep { present: Ident, missing: &'static str },
     #[error("Attribute '{ident}' cannot be used with Option types")]
     AttrOptionUnsupported { ident: Ident },
+    #[error("`{ident}` is missing required `#[config(..)]` attribute")]
+    MissingRequiredAttrHelper { ident: Ident },
+    #[error("Missing required attribute: '{name}'")]
+    MissingRequiredAttr { name: &'static str, span: Span },
 }
 impl ParseError {
     pub fn span(self) -> Span {
@@ -42,13 +46,18 @@ impl ParseError {
             Self::UnnamedStructUnsupported(span) |
             Self::UnitStructUnsupported(span) |
             Self::UnknownStructSuffix { span, .. } |
+            Self::MissingRequiredAttr { span, .. } |
+            Self::ExpectedStrExpr { span, .. } |
             Self::InvalidAttrExpr { span, .. } => span,
+
             Self::UnknownAttr { ident } |
             Self::IncompatibleAttrs { ident, .. } |
             Self::ImplicitAttr { ident, .. } |
             Self::DuplicateAttr { ident, .. } |
             Self::InvalidAttrShape { ident, .. } |
+            Self::MissingRequiredAttrHelper { ident, .. } |
             Self::AttrOptionUnsupported { ident } => ident.span(),
+
             Self::MissingAttrDep { present, .. } => present.span(),
         }
     }
