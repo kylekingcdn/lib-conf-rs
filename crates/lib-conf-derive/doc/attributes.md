@@ -35,7 +35,7 @@ The following config/attributes will generate the following documentation
 
 ```rust
 # use lib_conf_derive::LibConfig;
-#[derive(Debug, LibConfig)]
+#[derive(Debug, Clone,  LibConfig)]
 #[config(example_field_name = "my_sdk")]
 pub struct MySdkConfig {
   // ...
