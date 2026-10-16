@@ -3,9 +3,12 @@ pub(crate) mod error;
 pub(crate) mod util;
 
 use crate::{
-    generate,
+    generate::{self, util::DerivedLink},
     parse::{
-        attr::{AttrExpr, FieldAttr, StructAttr},
+        attr::{
+            AttrExpr, AttrVariant, FieldAttr, GroupedAttrs,
+            PassthroughAttrs, ProxiedAttr, StandardAttr, StructAttr,
+        },
         error::ParseError,
     },
 };
@@ -13,12 +16,11 @@ use crate::{
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote, ToTokens};
-use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::LazyLock;
 use syn::{
-    Attribute, Data, DeriveInput, Error, Field, Fields, Generics, Ident, Meta,
-    Token, Type, TypePath, punctuated::Punctuated,
+    Attribute, Data, DeriveInput, Error, Field,
+    Fields,Generics, Ident, Meta, Type, TypePath,
 };
 
 // !- Statics
@@ -49,16 +51,37 @@ pub static UNSET_ALIASES: LazyLock<&[&'static str; 4]> = LazyLock::new(|| &[
 #[cfg_attr(feature = "syn-debug", derive(Debug))]
 #[derive(Clone)]
 pub(crate) struct OriginStruct {
-    pub ident: Ident,
     pub ty: Type,
     pub generics: Generics,
-    pub suffix: &'static str,
-
-    pub attrs: OriginStructAttrs,
 
     pub fields: Vec<Rc<OriginField>>,
+
+    pub ids: Rc<IdentPool>,
+
+    /// `#[config(..)]` attrs
+    pub attrs: OriginStructAttrs,
+
+    /// (doc, cfg, doc(cfg)) attrs
+    passthrough_attrs: PassthroughAttrs,
 }
 impl OriginStruct {
+    pub fn ids(&self) -> &IdentPool {
+        &self.ids
+    }
+    // ! Attributes
+    pub fn _passthrough_attrs(&self) -> &PassthroughAttrs {
+        &self.passthrough_attrs
+    }
+    pub fn cfg_tokens(&self) -> TokenStream2 {
+        self.passthrough_attrs.cfg_tokens()
+    }
+    pub fn doc_cfg_tokens(&self) -> TokenStream2 {
+        self.passthrough_attrs.doc_cfg_tokens()
+    }
+    pub fn _doc_attrs(&self) -> &Vec<Attribute> {
+        &self.passthrough_attrs.doc
+    }
+    // ! Helpers
     pub fn has_required_fields(&self) -> bool {
         self.fields.iter().any(|f| f.is_required())
     }
@@ -72,24 +95,12 @@ impl OriginStruct {
     pub fn use_phantom_fields(&self) -> bool {
         self.has_generics()
     }
-    fn resolve_suffix(ident: &Ident) -> Result<&'static str, ParseError> {
-        let ident_str = ident.to_string();
-        for suffix in *STRUCT_SUFFIXES {
-            if ident_str.ends_with(suffix) {
-                return Ok(suffix)
-            }
-        }
-        Err(ParseError::UnknownStructSuffix {
-            name: ident_str,
-            suffixes: (*STRUCT_SUFFIX_CSV).clone(),
-            span: ident.span(),
-        })
-    }
 }
 impl TryFrom<TokenStream> for OriginStruct {
     type Error = Error;
 
     fn try_from(input: TokenStream) -> Result<Self, Error> {
+        // do essential shape validation first
         let derive_input: DeriveInput = syn::parse(input)?;
         let data_struct = match derive_input.data {
             Data::Struct(inner) => Ok(inner),
@@ -102,40 +113,48 @@ impl TryFrom<TokenStream> for OriginStruct {
             Fields::Unnamed(fields) => Err(ParseError::UnnamedStructUnsupported(fields.paren_token.span.open())),
             Fields::Unit => Err(ParseError::UnitStructUnsupported(derive_input.ident.span())),
         }?;
+        // done shape validation
 
-        let attrs = OriginStructAttrs::try_from(derive_input.attrs)?;
-        let fields: Vec<OriginField> = fields.named.into_iter().map(OriginField::try_from).collect::<Result<_,_>>()?;
         let ty = generate::util::build_type(&derive_input.ident, &derive_input.generics);
         let ids = Rc::new(IdentPool::try_new(derive_input.ident.into())?);
+        let grouped = GroupedAttrs::<StructAttr>::try_from(derive_input.attrs)?;
+        if grouped.standard.is_empty() {
+            return Err(ParseError::MissingRequiredAttrHelper { ident: (**ids.origin_ident()).clone() })?;
+        }
+        // parse #[config(..)] attrs into structured opts
+        let attrs = OriginStructAttrs::try_from_grouped(grouped.standard, grouped.proxied)?;
+        
+        // parse fields
+        let fields: Vec<OriginField> = fields.named.into_iter().map(|f|
+            OriginField::try_from_field(f, ids.clone())
+        ).collect::<Result<_,_>>()?;
 
         let parsed = Self {
-            suffix: Self::resolve_suffix(&derive_input.ident)?,
-            ident: derive_input.ident,
             ty,
             generics: derive_input.generics,
-
-            attrs,
-
             fields: fields.into_iter().map(Into::into).collect(),
+            ids,
+            attrs,
+            passthrough_attrs: grouped.passthrough,
         };
 
         Ok(parsed)
     }
 }
 
-// !- Config struct attrs
+// ! Config struct attrs
 
 #[allow(clippy::struct_excessive_bools)]
 #[cfg_attr(feature = "syn-debug", derive(Debug))]
 #[derive(Clone, Default)]
 pub(crate) struct OriginStructAttrs {
-    pub doc_attrs: Vec<Attribute>,
-
     pub builder_derives: Vec<TokenStream2>,
     pub builder_attrs: Vec<TokenStream2>,
 
     pub override_derives: Vec<TokenStream2>,
     pub override_attrs: Vec<TokenStream2>,
+    
+    pub example_field_name: String,
 }
 impl OriginStructAttrs {
     pub fn has_builder_derives(&self) -> bool {
@@ -150,61 +169,55 @@ impl OriginStructAttrs {
     pub fn has_override_attrs(&self) -> bool {
         !self.override_attrs.is_empty()
     }
-}
-impl TryFrom<Vec<Attribute>> for OriginStructAttrs {
-    type Error = syn::Error;
-
-    fn try_from(attrs: Vec<Attribute>) -> Result<Self, Self::Error> {
+    fn try_from_grouped(
+        standard: Vec<StandardAttr<StructAttr>>,
+        proxied: Vec<ProxiedAttr<StructAttr>>,
+    ) -> Result<Self, syn::Error> {
         let mut out = Self::default();
-
-        for attr in attrs {
-            if !attr.path().is_ident(attr::HELPER_ATTR_CONFIG) {
-                // parse docs
-                // - Err(error) for invalid #[doc...] attrs
-                // - Ok(Some(attr) for valid #[doc...] attrs
-                // - Ok(None for non-`doc` attrs
-                if let Some(doc_attr) = util::try_parse_doc_attrs(&attr)? {
-                    out.doc_attrs.push(doc_attr);
-                } else {
-                    // unknown attr that we were able to get a key of
-                    #[cfg(feature = "syn-debug")]
-                    {
-                        if let Some(ident) = attr.path().get_ident() {
-                            eprintln!("Ignoring unknown struct attribute: {ident}");
-                        }
+        
+        for attr in standard {
+            match attr.meta {
+                Meta::Path(_path) => {
+                    #[allow(clippy::match_single_binding)]
+                    match attr.variant {
+                        _unknown => unreachable!("shape validation covers unknown"),
                     }
                 }
-                continue;
-            }
-            let metas = attr.parse_args_with(Punctuated::<Meta, Token![,]>::parse_terminated)?;
-            for meta in metas {
-                let ident = meta.path().require_ident()?.clone();
-                let struct_attr = StructAttr::try_from(&ident)?;
-                match meta {
-                    Meta::List(meta_list) => {
-                        struct_attr.validate_shape(attr::Shape::List, &ident)?;
-                        match struct_attr {
-                            StructAttr::Attr => {
-                                out.builder_attrs.push(meta_list.tokens.clone());
-                                out.override_attrs.push(meta_list.tokens);
-                            }
-                            StructAttr::BuilderAttr => out.builder_attrs.push(meta_list.tokens),
-                            StructAttr::OverrideAttr => out.override_attrs.push(meta_list.tokens),
-                            StructAttr::Derive => {
-                                out.builder_derives.push(meta_list.tokens.clone());
-                                out.override_derives.push(meta_list.tokens);
-                            }
-                            StructAttr::BuilderDerive => out.builder_derives.push(meta_list.tokens),
-                            StructAttr::OverrideDerive => out.override_derives.push(meta_list.tokens),
-                            //_unknown => unreachable!("shape validation covers unknown"),
-                        }
+                Meta::List(_meta_list) => {
+                    #[allow(clippy::match_single_binding)]
+                    match attr.variant {
+                        _unknown => unreachable!("shape validation covers unknown"),
                     }
-                    Meta::NameValue(_) => Err(ParseError::InvalidAttrShape { ident, shape: attr::Shape::KeyValue })?,
-                    Meta::Path(_) => Err(ParseError::InvalidAttrShape { ident, shape: attr::Shape::Flag })?,
+                },
+                Meta::NameValue(meta_name_value) => {
+                    match attr.variant {
+                        StructAttr::ExampleFieldName =>
+                            out.example_field_name = AttrExpr::try_from(meta_name_value.value)?.require_str(&attr.ident)?,
+
+                        _unknown => unreachable!("shape validation covers unknown"),
+                    }
                 }
             }
         }
+        
+        for attr in proxied {
+            match attr.variant {
+                StructAttr::Attr => {
+                    out.builder_attrs.push(attr.inner.clone());
+                    out.override_attrs.push(attr.inner);
+                }
+                StructAttr::BuilderAttr => out.builder_attrs.push(attr.inner),
+                StructAttr::OverrideAttr => out.override_attrs.push(attr.inner),
+                StructAttr::Derive => {
+                    out.builder_derives.push(attr.inner.clone());
+                    out.override_derives.push(attr.inner);
+                }
+                StructAttr::BuilderDerive => out.builder_derives.push(attr.inner),
+                StructAttr::OverrideDerive => out.override_derives.push(attr.inner),
 
+                _unknown => unreachable!("shape validation covers unknown"),
+            }
+        }
         Ok(out)
     }
 }
@@ -222,14 +235,21 @@ pub(crate) struct OriginField {
 
     pub ids: Rc<IdentPool>,
 
+    /// `#[config(..)]` attrs
     pub attrs: FieldAttrs,
-    pub override_attrs: Vec<TokenStream2>,
-    pub doc_attrs: Vec<Attribute>,
+
+    /// passthrough attrs (doc, cfg, doc(cfg))
+    pub passthrough_attrs: PassthroughAttrs,
 }
 impl OriginField {
     pub fn ids(&self) -> &IdentPool {
         &self.ids
     }
+    // ! Attributes
+    pub fn passthrough_attrs(&self) -> &PassthroughAttrs {
+        &self.passthrough_attrs
+    }
+    // ! Helpers
     /// Returns true if either `self.is_option` or `self.attrs.has_default()`
     pub fn is_optional(&self) -> bool {
         self.has_default()
@@ -244,12 +264,18 @@ impl OriginField {
         self.default.as_ref()
     }
     pub fn has_override_attrs(&self) -> bool {
-        !self.override_attrs.is_empty()
+        !self.attrs.override_attrs.is_empty()
     }
+    
+    pub fn is_conditional(&self) -> bool {
+        !self.passthrough_attrs.cfg.is_empty()
+    }
+    
     /// Whether the override struct should have an unset field
     pub fn with_unset_field(&self) -> bool {
         self.is_optional() && !self.attrs.skip_override_field()
     }
+
     /// Returns the ident of the unset field, if one should be used
     pub fn unset_ident(&self) -> Option<Ident> {
         if self.with_unset_field() {
@@ -260,7 +286,6 @@ impl OriginField {
         }
     }
 
-    #[cfg(feature = "serde")]
     /// Returns the ident of the unset field, if one should be used
     #[cfg(feature = "serde")]
     pub fn unset_aliases(&self) -> Vec<String> {
@@ -288,96 +313,50 @@ impl OriginField {
 
         quote!(#ident: #ty)
     }
-}
-impl TryFrom<Field> for OriginField {
-    type Error = Error;
-
-    fn try_from(field: Field) -> Result<Self, Self::Error> {
+    fn try_from_field(field: Field, ids: Rc<IdentPool>) -> Result<Self, Error> {
         let unwrapped_option = util::unwrap_option(&field.ty);
-        let mut parsed = OriginField {
-            ident: field.ident.unwrap(), // already checked fields are named
-            is_option: unwrapped_option.is_some(),
-            default: None,
-            flat_ty: unwrapped_option.unwrap_or(&field.ty).clone(),
-            ty: field.ty,
-            attrs: FieldAttrs::default(),
-            override_attrs: Vec::new(),
-            doc_attrs: Vec::new(),
-        };
+        let is_option = unwrapped_option.is_some();
 
         // first attr pass, group into vecs by normal attrs or passthrough
-        let mut standard_attrs = Vec::new(); // vec of Meta
-        let mut seen = HashMap::<FieldAttr, Ident>::new(); // Map of FieldAttr types seen on first pass
-        for attr in field.attrs {
-            if !attr.path().is_ident(attr::HELPER_ATTR_CONFIG) {
-                // parse docs
-                // - Err(error) for invalid #[doc...] attrs
-                // - Ok(Some(attr) for valid #[doc...] attrs
-                // - Ok(None for non-`doc` attrs
-                if let Some(doc_attr) = util::try_parse_doc_attrs(&attr)? {
-                    parsed.doc_attrs.push(doc_attr);
-                } else {
-                    // unknown attr that we were able to get a key of
-                    #[cfg(feature = "syn-debug")]
-                    {
-                        if let Some(ident) = attr.path().get_ident() {
-                            eprintln!("Ignoring unknown field attribute: {ident}");
-                        }
-                    }
-                }
-                continue;
-            }
-            let metas = attr.parse_args_with(Punctuated::<Meta, Token![,]>::parse_terminated)?;
-            for meta in metas {
-                let ident = meta.path().require_ident()?.clone();
-                let field_attr = FieldAttr::try_from(&ident)?;
-                if field_attr.is_passthrough() {
-                    match meta {
-                        Meta::List(meta_list) => {
-                            parsed.override_attrs.push(meta_list.tokens);
-                            seen.insert(field_attr, ident);
-                        }
-                        Meta::NameValue(_) => Err(ParseError::InvalidAttrShape { ident, shape: attr::Shape::KeyValue })?,
-                        Meta::Path(_) => Err(ParseError::InvalidAttrShape { ident, shape: attr::Shape::Flag })?,
-                    }
-                }
-                // type compatibility validation done here for ty access
-                else if field_attr == FieldAttr::OverrideRequired && parsed.is_option {
-                    Err(ParseError::AttrOptionUnsupported { ident })?;
-                }
-                else {
-                    standard_attrs.push(meta);
-                    seen.insert(field_attr, ident);
+        let grouped = GroupedAttrs::<FieldAttr>::try_from(field.attrs)?;
+
+        // validate Option<Field> compatibility
+        if is_option {
+            for attr in &grouped.standard {
+                if attr.variant.is_option_incompatible() {
+                    Err(ParseError::AttrOptionUnsupported { ident: attr.ident.clone() })?;
                 }
             }
         }
 
-        // manually handle mut ex validation on first pass for attr passthrough
-        if let Some(attr_ident) = seen.get(&FieldAttr::OverrideAttr) {
-            for incompat in FieldAttr::OverrideAttr.incompatible_attrs() {
-                if let Some(incompat_ident) = seen.get(incompat) {
-                    Err(ParseError::IncompatibleAttrs {
-                        ident: attr_ident.clone(),
-                        other: incompat_ident.clone(),
-                    })?;
-                }
-            }
-        }
-
-        // parse standard attrs into FieldAttrs struct
-        parsed.attrs = FieldAttrs::try_from(standard_attrs)?;
+        // parse #[config(..)] attrs into structured opts
+        let attrs = FieldAttrs::try_from_grouped(grouped.standard, grouped.proxied)?;
 
         // store default expr for Option types
-        parsed.default = match &parsed.attrs.default {
+        let default = match &attrs.default {
             Some(def) => Some(def.clone()),
-            None if parsed.is_option => Some(AttrExpr::none_expr()),
+            None if is_option => Some(AttrExpr::none_expr()),
             None => None,
         };
+
+        let parsed = OriginField {
+            ident: field.ident.unwrap(), // already checked fields are named
+            flat_ty: unwrapped_option.unwrap_or(&field.ty).clone(),
+            ty: field.ty,
+            is_option,
+            default,
+
+            ids,
+
+            attrs,
+            passthrough_attrs: grouped.passthrough,
+        };
+
         Ok(parsed)
     }
 }
 
-// !- Config field attrs
+// ! Config field attrs
 
 #[allow(clippy::struct_excessive_bools)]
 #[cfg_attr(feature = "syn-debug", derive(Debug))]
@@ -433,6 +412,8 @@ pub(crate) struct FieldAttrs {
     /// - `skip_all`
     /// - `override_skip`
     pub override_from: Option<TypePath>,
+    
+    pub override_from_copy: bool,
 
     /// requires:
     /// - `override_from`
@@ -441,6 +422,9 @@ pub(crate) struct FieldAttrs {
     /// - `skip_all`
     /// - `override_skip`
     pub override_via: Option<TypePath>,
+
+    /// custom attrs to attach to override fields
+    pub override_attrs: Vec<TokenStream2>,
 }
 impl FieldAttrs {
     pub fn skip_config_getter(&self) -> bool {
@@ -452,70 +436,55 @@ impl FieldAttrs {
     pub fn skip_override_field(&self) -> bool {
         self.skip_all || self.override_skip
     }
-}
-impl TryFrom<Vec<Meta>> for FieldAttrs {
-    type Error = syn::Error;
 
-    fn try_from(items: Vec<Meta>) -> Result<Self, Self::Error> {
-        let mut seen = HashMap::<FieldAttr, Ident>::new();
+    fn try_from_grouped(
+        standard: Vec<StandardAttr<FieldAttr>>,
+        proxied: Vec<ProxiedAttr<FieldAttr>>,
+    ) -> Result<Self, syn::Error> {
         let mut out = Self::default();
-        for item in &items {
-            let (field_attr, ident) = match item {
-                Meta::Path(path) => {
-                    let ident = path.require_ident()?;
-                    let field_attr = FieldAttr::try_from(ident)?;
-                    field_attr.validate_shape(attr::Shape::Flag, ident)?;
-
-                    match field_attr {
+        for attr in standard {
+            match attr.meta {
+                Meta::Path(_path) => {
+                    match attr.variant {
                         FieldAttr::Copy => out.copy = true,
                         FieldAttr::SkipAll => out.skip_all = true,
                         FieldAttr::ConfigSkipGetter => out.config_skip_getter = true,
                         FieldAttr::BuilderSkip => out.builder_skip = true,
                         FieldAttr::OverrideSkip => out.override_skip = true,
+                        FieldAttr::OverrideFromCopy => out.override_from_copy = true,
                         FieldAttr::OverrideRequired => out.override_required = true,
+
                         _unknown => unreachable!("shape validation covers unknown"),
                     }
-                    (field_attr, ident.clone())
                 }
-                Meta::List(meta_list) => {
-                    let ident = meta_list.path.require_ident()?;
-                    let field_attr = FieldAttr::try_from(ident)?;
-                    field_attr.validate_shape(attr::Shape::List, ident)?;
-
+                Meta::List(_meta_list) => {
                     #[allow(clippy::match_single_binding)]
-                    match field_attr {
+                    match attr.variant {
                         // FieldAttr::OverrideAttr => out.override_attrs.push(meta_list.tokens),
 
                         _unknown => unreachable!("shape validation covers unknown"),
                     }
                 },
                 Meta::NameValue(meta_name_value) => {
-                    let ident = meta_name_value.path.require_ident()?;
-                    let field_attr = FieldAttr::try_from(ident)?;
-                    field_attr.validate_shape(attr::Shape::KeyValue, ident)?;
-
-                    match field_attr {
-                        FieldAttr::Default => out.default = Some(AttrExpr::try_from(meta_name_value.value.clone())?),
+                    match attr.variant {
+                        FieldAttr::Default => out.default = Some(AttrExpr::try_from(meta_name_value.value)?),
                         FieldAttr::OverrideFrom => out.override_from = Some(syn::parse(meta_name_value.value.to_token_stream().into())?),
                         FieldAttr::OverrideVia => out.override_via = Some(syn::parse(meta_name_value.value.to_token_stream().into())?),
 
                         _unknown => unreachable!("shape validation covers unknown"),
                     }
-                    (field_attr, ident.clone())
                 }
-            };
-            // validate no duplicates (allow for passthrough, however)
-            if field_attr != FieldAttr::OverrideAttr {
-                attr::validate_unique(field_attr, &seen)?;
             }
-            seen.insert(field_attr, ident);
         }
-        // error on implicit attr specified
-        attr::validate_implicit(&seen)?;
-        // error on incompatible attrs
-        attr::validate_mutex(&seen)?;
-        // validate deps
-        attr::validate_deps(&seen)?;
+
+        for attr in proxied {
+            match attr.variant {
+                FieldAttr::OverrideAttr => out.override_attrs.push(attr.inner),
+
+                _unknown => unreachable!("shape validation covers unknown"),
+            }
+        }
+
         Ok(out)
     }
 }
