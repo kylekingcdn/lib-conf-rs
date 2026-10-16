@@ -690,7 +690,7 @@ dependencies = [
 
 [[package]]
 name = "lib-conf-example-1"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "lib-conf",
  "serde",
@@ -698,7 +698,7 @@ dependencies = [
 
 [[package]]
 name = "lib-conf-example-2"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "lib-conf",
  "serde",
@@ -706,7 +706,7 @@ dependencies = [
 
 [[package]]
 name = "lib-conf-example-3"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "lib-conf",
  "serde",
@@ -714,7 +714,7 @@ dependencies = [
 
 [[package]]
 name = "lib-conf-example-readme"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "config",
  "dotenvy",
