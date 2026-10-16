@@ -1,28 +1,64 @@
 use crate::parse::attr;
 
-use quote::ToTokens;
-use syn::{Attribute, Error, Expr, GenericArgument, Lit, PathArguments, spanned::Spanned, Type};
+use syn::{
+    Attribute, Expr, GenericArgument, Lit, Meta,
+    PathArguments, punctuated::Punctuated, Token, Type,
+};
 
-// FIXME: ParseError types
-pub fn try_parse_doc_attrs(attr: &Attribute) -> Result<Option<Attribute>, Error> {
-    if attr.path().is_ident(attr::DOC_ATTR) {
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum ParsedDocAttr {
+    Comment,
+    Cfg,
+    Other,
+}
+
+/// # Returns
+///
+/// - `None` if not `doc` attr
+/// - Otherwise `Some(kind)`
+pub fn parse_doc_attrs(attr: &Attribute) -> Option<ParsedDocAttr> {
+    attr.path().is_ident(attr::DOC_ATTR).then(|| {
+        //eprintln!("parsing doc: {}", attr.to_token_stream());
+        #[allow(clippy::collapsible_if)]
         // brief validation of correct shape before insert
         if let Ok(doc_meta) = attr.meta.require_name_value() {
-            if let Expr::Lit(doc_lit) = &doc_meta.value {
-                if let Lit::Str(_doc_lit_str) = &doc_lit.lit {
-                    Ok(Some(attr.clone()))
-                } else {
-                    Err(Error::new(attr.span(), format!("Unexpected doc literal type: {}", doc_lit.into_token_stream())))
-                }
-            } else {
-                Err(Error::new(attr.span(), format!("Unexpected doc attr expression: {}", doc_meta.into_token_stream())))
+            if let Expr::Lit(doc_lit) = &doc_meta.value &&
+               let Lit::Str(_doc_lit_str) = &doc_lit.lit {
+                //eprintln!("got doc comment: {}", _doc_lit_str.value());
+                return ParsedDocAttr::Comment;
             }
-        } else {
-            Err(Error::new(attr.span(), format!("Unexpected doc attr shape: {}", attr.meta.to_token_stream())))
         }
-    } else {
-        Ok(None) // ignore non-doc attr
-    }
+        else if let Ok(doc_meta) = attr.meta.require_list() {
+            if let Ok(metas) = doc_meta.parse_args_with(Punctuated::<Meta, Token![,]>::parse_terminated) &&
+                let Some(first) = metas.first() &&
+                first.path().is_ident(attr::CFG) &&
+                first.require_list().is_ok()
+            {
+                //eprintln!("Passing through #[doc(cfg)] attr: {}", attr.to_token_stream());
+                return ParsedDocAttr::Cfg;
+            }
+        }
+        ParsedDocAttr::Other
+    })
+}
+
+/// Parse an attribute for use, if it's a `cfg` attr
+///
+/// # Returns
+///
+/// - `None` if not `cfg` attr
+/// - Otherwise `Some(keep_attr)`
+pub fn parse_cfg_attribute(attr: &Attribute) -> Option<bool> {
+    attr.path().is_ident(attr::CFG).then(|| {
+        // brief validation of correct shape before insert
+        if let Ok(_cfg_meta_list) = attr.meta.require_list() {
+            // eprintln!("Passing through `#[cfg]` attr: {}", attr.to_token_stream());
+            true
+        } else {
+            // eprintln!("got `#[cfg]` attr in unexpected shape: {}", attr.to_token_stream());
+            false
+        }
+    })
 }
 
 // credit: taken from serde
