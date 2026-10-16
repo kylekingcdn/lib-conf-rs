@@ -5,6 +5,7 @@ use lib_conf::LibConfig;
 
 /// Settings for `example3` of `lib-conf`
 #[derive(Debug, Clone, LibConfig)]
+#[config(example_field_name = "example3")]
 pub struct Example3Config {
     // - Example notes
     // By default, override support is still enabled for required fields

@@ -1,10 +1,10 @@
 //! This is an example library for [`lib_conf`] and does not provide actual functionality.
-/// This is an example library for [`lib_conf`] and does not provide actual functionality.
 pub mod crab_log {
     use lib_conf::LibConfig;
 
     /// Settings for `crab-log`
     #[derive(Debug, Clone, LibConfig)]
+    #[config(example_field_name = "logging")]
     pub struct CrabLogConfig {
         /// Enables the Logger library
         #[config(copy, default = true)]

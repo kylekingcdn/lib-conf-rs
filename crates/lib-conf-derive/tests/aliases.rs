@@ -3,6 +3,7 @@
 mod common;
 
 #[derive(Debug, Clone, lib_conf_derive::LibConfig)]
+#[config(example_field_name = "test")]
 pub struct TestSettings {
     #[config(copy, default = 1)]
     pub foo: u16,

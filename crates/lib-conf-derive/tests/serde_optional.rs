@@ -1,6 +1,7 @@
 #![cfg(not(feature = "serde"))]
 
 #[derive(Debug, Clone, lib_conf_derive::LibConfig)]
+#[config(example_field_name = "test")]
 pub struct TestConfig {
     #[config(override_required)]
     pub runtime_only: String,

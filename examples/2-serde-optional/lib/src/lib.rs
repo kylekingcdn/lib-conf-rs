@@ -5,6 +5,7 @@ use lib_conf::LibConfig;
 
 /// Settings for `example2` of `lib-conf`
 #[derive(Debug, Clone, LibConfig)]
+#[config(example_field_name = "example2")]
 pub struct Example2Config {
     /// Enables verbose logging
     ///

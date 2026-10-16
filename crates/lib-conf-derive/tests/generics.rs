@@ -3,6 +3,7 @@
 mod common;
 
 #[derive(Debug, Clone, lib_conf_derive::LibConfig)]
+#[config(example_field_name = "test")]
 pub struct TestConfig<T: Default + Clone + std::fmt::Debug, S>
 where
     S: Copy,

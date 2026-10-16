@@ -56,6 +56,7 @@ use std::time::Duration;
 /// }
 /// ```
 #[derive(Debug, Clone, LibConfig)]
+#[config(example_field_name = "db")]
 pub struct PgPoolConfig {
     /// URL of the database
     ///
