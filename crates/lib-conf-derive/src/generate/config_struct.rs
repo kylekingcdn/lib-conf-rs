@@ -1,5 +1,8 @@
 use crate::{
-    generate::{BuilderStruct, OverrideStruct, util, VariantField},
+    generate::{
+        BuilderStruct, OverrideStruct, VariantField,
+        util::{self, AppendDoc, Doc, Document},
+    },
     parse::{self, IdentPool, OriginStruct},
 };
 
@@ -43,7 +46,9 @@ impl ConfigStruct {
         self.ids().origin_ident()
     }
 }
-// ! Config struct generate methods
+
+// ! Struct token output
+
 impl ConfigStruct {
     /// parameters:
     /// - override config if any fields contain the `override_required` flag
@@ -221,7 +226,7 @@ impl ToTokens for ConfigStruct {
     }
 }
 
-// ! Config struct fields
+// !- Config struct field
 
 pub type ConfigField = VariantField<ConfigVariant>;
 
@@ -279,9 +284,29 @@ impl ConfigField {
             }
         }
     }
+}
+
+/// ! Field-based doc segments
+
+impl ConfigField {
+}
+
+/// ! Field-based item docs
+
+impl ConfigField {
+    pub fn getter_docs(&self) -> AppendDoc {
+        self.append_docs()
+        + Doc::new().separator()
+        + self.doc_default_val()
+    }
+}
+
+// ! Field-based token output
+
+impl ConfigField {
     pub(super) fn getter_tokens(&self) -> TokenStream {
         let ident = self.ident();
-        let docs = self.docs();
+        let docs = self.getter_docs();
         let ty = self.getter_ret_ty();
         let ret = self.getter_ret_expr();
 

@@ -1,5 +1,8 @@
 use crate::{
-    generate::{OverrideStruct, util, VariantField},
+    generate::{
+        OverrideStruct, VariantField,
+        util::{self, AppendDoc, Doc, Document},
+    },
     parse::{IdentPool, OriginStruct},
 };
 
@@ -52,24 +55,33 @@ impl BuilderStruct {
     pub fn ty(&self) -> &Type {
         &self.ty
     }
-    pub fn generate_builder_ident(origin_ident: &Ident) -> Ident {
-        format_ident!("{}Builder", origin_ident)
-    }
-    fn struct_docs(&self) -> String {
-        let override_ident = self.override_struct.ident();
-        let origin_ident = &self.origin.ident;
-        let ident = &self.ident;
-        format!(
-            "Provides a builder used to configure [`{origin_ident}`] at compile-time.
+}
 
-            Can be constructed using either [`{origin_ident}::builder()`] or [`{ident}::new()`].
+/// ! Struct-based doc segments
 
-            For run-time configuration of `{origin_ident}`, see [`{override_ident}`]."
-        )
+impl BuilderStruct {
+}
+
+/// ! Struct-based item docs
+
+impl BuilderStruct {
+    fn struct_docs(&self) -> Doc {
+        let origin_ident = self.ids().origin_ident();
+        let origin_link = self.ids().origin_link().struct_only();
+        let origin_builder_link = self.ids().origin_link().method_explicit("builder");
+        let builder_new_link = self.ids().builder_link().method_explicit("new");
+        let override_link = self.ids().override_link().struct_only();
+
+        Doc::new()
+        + format!("Provides a builder used to configure {origin_link} at compile-time.")
+        + ()
+        + format!("Can be constructed using either {origin_builder_link} or {builder_new_link}.")
+        + ()
+        + format!("For run-time configuration of `{origin_ident}`, see {override_link}")
     }
 }
 
-// ! Builder struct generate methods
+// ! Struct token output
 
 impl BuilderStruct {
     fn derive_tokens(&self) -> Option<TokenStream> {
@@ -92,7 +104,7 @@ impl BuilderStruct {
         ty
     }
     fn struct_tokens(&self) -> TokenStream {
-        let docs = util::doc_lines_split(self.struct_docs(), true);
+        let docs = self.struct_docs();
         // attrs
         let derives = self.derive_tokens();
         let attrs = self.attr_tokens();
@@ -102,6 +114,7 @@ impl BuilderStruct {
         let override_ty = self.override_field_ty_tokens();
         let generics = &self.origin.generics;
         let where_clause = &generics.where_clause;
+
         quote! {
             #docs
             #[derive(Debug, Clone)]
@@ -238,7 +251,7 @@ impl BuilderStruct {
         util::bare_default_impl_tokens(self.ident(), &self.origin.generics)
     }
     fn impl_tokens(&self) -> TokenStream {
-        let struct_ident = &self.ident;
+        let struct_ident = self.ident();
         let new_fn = self.new_fn_tokens();
         let setter_fns = self.setter_fns_tokens();
         let override_fns = self.override_fns_tokens();
@@ -272,15 +285,50 @@ impl ToTokens for BuilderStruct {
     }
 }
 
-// ! Builder struct field
+// !- Builder struct field
 
 pub type BuilderField = VariantField<BuilderVariant>;
+
+/// ! Field-based doc segments
+
+impl BuilderField {
+    pub fn doc_unset(&self) -> Option<Doc> {
+        self.origin.unset_ident().map(|unset_ident| {
+            let unset_link = self.ids().override_link().method(&unset_ident);
+            let _alias_ref = format!("{unset_link}#unset-fields");
+            let doc = Doc::new()
+                .h1("Revert at run-time")
+                .newl();
+                // TODO: add h1, h2, h3, etc
+            doc + "# Runtime "
+
+            // let override_ident = self.ids().override_ident();
+            // let link_name = format!("{override_ident}::{unset_ident}()");
+            // let link_ref = format!("method@{override_ident}::{unset_ident}");
+            // format!("[{link_name}]({link_ref})"); // !- TODO: helper fns
+            //format!("Supports reverting to default at run-time via {unset_link}")
+        })
+    }
+}
+
+/// ! Field-based item docs
+
+impl BuilderField {
+    pub fn setter_docs(&self) -> AppendDoc {
+        AppendDoc::from(self.origin.passthrough_attrs().doc().clone())
+        + self.doc_unset()
+        + Doc::new().separator()
+        + self.doc_default_val()
+    }
+}
+
+// ! Field-based token output
 
 impl BuilderField {
     pub(super) fn setter_tokens(&self) -> TokenStream {
         let ident = self.ident();
         let ty = &self.origin.ty;
-        let docs = self.docs();
+        let docs = self.setter_docs();
         quote! {
             #docs
             #[must_use]

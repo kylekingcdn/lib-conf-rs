@@ -9,8 +9,11 @@ pub(crate) use {
     override_struct::OverrideStruct,
 };
 
-use crate::parse::{OriginField, FieldAttrs};
-
+use crate::{
+    generate::util::AppendDoc,
+    parse::{FieldAttrs, IdentPool, OriginField},
+};
+use proc_macro2::TokenStream;
 use std::marker::PhantomData;
 use std::rc::Rc;
 use syn::Ident;
@@ -39,18 +42,21 @@ impl<T> VariantField<T> {
     pub fn attrs(&self) -> &FieldAttrs {
         &self.origin.attrs
     }
-    pub fn docs(&self) -> util::AppendDoc {
-        let mut out = util::AppendDoc::new(self.origin.doc_attrs.clone());
-        if let Some(default) = self.origin.default() {
-            // separate existing docs, if any
-            if !out.source().is_empty() {
-                out.newl();
-                out.line("---");
-                out.newl();
-            }
-            out.line(format!("- Library default: **`{}`**", default.to_pretty_string()));
-        }
-
-        out
+    pub fn doc_default_val(&self) -> Option<String> {
+        self.origin.default().map(|def|
+            format!("- Library default: **`{}`**", def.to_pretty_string())
+        )
+    }
+    pub fn append_docs(&self) -> AppendDoc {
+        self.origin.passthrough_attrs().doc().clone().into()
+    }
+    pub fn cfg_tokens(&self) -> TokenStream {
+        self.origin.passthrough_attrs().cfg_tokens()
+    }
+    pub fn has_cfg_attrs(&self) -> bool {
+        !self.origin.passthrough_attrs().cfg.is_empty()
+    }
+    pub fn doc_cfg_tokens(&self) -> TokenStream {
+        self.origin.passthrough_attrs().doc_cfg_tokens()
     }
 }

@@ -1,5 +1,8 @@
 use crate::{
-    generate::{util, VariantField},
+    generate::{
+        VariantField,
+        util::{self, AppendDoc, CodeBlock, DerivedLink, Doc, Document, Link, Table},
+    },
     parse::{self, IdentPool, OriginField, OriginStruct},
 };
 
@@ -59,118 +62,235 @@ impl OverrideStruct {
     pub fn has_optional_fields(&self) -> bool {
         self.fields.iter().any(OverrideField::is_optional)
     }
-    fn generate_ident(origin_ident: &Ident, suffix: &'static str) -> Ident {
-        let ident_str = origin_ident.to_string();
-        assert!(ident_str.ends_with(suffix));
-
-        let suf_index = ident_str.rfind(suffix).unwrap();
-        let prefix = &ident_str[..suf_index];
-        format_ident!("{prefix}Override{suffix}")
+    pub fn has_unset_fields(&self) -> bool {
+        self.fields.iter().any(|f| f.origin.with_unset_field())
     }
+    pub fn has_conditional_fields(&self) -> bool {
+        self.fields.iter().any(|f| f.origin.is_conditional())
+    }
+    pub fn has_conditional_unset_fields(&self) -> bool {
+        self.fields.iter().any(|f| f.origin.with_unset_field() && f.origin.is_conditional())
+    }
+}
+
+
+impl OverrideStruct {
+    // ! Struct-based doc segments
+
+    fn doc_headline(&self) -> String {
+        let origin_link = self.ids().origin_link().struct_only();
+        format!("Provides support for configuring {origin_link} at run-time.")
+    }
+    fn doc_features(&self) -> Doc {
+        let override_ident = self.ids().override_ident();
+        let origin_link = self.ids().origin_link().struct_only();
+        let builder_link = self.ids().origin_link().struct_only();
+        Doc::new()
+        + format!("`{override_ident}` provides run-time support for:")
+        + format!("- *Setting* {origin_link} fields")
+        + format!("- *Overriding* compile-time assignments (made using {builder_link})")
+        + self.origin.has_optional_fields().then_some(
+            "- *Reverting* compile-time (or run-time) assignments back to provided defaults"
+        )
+    }
+    fn doc_example(&self) -> CodeBlock {
+        let ident = self.ident();
+        let field_name = format_ident!("{}", &self.origin.attrs.example_field_name);
+        CodeBlock::new("rust,ignore")
+        + "#[derive(Debug, Clone, Deserialize)]"
+        + "pub struct Conf {"
+        + "    api: ApiConf,"
+        + "    // .."
+        + (!self.has_required_fields()).then_some(
+          "    #[serde(default)]"
+        )
+        + format!(
+          "    {field_name}: {ident}," // TODO: add struct opt for specifying field name
+        )
+        + "}"
+    }
+    fn doc_fields_table(&self) -> Option<Doc> {
+        if self.fields.is_empty() {
+            return None;
+        }
+
+        let has_required = self.has_required_fields();
+        let has_conditional = self.has_conditional_fields();
+        
+        // Add a notes column if required or conditional fields exist
+        let doc = if has_required || has_conditional {
+            let mut table = Table::new_3("Name", "Type", "Notes");
+    
+            for field in &self.fields {
+                let field_ident = field.ident();
+                let ty = field.flat_ty_pretty();
+                let note = field.doc_notes();
+                table += (format!("`{field_ident}`"), format!("`{ty}`"), note);
+            }
+            Doc::new()
+            + table
+            + ()
+            + "**Notes:**"
+            + has_required.then_some(
+                "- ❗️: This field is mandatory."
+            )
+            + has_conditional.then_some(
+                "- ❔: Inclusion of this field is conditional. Check the associated method for more information."
+            )
+            + (!has_required).then_some(
+                "- All override fields are optional"
+            )
+        } else {
+            let mut table = Table::new_2("Name", "Type");
+    
+            for field in &self.fields {
+                let field_ident = field.ident();
+                let ty = field.flat_ty_pretty();
+    
+                table += (format!("`{field_ident}`"), format!("`{ty}`"));
+            }
+            table.into()
+        };
+        
+        Some(doc)
+    }
+    fn doc_unset(&self) -> Option<Doc> {
+        let Some((example_ident, example_default)) = self.doc_unset_example() else {
+            return None;
+        };
+        let origin_link = self.ids().origin_link().struct_only();
+        
+        let doc = Doc::new().h2("Revert to default")
+        + ()
+        + format!("For each of {origin_link}'s optional fields, there is a corresponding **`bool`** with a name in the form of `*_unset`.")
+        + ()
+        + "If set to `true`, the associated field will have its value reverted to the provided default, e.g."
+        + format!("- if `{example_ident}_unset` deserializes to `true`:")
+        + format!("  - `{example_ident}` will be reverted back to the provided default: `{example_default}`")
+        + ()
+        + Doc::new().h3("Unset fields")
+        + ()
+        + "The following fields are supported:"
+        + ()
+        + self.doc_unset_fields_table()
+        + ()
+        + self.doc_unset_aliases(&example_ident);
+    
+        Some(doc)
+    }
+    fn doc_unset_example(&self) -> Option<(Ident, String)> {
+        for field in &self.fields {
+            if field.origin.with_unset_field() {
+                return Some((
+                    field.ident().clone(),
+                    field.origin.default().unwrap().to_pretty_string(),
+                ));
+            }
+        }
+        return None;
+    }
+    fn doc_unset_fields_table(&self) -> Doc {
+        assert!(self.has_unset_fields());
+
+        let has_conditional = self.has_conditional_unset_fields();
+        
+        // Add a notes column if conditional fields exist
+        if has_conditional {
+            let mut table = Table::new_2("Name", "Notes");
+    
+            for field in &self.fields {
+                if let Some(ident) = field.origin.unset_ident() {
+                    let note = field.has_cfg_attrs().then_some("<span align=\"center\">❔</span>");
+                    table += (format!("`{ident}`"), note.unwrap_or_default());
+                }
+            }
+            Doc::new()
+            + table
+            + ()
+            + "**Notes:**"
+            + has_conditional.then_some(
+                "- ❔: Inclusion of this field is conditional. Check the associated method for more information."
+            )
+            + "- All `unset` fields are optional"
+        } else {
+            let mut table = Table::new_1("Name");
+    
+            for field in &self.fields {
+                if let Some(ident) = field.origin.unset_ident() {
+                    table += format!("`{ident}`");
+                }
+            }
+            table.into()
+        }
+    }
+    fn doc_unset_aliases(&self, example_ident: &Ident) -> Doc {
+        let mut alias_table = Table::new_1("Alias");
+        let mut example_list = Doc::new();
+
+        for alias in *parse::UNSET_ALIASES {
+            alias_table += format!("`{alias}`");
+            example_list += format!("- `{example_ident}_{alias}`");
+        }
+        
+        Doc::new().h3("Unset aliases")
+        + ()
+        + "Defaults can also be restored using the following aliases"
+        + ()
+        + alias_table
+        + ()
+        + format!("For example, `{example_ident}` could be reset using either `{example_ident}_unset`, or any of the following:")
+        + example_list
+    }
+}
+
+
+impl OverrideStruct {
+    // ! Struct-based item docs
 
     #[cfg(not(feature = "serde"))]
-    fn struct_docs(&self) -> String {
-        let origin_ident = &self.origin.ident;
-        format!(
-"Provides support for configuring [`{origin_ident}`] at run-time.
-
-**Note**: `serde` support is disabled. This struct must be manually initialized. It is provided to allow for retained override/unset support")
+    fn struct_docs(&self) -> Doc {
+        self.doc_headline()
+        + ()
+        + "**Note**: `serde` support is disabled. This struct must be manually initialized."
+        + "It is provided to allow for retained override/unset support"
     }
 
+    // !- TODO: migrate to Doc util
     #[cfg(feature = "serde")]
-    fn struct_docs(&self) -> String {
-        let origin_ident = &self.origin.ident;
-        let ident = &self.ident;
-        let origin_has_opt_fields = self.origin.has_optional_fields();
+    fn struct_docs(&self) -> Doc {
+        //let origin_ident = self.origin.ident();
+        let override_ident = self.ids().override_ident();
+    
+        let mut docs = Doc::new()
+        + self.doc_headline()
+        + () // TODO: move to segments
+        + "A common method of rust app configuration is deserializing a config file or env vars into a *'Config'* struct at run-time."
+        + ()
+        + format!("`{override_ident}` is provided for just this case.");    
 
-        // ! overview features
-        let mut support = Vec::new();
-        support.push("This struct can be used to:".to_string());
-        support.push(format!("- *Set* [`{origin_ident}`] fields"));
-        support.push(format!("- *Override* assignments made using [`{origin_ident}Builder`]"));
-        if origin_has_opt_fields {
-            support.push("- *Revert* field assignments back to library-defined defaults".to_string());
-        }
-        let support = support.join("\n");
+        docs = docs.separator()
+        + self.doc_features()
+        + ()
+        + Doc::new().h1("Example")
+        + ()
+        + self.doc_example();
 
-        // ! overview
-        let overview = format!(
-"Provides support for configuring [`{origin_ident}`] at run-time.
+        if let Some(fields_table) = self.doc_fields_table() {
+            docs += Doc::new()
+            + ()
+            + Doc::new().h1("Fields")
+            + ()
+            + fields_table
+            + ();
 
-A common method of rust app configuration is deserializing a config file or env vars into a *'Config'* struct at run-time.
-
-`{ident}` is provided for just this case.
-
-{support}"
-        );
-
-        // ! example
-        let mut default_attr = String::new();
-        if !self.has_required_fields() {
-            default_attr.push_str("#[serde(default)]\n    ");
-        }
-        let example = format!(
-"```rust,ignore
-#[derive(Debug, Clone, Deserialize)]
-pub struct Conf {{
-    api: ApiConf,
-    // ..
-    {default_attr}_: {ident},
-}}
-```"
-        );
-
-        // ! fields
-        let mut fields = Vec::new();
-        let mut unset_fields = Vec::new();
-        if origin_has_opt_fields {
-            unset_fields.push(format!(
-"For each of [`{origin_ident}`]'s optional fields, there is an additional `{{}}_unset` field.
-
-If set to `true`, the associated field will have its value reverted to the library default.\n"
-            ));
-        }
-        for field in &self.fields {
-            let mut suffix = String::new();
-            if field.is_required() {
-                suffix.push_str("  // mandatory");
-            }
-
-            let field_ident = field.ident();
-            let ty = field.flat_ty().to_token_stream().to_string().replace(' ', "");
-            fields.push(format!("- `{field_ident}: {ty}{suffix}`"));
-            if let Some(unset_ident) = field.origin.unset_ident() {
-                unset_fields.push(format!("- `{unset_ident}: bool`"));
+            if let Some(unset_docs) = self.doc_unset() {
+                docs += Doc::new()
+                + ()
+                + unset_docs;
             }
         }
-        if self.has_optional_fields() {
-            if self.has_required_fields() {
-                fields.push("\n**Note**: Each override field is optional unless explicitly stated otherwise.".to_string());
-            } else {
-                fields.push("\n**Note**: All override fields are optional.".to_string());
-            }
-        }
-        if !unset_fields.is_empty() {
-            fields.push("\n## Unset fields\n".to_string());
 
-            let unset_aliases = parse::UNSET_ALIASES.iter().map(|s| format!("`{s}`")).collect::<Vec<_>>().join(", ");
-            unset_fields.push(format!("\n**Note**: The following unset aliases are also supported: {unset_aliases}"));
-        }
-        fields = fields.into_iter().chain(unset_fields).collect();
-        let fields = fields.join("\n");
-
-        // !- output
-        format!(
-"{overview}
-
-# Example
-
-{example}
-
-# Fields
-
-{fields}"
-        )
+        docs
     }
 }
 
@@ -315,7 +435,7 @@ impl ToTokens for OverrideStruct {
     }
 }
 
-// ! Override struct fields
+// !- Override struct field
 
 pub type OverrideField = VariantField<OverrideVariant>;
 
@@ -327,11 +447,12 @@ impl OverrideField {
     pub fn is_optional(&self) -> bool {
         !self.attrs().override_required
     }
-    fn attr_tokens(&self) -> Option<TokenStream> {
-        self.origin.has_override_attrs().then(|| {
-            let attrs = &self.origin.override_attrs;
-            quote!(#(#[#attrs])*)
-        })
+    pub fn supports_copy(&self) -> bool {
+        if self.attrs().override_from.is_some() {
+            self.attrs().override_from_copy
+        } else {
+            self.attrs().copy
+        }
     }
     pub fn flat_ty(&self) -> Type {
         match self.attrs().override_from {
@@ -339,12 +460,23 @@ impl OverrideField {
             None => self.origin.flat_ty.clone(),
         }
     }
+    pub fn flat_ty_pretty(&self) -> String {
+        self.flat_ty().to_token_stream().to_string().replace(" ", "")
+    }
     pub fn ty(&self) -> Type {
         let mut ty = self.flat_ty();
         if !self.attrs().override_required {
             ty = parse_quote!(Option<#ty>);
         }
         ty
+    }
+    fn getter_link(&self) -> Link {
+        DerivedLink::new(self.ids().override_ident()).method(self.ident())
+    }
+    fn _unset_getter_link(&self) -> Option<Link> {
+        self.origin.unset_ident().map(|unset_ident|
+            DerivedLink::new(self.ids().override_ident()).method(unset_ident)
+        )
     }
     fn getter_ret_ty(&self) -> Type {
         // copy permitted, direct return
@@ -403,9 +535,56 @@ impl OverrideField {
             }
         }
     }
+}
+
+impl OverrideField {
+    // ! Field-based doc segments
+
+    fn doc_notes(&self) -> String {
+        let mut out = String::new();
+        if self.is_required() {
+            out.push_str("❗️");
+        }
+        if self.origin.is_conditional() {
+            out.push('❔');
+        }
+        format!("<span align=\"center\">{out}</span>")
+    }
+}
+
+impl OverrideField {
+    // ! Field-based item docs
+
+    pub fn field_docs(&self) -> AppendDoc {
+        self.append_docs()
+        + Doc::new().separator()
+        + self.doc_default_val()
+    }
+    // TODO: add expandable unset aliases list
+    pub fn getter_docs(&self) -> AppendDoc {
+        self.append_docs()
+        + Doc::new().separator()
+        + self.doc_default_val()
+    }
+    fn unset_getter_docs(&self) -> Doc {
+        let getter_link = self.getter_link();
+        Doc::new()
+        + format!("Returns `true` if the unset field for {getter_link} has been explicitly set to `true`")
+    }
+}
+
+impl OverrideField {
+    // ! Field-based token output
+
+    fn attr_tokens(&self) -> Option<TokenStream> {
+        self.origin.has_override_attrs().then(|| {
+            let attrs = &self.origin.attrs.override_attrs;
+            quote!(#(#[#attrs])*)
+        })
+    }
     pub(super) fn getter_tokens(&self) -> TokenStream {
         let ident = self.ident();
-        let docs = self.docs();
+        let docs = self.getter_docs();
         let ty = self.getter_ret_ty();
         let ret = self.getter_ret_expr();
         // include the unset_getter here so that it appears immediately after
@@ -425,9 +604,7 @@ impl OverrideField {
     }
     pub(super) fn unset_getter_tokens(&self) -> Option<TokenStream> {
         self.origin.unset_ident().map(|unset_ident| {
-            let ident = self.ident();
-            let docs_txt = format!("Returns true if the `{ident}` unset field has been explicitly set to true");
-            let docs = util::doc_line(docs_txt, true);
+            let docs = self.unset_getter_docs();
 
             quote! {
                 #docs
@@ -450,10 +627,10 @@ impl ToTokens for OverrideField {
         let vis = quote!(pub);
 
         // regular assign field
-        let field_docs = self.docs();
+        let docs = self.field_docs();
         let attrs = self.attr_tokens();
         let field = quote! {
-            #field_docs
+            #docs
             #attrs
             #vis #ident: #ty,
         };
