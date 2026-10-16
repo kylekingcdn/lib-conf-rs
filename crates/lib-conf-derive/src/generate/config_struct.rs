@@ -100,7 +100,11 @@ impl ConfigStruct {
                 field.origin.default().unwrap().to_token_stream()
             };
 
-            fields.push(quote!(#ident: #assign));
+            let cfg_attrs = field.cfg_tokens();
+            fields.push(quote! {
+                #cfg_attrs
+                #ident: #assign
+            });
         }
         // #[allow(clippy::redundant_field_names)] added for:
         //   https://github.com/rust-lang/rust-clippy/issues/17525
@@ -131,7 +135,12 @@ impl ConfigStruct {
             // only other params are config-required and override-optional
             if !field.attrs.override_required && field.is_required() {
                 params.push(field.as_fn_param_tokens());
-                idents.push(field.ident.to_token_stream());
+                let ident = &field.ident;
+                let cfg_attrs = field.passthrough_attrs().cfg_tokens();
+                idents.push(quote! {
+                    #cfg_attrs
+                    #ident
+                });
             }
         }
         let builder_ty = self.builder_struct.ty();
@@ -168,6 +177,8 @@ impl ConfigStruct {
     }
     fn impl_tokens(&self) -> TokenStream {
         let ident = self.ident();
+        let cfg_attrs = self.origin.cfg_tokens();
+        let doc_cfg_attrs = self.origin.doc_cfg_tokens();
         let new_fn = self.new_fn_tokens();
         let builder_fn = self.builder_fn_tokens();
         let getter_fns = self.getter_fns_tokens();
@@ -178,6 +189,8 @@ impl ConfigStruct {
             where_clause,
         ) = self.origin.generics.split_for_impl();
         quote! {
+            #cfg_attrs
+            #doc_cfg_attrs
             #[automatically_derived]
             impl #impl_generics #ident #ty_generics #where_clause {
                 #new_fn
@@ -188,10 +201,14 @@ impl ConfigStruct {
         }
     }
     fn default_impl_tokens(&self) -> TokenStream {
-        util::bare_default_impl_tokens(self.ident(), &self.origin.generics)
+        let cfg_attrs = self.origin.cfg_tokens();
+        let doc_cfg_attrs = self.origin.doc_cfg_tokens();
+        util::bare_default_impl_tokens(self.ident(), &self.origin.generics, cfg_attrs, doc_cfg_attrs)
     }
     fn add_impl_tokens(&self) -> TokenStream {
         let ident = self.ident();
+        let cfg_attrs = self.origin.cfg_tokens();
+        let doc_cfg_attrs = self.origin.doc_cfg_tokens();
         let override_ty = &self.override_struct.ty();
         let (
             impl_generics,
@@ -200,6 +217,8 @@ impl ConfigStruct {
         ) = self.origin.generics.split_for_impl();
 
         quote! {
+            #cfg_attrs
+            #doc_cfg_attrs
             #[automatically_derived]
             impl #impl_generics ::std::ops::Add<#override_ty> for #ident #ty_generics #where_clause {
                 type Output = Self;
@@ -309,9 +328,12 @@ impl ConfigField {
         let docs = self.getter_docs();
         let ty = self.getter_ret_ty();
         let ret = self.getter_ret_expr();
-
+        let cfg_attrs = self.cfg_tokens();
+        let doc_cfg_attrs = self.doc_cfg_tokens();
         quote! {
             #docs
+            #cfg_attrs
+            #doc_cfg_attrs
             #[must_use]
             pub fn #ident(&self) -> #ty {
                 #ret
@@ -358,10 +380,15 @@ impl ConfigField {
             }
         }
 
+        // lastly wrap all in any cfg attrs and serve
+        let cfg_attrs = self.origin.passthrough_attrs().cfg_tokens();
         quote! {
-            #temp_assign
-            #unsetter
-            #setter
+            #cfg_attrs
+            {
+                #temp_assign
+                #unsetter
+                #setter
+            }
         }
     }
 }

@@ -106,6 +106,8 @@ impl BuilderStruct {
     fn struct_tokens(&self) -> TokenStream {
         let docs = self.struct_docs();
         // attrs
+        let cfg_attrs = self.origin.cfg_tokens();
+        let doc_cfg_attrs = self.origin.doc_cfg_tokens();
         let derives = self.derive_tokens();
         let attrs = self.attr_tokens();
         // struct
@@ -117,6 +119,8 @@ impl BuilderStruct {
 
         quote! {
             #docs
+            #cfg_attrs
+            #doc_cfg_attrs
             #[derive(Debug, Clone)]
             #derives
             #attrs
@@ -141,7 +145,13 @@ impl BuilderStruct {
             // only other params are config-required and override-optional
             if !field.attrs.override_required && field.is_required() {
                 params.push(field.as_fn_param_tokens());
-                idents.push(field.ident.to_token_stream());
+
+                let ident = &field.ident;
+                let cfg_attrs = field.passthrough_attrs().cfg_tokens();
+                idents.push(quote! {
+                    #cfg_attrs
+                    #ident
+                });
             }
         }
 
@@ -248,10 +258,14 @@ impl BuilderStruct {
         }
     }
     fn default_impl_tokens(&self) -> TokenStream {
-        util::bare_default_impl_tokens(self.ident(), &self.origin.generics)
+        let cfg_attrs = self.origin.cfg_tokens();
+        let doc_cfg_attrs = self.origin.doc_cfg_tokens();
+        util::bare_default_impl_tokens(self.ident(), &self.origin.generics, cfg_attrs, doc_cfg_attrs)
     }
     fn impl_tokens(&self) -> TokenStream {
         let struct_ident = self.ident();
+        let cfg_attrs = self.origin.cfg_tokens();
+        let doc_cfg_attrs = self.origin.doc_cfg_tokens();
         let new_fn = self.new_fn_tokens();
         let setter_fns = self.setter_fns_tokens();
         let override_fns = self.override_fns_tokens();
@@ -264,6 +278,8 @@ impl BuilderStruct {
         ) = self.origin.generics.split_for_impl();
 
         quote! {
+            #cfg_attrs
+            #doc_cfg_attrs
             #[automatically_derived]
             impl #impl_generics #struct_ident #ty_generics #where_clause {
                 #new_fn
@@ -329,8 +345,12 @@ impl BuilderField {
         let ident = self.ident();
         let ty = &self.origin.ty;
         let docs = self.setter_docs();
+        let cfg_attrs = self.cfg_tokens();
+        let doc_cfg_attrs = self.doc_cfg_tokens();
         quote! {
             #docs
+            #cfg_attrs
+            #doc_cfg_attrs
             #[must_use]
             pub fn #ident(mut self, val: #ty) -> Self {
                 self.inner.#ident = val;

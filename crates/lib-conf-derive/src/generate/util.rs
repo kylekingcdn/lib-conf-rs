@@ -20,6 +20,8 @@ pub fn build_type(ident: &Ident, generics: &Generics) -> Type {
 pub fn bare_default_impl_tokens(
     ident: &Ident,
     generics: &Generics,
+    cfg_attrs: TokenStream,
+    doc_cfg_attrs: TokenStream,
 ) -> TokenStream {
     let (
         impl_generics,
@@ -27,6 +29,8 @@ pub fn bare_default_impl_tokens(
         where_clause,
     ) = generics.split_for_impl();
     quote! {
+        #cfg_attrs
+        #doc_cfg_attrs
         #[automatically_derived]
         impl #impl_generics Default for #ident #ty_generics #where_clause {
             fn default() -> Self {

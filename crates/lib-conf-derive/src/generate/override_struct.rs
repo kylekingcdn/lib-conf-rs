@@ -294,18 +294,23 @@ impl OverrideStruct {
     }
 }
 
-// ! Override struct generate methods
+
 impl OverrideStruct {
+    // ! Struct token output
+
     fn derive_tokens(&self) -> TokenStream {
-        #[cfg(not(feature = "serde"))]
-        let base = quote! { #[derive(Debug, Clone)] };
+        let mut base = TokenStream::new();
+
+        base.extend(quote! { #[derive(Debug, Clone)] });
+
         #[cfg(feature = "serde")]
-        let base = quote! { #[derive(Debug, Clone, ::serde::Deserialize)] };
+        base.extend(quote! { #[derive(::serde::Deserialize)] });
 
         let custom = self.origin.attrs.has_override_derives().then(|| {
             let derives = &self.origin.attrs.override_derives;
             quote!(#[derive(#(#derives),*)])
         });
+
         quote! {
             #base
             #custom
@@ -334,6 +339,8 @@ impl OverrideStruct {
     }
     fn struct_tokens(&self) -> TokenStream {
         let docs = util::doc_lines_split(self.struct_docs(), false);
+        let cfg_attrs = self.origin.cfg_tokens();
+        let doc_cfg_attrs = self.origin.doc_cfg_tokens();
         let derives = self.derive_tokens();
         let attrs = self.attr_tokens();
         let struct_ident = self.ident();
@@ -346,6 +353,8 @@ impl OverrideStruct {
         let where_clause = &generics.where_clause;
         quote! {
             #docs
+            #cfg_attrs
+            #doc_cfg_attrs
             #derives
             #attrs
             pub struct #struct_ident #generics
@@ -365,6 +374,8 @@ impl OverrideStruct {
     }
     fn impl_tokens(&self) -> TokenStream {
         let ident = self.ident();
+        let cfg_attrs = self.origin.cfg_tokens();
+        let doc_cfg_attrs = self.origin.doc_cfg_tokens();
         let getters = self.getter_fns_tokens();
         let (
             impl_generics,
@@ -372,6 +383,8 @@ impl OverrideStruct {
             where_clause,
         ) = self.origin.generics.split_for_impl();
         quote! {
+            #cfg_attrs
+            #doc_cfg_attrs
             #[automatically_derived]
             impl #impl_generics #ident #ty_generics #where_clause {
                 #getters
@@ -382,24 +395,37 @@ impl OverrideStruct {
         assert!(!self.has_required_fields());
 
         let struct_ident = self.ident();
+        let cfg_attrs = self.origin.cfg_tokens();
+        let doc_cfg_attrs = self.origin.doc_cfg_tokens();
 
         // fields
         let mut fields = TokenStream::new();
         for field in &self.fields {
             // guaranteed to be Option since there are no required fields
             let ident = field.ident();
-            fields.extend(quote!(#ident: None,));
+            let cfg_attrs = field.cfg_tokens();
+            fields.extend(quote! {
+                #cfg_attrs
+                #ident: None,
+            });
 
             // unset field
             if let Some(unset_ident) = field.origin.unset_ident() {
-                fields.extend(quote!(#unset_ident: false,));
+                fields.extend(quote! {
+                    #cfg_attrs
+                    #unset_ident: false,
+                });
             }
         }
         // phantom fields
         let mut phantoms = TokenStream::new();
         for field in &self.phantom_fields {
             let ident = field.phantom_ident();
-            phantoms.extend(quote!(#ident: ::std::marker::PhantomData,));
+            let cfg_attrs = field.passthrough_attrs().cfg_tokens();
+            phantoms.extend(quote! {
+                #cfg_attrs
+                #ident: ::std::marker::PhantomData,
+            });
         }
         // generics
         let (
@@ -411,6 +437,8 @@ impl OverrideStruct {
         // #[allow(clippy::redundant_field_names)] added for:
         //   https://github.com/rust-lang/rust-clippy/issues/17525
         quote! {
+            #cfg_attrs
+            #doc_cfg_attrs
             #[automatically_derived]
             #[allow(clippy::redundant_field_names)]
             impl #impl_generics Default for #struct_ident #ty_generics #where_clause {
@@ -479,16 +507,13 @@ impl OverrideField {
         )
     }
     fn getter_ret_ty(&self) -> Type {
+        let ty = self.ty();
+        
         // copy permitted, direct return
-        if self.attrs().copy && self.attrs().override_from.is_none() {
-            if self.attrs().override_required {
-                return self.origin.flat_ty.clone();
-            }
-            let inner = &self.origin.flat_ty;
-            return parse_quote!(Option<#inner>);
+        if self.supports_copy() {
+            return ty;
         }
 
-        let ty = self.ty();
         if let Some(inner_ty) = parse::util::unwrap_option(&ty) {
             if parse::util::is_string(inner_ty) {
                 // type is Option<String>
@@ -512,7 +537,7 @@ impl OverrideField {
         let inner = quote!(self.#ident);
 
         // copy permitted, direct return
-        if self.attrs().copy && self.attrs().override_from.is_none() {
+        if self.supports_copy() {
             return inner;
         }
 
@@ -590,9 +615,13 @@ impl OverrideField {
         // include the unset_getter here so that it appears immediately after
         // the normal getter
         let unset_getter = self.unset_getter_tokens();
+        let cfg_attrs = self.cfg_tokens();
+        let doc_cfg_attrs = self.doc_cfg_tokens();
 
         quote! {
             #docs
+            #cfg_attrs
+            #doc_cfg_attrs
             #[must_use]
             pub fn #ident(&self) -> #ty {
                 #ret
@@ -605,9 +634,13 @@ impl OverrideField {
     pub(super) fn unset_getter_tokens(&self) -> Option<TokenStream> {
         self.origin.unset_ident().map(|unset_ident| {
             let docs = self.unset_getter_docs();
+            let cfg_attrs = self.cfg_tokens();
+            let doc_cfg_attrs = self.doc_cfg_tokens();
 
             quote! {
                 #docs
+                #cfg_attrs
+                #doc_cfg_attrs
                 #[must_use]
                 pub fn #unset_ident(&self) -> bool {
                     self.#unset_ident
@@ -629,8 +662,10 @@ impl ToTokens for OverrideField {
         // regular assign field
         let docs = self.field_docs();
         let attrs = self.attr_tokens();
+        let cfg_attrs = self.cfg_tokens();
         let field = quote! {
             #docs
+            #cfg_attrs
             #attrs
             #vis #ident: #ty,
         };
@@ -638,6 +673,10 @@ impl ToTokens for OverrideField {
 
         // unset field
         if let Some(unset_ident) = self.origin.unset_ident() {
+            tokens.extend(quote! {
+                #cfg_attrs
+            });
+            // !- FIXME: use cfg_attr and allow user to provide gate expression
             #[cfg(feature = "serde")]
             {
                 let aliases = self.origin.unset_aliases();
