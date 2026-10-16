@@ -16,7 +16,7 @@ helper methods.
 - Automatic builder generation
 - Supports runtime revert of manually configured settings to library defined default
 - Inline evaluation of library defined defaults
-    - Default expression gets copied into docs of all associated fn's, preventing doc drift
+  - Default expression gets copied into docs of all associated fn's, preventing doc drift
 - Supports runtime-only initialization of fields, deterring hard-coding of sensitive values
 - Supports `serde`-optional libraries
 - Full support for structs utilizing generics
