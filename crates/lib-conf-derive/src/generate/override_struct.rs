@@ -90,7 +90,7 @@ impl OverrideStruct {
     fn doc_features(&self) -> Doc {
         let override_ident = self.ids().override_ident();
         let origin_link = self.ids().origin_link().struct_only();
-        let builder_link = self.ids().origin_link().struct_only();
+        let builder_link = self.ids().builder_link().struct_only();
         Doc::new()
         + format!("`{override_ident}` provides run-time support for:")
         + format!("- *Setting* {origin_link} fields")
