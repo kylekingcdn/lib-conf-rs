@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1](https://github.com/kylekingcdn/lib-conf-rs/compare/lib-conf-v0.4.0...lib-conf-v0.4.1) - 2026-10-17
+
+### Fix
+
+- replaced incorrect builder link
+
 ## [0.4.0](https://github.com/kylekingcdn/lib-conf-rs/compare/lib-conf-v0.3.2...lib-conf-v0.4.0) - 2026-10-16
 
 ### Build
