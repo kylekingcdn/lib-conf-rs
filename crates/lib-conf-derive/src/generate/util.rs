@@ -191,6 +191,19 @@ pub(crate) trait Document: Sized {
     fn end_code(self) -> Self {
         self.begin_code("")
     }
+    // TODO: handle escapes
+    #[must_use]
+    fn begin_collapsed(self, summary: impl Display) -> Self {
+        self.insert("<details>")
+            .insert(format!("<summary><b>{summary}</b></summary"))
+            .newl()
+    }
+    // TODO: handle escapes
+    #[must_use]
+    fn end_collapsed(self) -> Self {
+        self.newl()
+            .insert("</details>")
+    }
 }
 
 // !- Doc struct
