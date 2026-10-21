@@ -505,7 +505,7 @@ impl OverrideField {
         }
         ty
     }
-    fn getter_link(&self) -> Link {
+    fn _getter_link(&self) -> Link {
         DerivedLink::new(self.ids().override_ident()).method(self.ident())
     }
     fn _unset_getter_link(&self) -> Option<Link> {
@@ -582,6 +582,26 @@ impl OverrideField {
         }
         format!("<span align=\"center\">{out}</span>")
     }
+
+    pub(crate) fn doc_unset_alias_details(&self) -> Option<Doc> {
+        self.origin.unset_ident().map(|unset_ident| {
+            let mut doc = Doc::new()
+                .h1("Aliases");
+            
+            doc += Doc::new()
+            + ()
+            + format!("Various aliases are supported in addition to reverting via `{unset_ident}`.")
+            + ()
+            + "- **Note:** unset aliases are only supported when the **`serde` feature is enabled**."
+            + ();
+            
+            doc += Doc::new().begin_collapsed("Expand to view supported unset field aliases");
+            for alias in self.origin.unset_aliases() {
+                doc += format!("> - `{alias}`");
+            }
+            doc.end_collapsed()
+        })
+    }
 }
 
 impl OverrideField {
@@ -592,16 +612,20 @@ impl OverrideField {
         + Doc::new().separator()
         + self.doc_default_val()
     }
-    // TODO: add expandable unset aliases list
     pub(crate) fn getter_docs(&self) -> AppendDoc {
         self.append_docs()
         + Doc::new().separator()
         + self.doc_default_val()
     }
-    fn unset_getter_docs(&self) -> Doc {
-        let getter_link = self.getter_link();
-        Doc::new()
-        + format!("Returns `true` if the unset field for {getter_link} has been explicitly set to `true`")
+    pub(crate) fn unset_getter_docs(&self) -> Option<Doc> {
+        self.origin.with_unset_field().then(|| {
+            let ident = self.ident();
+            Doc::new()
+            // manually generate link to avoid () method suffix
+            + format!("Whether the unset field for [`{ident}`](Self::{ident}) has explicitly been set to `true`.")
+            + ()
+            + self.doc_unset_alias_details()
+        })
     }
 }
 
