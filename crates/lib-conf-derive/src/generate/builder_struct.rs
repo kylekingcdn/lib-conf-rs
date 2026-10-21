@@ -311,18 +311,15 @@ impl BuilderField {
     pub(crate) fn doc_unset(&self) -> Option<Doc> {
         self.origin.unset_ident().map(|unset_ident| {
             let unset_link = self.ids().override_link().method(&unset_ident);
-            let _alias_ref = format!("{unset_link}#unset-fields");
-            let doc = Doc::new()
-                .h1("Revert at run-time")
-                .newl();
-                // TODO: add h1, h2, h3, etc
-            doc + "# Runtime "
 
-            // let override_ident = self.ids().override_ident();
-            // let link_name = format!("{override_ident}::{unset_ident}()");
-            // let link_ref = format!("method@{override_ident}::{unset_ident}");
-            // format!("[{link_name}]({link_ref})"); // !- TODO: helper fns
-            //format!("Supports reverting to default at run-time via {unset_link}")
+            Doc::new().h1("Revert at run-time")
+            + ()
+            + format!(
+                "Has run-time support for reverting back to the provided default (**`{}`**)",
+                self.origin.default().unwrap().to_pretty_string(),
+            )
+            + ()
+            + format!("See {unset_link} for more information")
         })
     }
 }
