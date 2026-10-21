@@ -1,7 +1,7 @@
 [package]
 name = "lib-conf-example-readme"
 description = "This is an example for `lib_conf` and does not provide actual functionality."
-version = "0.3.3"
+version = "0.3.4"
 edition.workspace = true
 rust-version.workspace = true
 repository.workspace = true

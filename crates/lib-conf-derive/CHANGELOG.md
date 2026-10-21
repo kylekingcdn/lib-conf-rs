@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2](https://github.com/kylekingcdn/lib-conf-rs/compare/lib-conf-derive-v0.4.1...lib-conf-derive-v0.4.2) - 2026-10-21
+
+### Chore
+
+- add collapsed doc get utils
+
+### Doc
+
+- improve unset docs, add  collapsed aliases
+- fix broken unset field docs
+
+### Fix
+
+- no unset fields for skip_builder/override
+- add missing must_use attrs
+
 ## [0.4.1](https://github.com/kylekingcdn/lib-conf-rs/compare/lib-conf-derive-v0.4.0...lib-conf-derive-v0.4.1) - 2026-10-17
 
 ### Fix
