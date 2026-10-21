@@ -183,9 +183,11 @@ pub(crate) trait Document: Sized {
     fn h5(self, text: impl Display) -> Self {
         self.header(5, text)
     }
+    #[must_use]
     fn begin_code(self, flags: &str) -> Self {
         self.insert(format!("```{flags}"))
     }
+    #[must_use]
     fn end_code(self) -> Self {
         self.begin_code("")
     }
