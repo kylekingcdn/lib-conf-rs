@@ -274,7 +274,9 @@ impl OriginField {
 
     /// Whether the override struct should have an unset field
     pub(crate) fn with_unset_field(&self) -> bool {
-        self.is_optional() && !self.attrs.skip_override_field()
+        self.is_optional() &&
+        !self.attrs.skip_builder_setter() &&
+        !self.attrs.skip_override_field()
     }
 
     /// Returns the ident of the unset field, if one should be used
