@@ -431,7 +431,7 @@ impl<G: ExprGroup> ExprSubset<G> {
         } else {
             #[cfg(feature = "syn-debug")]
             {
-                eprintln!("Unexpected Expr variant for AttrExpr: {:?}", &expr);
+                eprintln!("Unexpected Expr variant for AttrExpr: {expr:?}");
             }
             Err(ParseError::InvalidAttrExpr { span: expr.span() })
         }
@@ -445,7 +445,7 @@ impl<G: ExprGroup> From<ExprSubset<G>> for Expr {
 }
 impl<G: ExprGroup> ToTokens for ExprSubset<G> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.expr.to_tokens(tokens)
+        self.expr.to_tokens(tokens);
     }
 }
 
@@ -481,13 +481,12 @@ pub(crate) struct DefaultExprGroup;
 
 impl ExprGroup for DefaultExprGroup {
     fn in_subset(expr: &Expr) -> bool {
-        match expr {
+        matches!(expr,
             Expr::Lit(_) |
             Expr::Path(_) |
             Expr::Call(_) |
-            Expr::MethodCall(_) => true,
-            _ => false,
-        }
+            Expr::MethodCall(_)
+        )
     }
 }
 
@@ -531,7 +530,7 @@ impl TryFrom<Expr> for StrExpr {
         } else {
             #[cfg(feature = "syn-debug")]
             {
-                eprintln!("Unexpected Expr variant for AttrExpr: {:?}", &expr);
+                eprintln!("Unexpected Expr variant for AttrExpr: {expr:?}");
             }
             Err(ParseError::ExpectedStrExpr { span: expr.span() })
         }

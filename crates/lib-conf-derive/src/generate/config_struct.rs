@@ -380,7 +380,7 @@ impl ConfigField {
         if self.origin.is_option {
             assign = quote!(Some(#assign));
         }
-        // origin type is guaranteed option if an unset ident is given
+        // origin type is guaranteed optional if an unset ident is given
         let unsetter = self.origin.unset_ident().map(|unset_ident| {
             let default = self.origin.default().unwrap();
             quote! {

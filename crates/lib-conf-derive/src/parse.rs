@@ -373,65 +373,20 @@ impl OriginField {
 #[cfg_attr(feature = "syn-debug", derive(Debug))]
 #[derive(Clone, Default)]
 pub(crate) struct FieldAttrs {
-    /// no caveats
     pub copy: bool,
 
-    /// incompatible attrs:
-    /// - `override_required`
     pub default: Option<DefaultExpr>,
+    
 
-    /// implies:
-    /// - `builder_skip`
-    /// - `override_skip`
-    /// - `config_skip_getter`
-    ///
-    /// incompatible (+above):
-    /// - `override_required`
-    /// - `override_from`
-    /// - `override_via`
     pub skip_all: bool,
-
-    /// incompatible:
-    /// - `skip_all`
     pub config_skip_getter: bool,
-
-    /// incompatible:
-    /// - `skip_all`
-    /// - `override_required`
     pub builder_skip: bool,
-
-    /// incompatible:
-    /// - `skip_all`
-    /// - `override_required`
-    /// - `override_from`
-    /// - `override_via`
     pub override_skip: bool,
 
-    /// implies:
-    /// - `builder_skip`
-    ///
-    /// incompatible(+above):
-    /// - default
-    /// - `skip_all`
-    /// - `override_skip`
-    ///
-    /// incompatible types:
-    /// - Option<_>
     pub override_required: bool,
 
-    /// incompatible:
-    /// - `skip_all`
-    /// - `override_skip`
     pub override_from: Option<TypePath>,
-
     pub override_from_copy: bool,
-
-    /// requires:
-    /// - `override_from`
-    ///
-    /// incompatible:
-    /// - `skip_all`
-    /// - `override_skip`
     pub override_via: Option<TypePath>,
 
     /// custom attrs to attach to override fields

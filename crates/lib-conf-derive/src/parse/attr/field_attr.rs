@@ -148,8 +148,8 @@ impl TryFrom<Ident> for FieldAttr {
 
 /// Attributes that depend on other attrs being present
 pub(super) static FIELD_ATTR_DEPS: LazyLock<HashMap<FieldAttr, Vec<FieldAttr>>> = LazyLock::new(|| [
-    (FieldAttr::OverrideFromCopy, vec![FieldAttr::OverrideFrom]),
-    (FieldAttr::OverrideVia,      vec![FieldAttr::OverrideFrom]),
+    (FieldAttr::OverrideFromCopy,   vec![FieldAttr::OverrideFrom]),
+    (FieldAttr::OverrideVia,        vec![FieldAttr::OverrideFrom]),
 ].into());
 
 /// (Associated) attributes that can't be used simultaneously
