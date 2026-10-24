@@ -229,14 +229,14 @@ impl OriginStructAttrs {
 #[cfg_attr(feature = "syn-debug", derive(Debug))]
 #[derive(Clone)]
 pub(crate) struct OriginField {
-    pub ident: Ident,
+    pub ident: Rc<Ident>,
     pub ty: Type,
     pub flat_ty: Type,
     pub is_option: bool,
     pub default: Option<DefaultExpr>,
 
-    pub ids: Rc<IdentPool>,
-
+    ids: Rc<IdentPool>,
+    
     /// `#[config(..)]` attrs
     pub attrs: FieldAttrs,
 
@@ -317,6 +317,8 @@ impl OriginField {
         quote!(#ident: #ty)
     }
     fn try_from_field(field: Field, ids: Rc<IdentPool>) -> Result<Self, Error> {
+        let ident: Rc<Ident> = field.ident.unwrap().into(); // already checked fields are named
+
         let unwrapped_option = util::unwrap_option(&field.ty);
         let is_option = unwrapped_option.is_some();
 
@@ -341,10 +343,13 @@ impl OriginField {
             None if is_option => Some(DefaultExpr::none_expr()),
             None => None,
         };
+        
+        let flat_ty = unwrapped_option.unwrap_or(&field.ty).clone();
+        
 
         let parsed = OriginField {
-            ident: field.ident.unwrap(), // already checked fields are named
-            flat_ty: unwrapped_option.unwrap_or(&field.ty).clone(),
+            ident,
+            flat_ty,
             ty: field.ty,
             is_option,
             default,
