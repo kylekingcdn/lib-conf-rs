@@ -223,10 +223,31 @@ impl ConfigStruct {
             impl #impl_generics ::std::ops::Add<#override_ty> for #ident #ty_generics #where_clause {
                 type Output = Self;
 
-                fn add(self, other: #override_ty) -> Self {
-                    let mut merged = self;
-                    merged.merge_with_override(other);
-                    merged
+                fn add(mut self, rhs: #override_ty) -> Self {
+                    self += rhs;
+                    self
+                }
+            }
+        }
+    }
+    fn add_assign_impl_tokens(&self) -> TokenStream {
+        let ident = self.ident();
+        let cfg_attrs = self.origin.cfg_tokens();
+        let doc_cfg_attrs = self.origin.doc_cfg_tokens();
+        let override_ty = &self.override_struct.ty();
+        let (
+            impl_generics,
+            ty_generics,
+            where_clause,
+        ) = self.origin.generics.split_for_impl();
+
+        quote! {
+            #cfg_attrs
+            #doc_cfg_attrs
+            #[automatically_derived]
+            impl #impl_generics ::std::ops::AddAssign<#override_ty> for #ident #ty_generics #where_clause {
+                fn add_assign(&mut self, rhs: #override_ty) {
+                    self.merge_with_override(rhs);
                 }
             }
         }
@@ -242,6 +263,7 @@ impl ToTokens for ConfigStruct {
             tokens.extend(self.default_impl_tokens());
         }
         tokens.extend(self.add_impl_tokens());
+        tokens.extend(self.add_assign_impl_tokens());
     }
 }
 
