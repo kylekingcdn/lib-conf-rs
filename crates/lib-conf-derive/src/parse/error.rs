@@ -27,8 +27,8 @@ pub(crate) enum ParseError {
     IncompatibleAttrs { ident: Ident, other: Ident},
     #[error("Attribute '{ident}' is automatically implied by '{other}'")]
     ImplicitAttr { ident: Ident, other: Ident},
-    #[error("Unexpected shape {shape:#?} for attribute '{ident}'")]
-    InvalidAttrShape { ident: Ident, shape: Shape },
+    #[error("Unexpected shape `{shape:#?}` for attribute '{ident}'.\n\nValid shapes are: [ {} ]", valid.join(", "))]
+    InvalidAttrShape { ident: Ident, shape: Shape, valid: Vec<String> },
     #[error("Missing attribute '{missing}', which is required while using '{present}'")]
     MissingAttrDep { present: Ident, missing: &'static str },
     #[error("Attribute '{ident}' cannot be used with Option types")]

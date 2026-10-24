@@ -368,6 +368,10 @@ pub(crate) trait AttrVariant:
     fn implied_attrs(&self) -> &'static Vec<Self> {
         Self::implied_map().get(self).unwrap_or(Self::empty_set())
     }
+    fn shape_names(&self) -> Vec<String> {
+        let shapes = Self::shapes_map().get(self).cloned().unwrap_or_default();
+        shapes.into_iter().map(|s| format!("{s:#?}")).collect()
+    }
     fn supports_shape(&self, shape: Shape) -> bool {
         Self::shapes_map().get(self).is_some_and(|x| x.contains(&shape))
     }
@@ -375,7 +379,7 @@ pub(crate) trait AttrVariant:
         if self.supports_shape(shape) {
             Ok(())
         } else {
-            Err(ParseError::InvalidAttrShape { ident: ident.clone(), shape })
+            Err(ParseError::InvalidAttrShape { ident: ident.clone(), shape, valid: self.shape_names() })
         }
     }
 }
