@@ -2,7 +2,7 @@
 
 mod common;
 
-#[derive(Debug, Clone, lib_conf_derive::LibConfig)]
+#[derive(Debug, Copy, Clone, lib_conf_derive::LibConfig)]
 #[config(example_field_name = "test")]
 pub struct TestConfig {
     #[config(copy, default = true)]

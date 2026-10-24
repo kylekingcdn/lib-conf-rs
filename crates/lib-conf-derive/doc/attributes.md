@@ -35,7 +35,7 @@ The following config/attributes will generate the following documentation
 
 ```rust
 # use lib_conf_derive::LibConfig;
-#[derive(Debug, Clone,  LibConfig)]
+#[derive(Debug, Copy, Clone, LibConfig)]
 #[config(example_field_name = "my_sdk")]
 pub struct MySdkConfig {
   // ...
@@ -67,9 +67,9 @@ Can contain multiple derives and can be specified multiple times.
 
 ```rust
 # use lib_conf_derive::LibConfig;
-#[derive(Debug, Clone, Copy, LibConfig)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, LibConfig)]
 #[config(example_field_name = "my_sdk")]
-#[config(derive(Copy))]
+#[config(derive(PartialEq, Eq))]
 pub struct MySdkConfig {
     #[config(copy, default = false)]
     pub(crate) verbose: bool,
@@ -79,8 +79,11 @@ pub struct MySdkConfig {
 #### Considerations <a name="derive_considerations"></a>
 
 - The resulting set of derives cannot contain duplicates.
-  - Both the `Builder` struct and the `Override` struct automatically
-    derive `Debug` and `Clone`.
+  - Both the `Builder` struct and the `Override` struct automatically derive `Debug` and `Clone`.
+  - `Copy` is derived accordingly:
+    - The `Builder` struct derives `Copy` if every field has the `#[config(copy)]` attribute set.
+    - The `Override` struct derives `Copy` if every non-skipped field has the `#[config(copy)]` attribute set.
+      - Skipped fields are those annotated with either `#[config(skip_all)]` or `#[config(override_skip)]`.
   - Additionally, the `Override` struct will derive `serde::Deserialize`
     automatically if the `serde` feature is enabled.
 
@@ -102,7 +105,7 @@ structs if the `serde` feature is enabled.
 
 ```rust
 # use lib_conf_derive::LibConfig;
-#[derive(Debug, Clone, LibConfig)]
+#[derive(Debug, Copy, Clone, LibConfig)]
 #[config(example_field_name = "my_sdk")]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize))] // derive Deserialize on this struct
 #[cfg_attr(feature = "serde", config(builder_derive(serde::Deserialize)))] // derive on builder
@@ -117,7 +120,7 @@ For `serde`-mandatory, this would be done as follows:
 # #[cfg(feature = "serde")]
 # {
 # use lib_conf_derive::LibConfig;
-#[derive(Debug, Clone, LibConfig, serde::Deserialize)] // derive Deserialize on this struct
+#[derive(Debug, Copy, Clone, LibConfig, serde::Deserialize)] // derive Deserialize on this struct
 #[config(example_field_name = "my_sdk")]
 #[config(builder_derive(serde::Deserialize))] // derive Deserialize on the Builder struct
 pub struct MySdkConfig {
@@ -130,6 +133,9 @@ pub struct MySdkConfig {
 
 - The resulting set of derives cannot contain duplicates
   - The `Builder` struct automatically derives `Debug` and `Clone`
+  - The `Builder` struct derives `Copy` if every field has the `#[config(copy)]` attribute set.
+
+---
 
 ### `override_derive` <a name="override_derive"></a>
 
@@ -141,7 +147,7 @@ Can contain multiple derives and can be specified multiple times.
 
 ```rust
 # use lib_conf_derive::LibConfig;
-#[derive(Debug, Clone, LibConfig)]
+#[derive(Debug, Copy, Clone, LibConfig)]
 #[config(example_field_name = "my_sdk")]
 #[config(override_derive(serde::Serialize))]
 pub struct MySdkConfig {
@@ -152,8 +158,11 @@ pub struct MySdkConfig {
 #### Considerations <a name="override_derive_considerations"></a>
 
 - The resulting set of derives cannot contain duplicates
-  - The override struct automatically derives `Debug`, `Clone`, and, if the
-    `serde` feature is enabled, `serde::Deserialize`
+  - The `Override` struct automatically derives `Debug`, `Clone`.
+  - The `Override` struct derives `Copy` if every non-skipped field is annotated with copy support.
+    - Override copy support is indicated by `#[config(copy)]` (unless `override_from` is set, in which case `#[config(override_from_copy)]`)
+    - Skipped fields are those annotated with either `#[config(skip_all)]` or `#[config(override_skip)]`.
+  - If the `serde` feature is enabled, `serde::Deserialize` is derived.
 
 ### `attr` <a name="attr"></a>
 
@@ -165,7 +174,7 @@ Can contain multiple attributes and can be specified multiple times.
 
 ```rust
 # use lib_conf_derive::LibConfig;
-#[derive(Debug, Clone, LibConfig)]
+#[derive(Debug, Copy, Clone, LibConfig)]
 #[config(example_field_name = "my_sdk")]
 #[config(attr(non_exhaustive))]
 pub struct MySdkConfig {
@@ -183,7 +192,7 @@ Can contain multiple attributes and can be specified multiple times.
 
 ```rust
 # use lib_conf_derive::LibConfig;
-#[derive(Debug, Clone, LibConfig)]
+#[derive(Debug, Copy, Clone, LibConfig)]
 #[config(example_field_name = "my_sdk")]
 #[config(builder_attr(non_exhaustive))]
 pub struct MySdkConfig {
@@ -201,7 +210,7 @@ Can contain multiple attributes and can be specified multiple times.
 
 ```rust
 # use lib_conf_derive::LibConfig;
-#[derive(Debug, Clone, LibConfig)]
+#[derive(Debug, Copy, Clone, LibConfig)]
 #[config(example_field_name = "my_sdk")]
 #[config(override_attr(non_exhaustive))]
 pub struct MySdkConfig {
@@ -288,7 +297,7 @@ attributes.
 
 ```rust
 # use lib_conf_derive::LibConfig;
-#[derive(Debug, Clone, LibConfig)]
+#[derive(Debug, Copy, Clone, LibConfig)]
 #[config(example_field_name = "my_sdk")]
 pub struct MySdkConfig {
     #[config(skip_all)]
@@ -468,10 +477,13 @@ See the [`override_via` example](#override_via_example) for usage.
 
 ```rust
 # use lib_conf_derive::LibConfig;
-#[derive(Debug, Clone, LibConfig)]
+#[derive(Debug, Copy, Clone, LibConfig)]
 #[config(example_field_name = "my_sdk")]
 pub struct MySdkConfig {
-    #[config(override_from = bool, copy, default = ModuleSupport::Automatic)]
+    #[config(
+        copy, default = ModuleSupport::Automatic,
+        override_from = bool, override_from_copy,
+    )]
     pub(crate) proxy_module_enabled: ModuleSupport,
 }
 
@@ -526,13 +538,14 @@ public.
 use lib_conf::LibConfig;
 use std::time::Duration;
 
-#[derive(Debug, Clone, LibConfig)]
+#[derive(Debug, Copy, Clone, LibConfig)]
 #[config(example_field_name = "my_sdk")]
 pub struct MySdkConfig {
     #[config(
         copy, default = Duration::from_secs(30),
-        override_from = u64, override_via = SecondsAdapter,
-        override_from_copy
+        override_from = u64,
+        override_from_copy,
+        override_via = SecondsAdapter,
     )]
     pub(crate) refresh_interval: Duration,
 }

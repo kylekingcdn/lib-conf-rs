@@ -84,11 +84,22 @@ impl BuilderStruct {
 // ! Struct token output
 
 impl BuilderStruct {
-    fn derive_tokens(&self) -> Option<TokenStream> {
-        self.origin.attrs.has_builder_derives().then(|| {
+    fn derive_tokens(&self) -> TokenStream {
+        let mut base = TokenStream::new();
+        
+        if self.origin.all_fields_copy() {
+            base.extend(quote! { #[derive(Copy)] });
+        }
+        
+        let custom = self.origin.attrs.has_builder_derives().then(|| {
             let derives = &self.origin.attrs.builder_derives;
             quote!(#[derive(#(#derives),*)])
-        })
+        });
+
+        quote! {
+            #base
+            #custom
+        }
     }
     fn attr_tokens(&self) -> Option<TokenStream> {
         self.origin.attrs.has_builder_attrs().then(|| {

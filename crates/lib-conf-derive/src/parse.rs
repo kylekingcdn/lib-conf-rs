@@ -94,6 +94,9 @@ impl OriginStruct {
     pub(crate) fn use_phantom_fields(&self) -> bool {
         self.has_generics()
     }
+    pub(crate) fn all_fields_copy(&self) -> bool {
+        self.fields.iter().all(|f| f.attrs.copy)
+    }
 }
 impl TryFrom<TokenStream> for OriginStruct {
     type Error = Error;

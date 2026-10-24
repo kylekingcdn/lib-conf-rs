@@ -77,6 +77,9 @@ impl OverrideStruct {
     pub(crate) fn has_conditional_unset_fields(&self) -> bool {
         self.fields.iter().any(|f| f.origin.with_unset_field() && f.origin.is_conditional())
     }
+    pub(crate) fn all_fields_copy(&self) -> bool {
+        self.fields.iter().all(OverrideField::supports_copy)
+    }
 }
 
 
@@ -306,9 +309,11 @@ impl OverrideStruct {
     // ! Struct token output
 
     fn derive_tokens(&self) -> TokenStream {
-        let mut base = TokenStream::new();
+        let mut base = quote! { #[derive(Debug, Clone)] };
 
-        base.extend(quote! { #[derive(Debug, Clone)] });
+        if self.all_fields_copy() {
+            base.extend(quote! { #[derive(Copy)] });
+        }
 
         #[cfg(feature = "serde")]
         base.extend(quote! { #[derive(::serde::Deserialize)] });
