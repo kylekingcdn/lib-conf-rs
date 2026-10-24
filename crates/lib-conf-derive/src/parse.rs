@@ -378,10 +378,10 @@ pub(crate) struct FieldAttrs {
     pub default: Option<DefaultExpr>,
     
 
-    pub skip_all: bool,
-    pub config_skip_getter: bool,
-    pub builder_skip: bool,
-    pub override_skip: bool,
+    skip_all: bool,
+    config_skip_getter: bool,
+    builder_skip: bool,
+    override_skip: bool,
 
     pub override_required: bool,
 
