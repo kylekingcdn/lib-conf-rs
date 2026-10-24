@@ -50,6 +50,7 @@ pub struct Conf {
     // ..
     #[serde(default)]
     my_sdk: MySdkOverrideConfig,
+//  ^^^^^^
 }
 ```
 
@@ -57,9 +58,11 @@ pub struct Conf {
 
 - **This attribute is mandatory**
 
+---
+
 ### `derive` <a name="derive"></a>
 
-Applies the provided derive's to both the `Builder` and `Override` generated structs.
+Applies the provided derives to both the `Builder` and `Override` generated structs.
 
 Can contain multiple derives and can be specified multiple times.
 
@@ -87,9 +90,11 @@ pub struct MySdkConfig {
   - Additionally, the `Override` struct will derive `serde::Deserialize`
     automatically if the `serde` feature is enabled.
 
+---
+
 ### `builder_derive` <a name="builder_derive"></a>
 
-Applies the provided derive's to the generated `Builder` struct.
+Applies the provided derives to the generated `Builder` struct.
 
 Can contain multiple derives and can be specified multiple times.
 
@@ -139,7 +144,7 @@ pub struct MySdkConfig {
 
 ### `override_derive` <a name="override_derive"></a>
 
-Applies the provided derive's to the generated `Override` struct.
+Applies the provided derives to the generated `Override` struct.
 
 Can contain multiple derives and can be specified multiple times.
 
@@ -164,6 +169,8 @@ pub struct MySdkConfig {
     - Skipped fields are those annotated with either `#[config(skip_all)]` or `#[config(override_skip)]`.
   - If the `serde` feature is enabled, `serde::Deserialize` is derived.
 
+---
+
 ### `attr` <a name="attr"></a>
 
 Passes through the contained attributes to the `Builder` and `Override` generated structs.
@@ -182,6 +189,8 @@ pub struct MySdkConfig {
 }
 ```
 
+---
+
 ### `builder_attr` <a name="builder_attr"></a>
 
 Passes through the contained attributes to the generated `Builder` struct.
@@ -199,6 +208,8 @@ pub struct MySdkConfig {
     // ...
 }
 ```
+
+---
 
 ### `override_attr` <a name="override_attr_struct"></a>
 
@@ -224,7 +235,7 @@ pub struct MySdkConfig {
 
 Flag indicating that the field's type implements `Copy`.
 
-This only affects the return types of getter methods associated with this field. Getter return types
+This affects the return types of getter methods associated with this field. Getter return types
 will be an owned type rather than a borrow/ref.
 
 In order to avoid wonky return types, this should *always* be used if the type does in fact
@@ -249,6 +260,8 @@ pub struct MySdkConfig {
 - This behavior does not apply to the `Override`'s getter if either
   [`override_from`](#override_from) or [`override_via`](#override_via) are present
 - See [Getter return types](#getter-return-types) for more information
+
+---
 
 ### `default` <a name="default"></a>
 
@@ -285,6 +298,8 @@ pub struct MySdkConfig {
 - The provided value can be a literal (`true`, `5`, `Some(false)`), an
   expression (`String::from("local")`), an fn path, or an fn/method call
 
+---
+
 ### `skip_all` <a name="skip_all"></a>
 
 Flag indicating that this field should be skipped in the `Override` struct, and any relevant
@@ -319,6 +334,8 @@ pub struct MySdkConfig {
   - Therefore, this should probably not be used with generic fields where the
     concrete types are not public-facing
 
+---
+
 ### `config_skip_getter` <a name="config_skip_getter"></a>
 
 Flag used to skip the deriving struct's getter method for this field.
@@ -341,6 +358,8 @@ pub struct MySdkConfig {
 #### Considerations <a name="config_skip_getter_considerations"></a>
 
 - Incompatible with: `skip_all`
+
+---
 
 ### `builder_skip` <a name="builder_skip"></a>
 
@@ -366,6 +385,8 @@ pub struct MySdkConfig {
 #### Considerations <a name="builder_skip_considerations"></a>
 
 - Incompatible with: `skip_all`, `override_required` (implied by)
+
+---
 
 ### `override_skip` <a name="override_skip"></a>
 
@@ -394,6 +415,8 @@ pub struct MySdkConfig {
   and `Override` structs
   - Therefore, this should probably not be used with generic fields where the
     concrete types are not public-facing
+
+---
 
 ### `override_required` <a name="override_required"></a>
 
@@ -450,6 +473,8 @@ pub struct MySdkConfig {
 - The `Builder` struct loses its `with_override()` method
 - The `Builder` struct must be initialized with an `Override` config
 - No setter is available for this field in the `Builder` struct
+
+---
 
 ### `override_from` <a name="override_from"></a>
 
@@ -511,6 +536,8 @@ impl From<bool> for ModuleSupport {
 - Incompatible with: `skip_all`, `override_skip`
 - As the mapped type is directly used in the `Override` struct, the type should be public
 
+---
+
 ### `override_via` <a name="override_via"></a>
 
 To be used alongside `override_from`, this attribute allows for using some intermediate type to
@@ -570,6 +597,8 @@ impl From<SecondsAdapter> for Duration {
 - Must be used with: [`override_from`](#override_from)
 - Incompatible with: `skip_all`, `override_skip`
 
+---
+
 ### `override_attr` <a name="override_attr_field"></a>
 
 Passes through the contained attributes to the corresponding field in the generated `Override`
@@ -612,7 +641,7 @@ decided as follows:
 
 - Is the field's type `Option<String>`?
   - Return type is **`Option<&str>`**
-  - Handled by calling `as_ref().map(|x| x.as_str())` on the field
+  - Handled by calling `as_deref()` on the field
 
 - Is the field's type `Option<_>`?
   - Return type is **`Option<&_>`**
@@ -623,4 +652,4 @@ decided as follows:
   - Handled by calling `as_str()` on the field
 
 - Otherwise:
-  - Return type is a borrow, e.g. `&T` for a field with type `T`
+  - Return type is a borrow, e.g. `&T` for a field of type `T`
