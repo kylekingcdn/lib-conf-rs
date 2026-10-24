@@ -19,8 +19,8 @@ use quote::{format_ident, quote, ToTokens};
 use std::rc::Rc;
 use std::sync::LazyLock;
 use syn::{
-    Attribute, Data, DeriveInput, Error, Field,
-    Fields,Generics, Ident, Meta, Type, TypePath,
+    Attribute, Data, DeriveInput, Error, Field, Fields, Generics, Ident,
+    Meta, parse_quote, Path, PathSegment, Type, TypePath,
 };
 
 // !- Statics
@@ -503,9 +503,21 @@ pub(crate) struct IdentPool {
     origin_ident: Rc<Ident>,
     builder_ident: Rc<Ident>,
     override_ident: Rc<Ident>,
+    
+    leading_path: Option<Path>,
 }
 #[allow(dead_code)]
 impl IdentPool {
+    pub(crate) fn try_from_path(mut path: Path) -> Result<Self, ParseError> {
+        assert!(!path.segments.is_empty());
+        let last_segment = path.segments.pop().unwrap();
+        let ident = last_segment.ident; // FIXME: loss of path arguments
+
+        let mut pool = Self::try_new(ident.into())?;
+        pool.leading_path = Some(path);
+
+        Ok(pool)
+    }
     pub(crate) fn try_new(origin_ident: Rc<Ident>) -> Result<Self, ParseError> {
         let (prefix, suffix) = Self::split_origin_ident(&origin_ident)?;
 
@@ -516,6 +528,8 @@ impl IdentPool {
             builder_ident: format_ident!("{origin_ident}Builder").into(),
             override_ident: format_ident!("{prefix}Override{suffix}").into(),
             origin_ident,
+            
+            leading_path: None,
         })
     }
     fn extract_suffix(ident_str: &str) -> Option<&'static str> {
@@ -551,12 +565,18 @@ impl IdentPool {
     pub(crate) fn origin_ident(&self) -> &Rc<Ident> {
         &self.origin_ident
     }
+    pub(crate) fn origin_path(&self) -> Path {
+        self.build_path((*self.origin_ident).clone())
+    }
     pub(crate) fn origin_link(&self) -> DerivedLink {
         DerivedLink::new(&self.origin_ident)
     }
 
     pub(crate) fn builder_ident(&self) -> &Rc<Ident> {
         &self.builder_ident
+    }
+    pub(crate) fn builder_path(&self) -> Path {
+        self.build_path((*self.builder_ident).clone())
     }
     pub(crate) fn builder_link(&self) -> DerivedLink {
         DerivedLink::new(&self.builder_ident)
@@ -565,7 +585,19 @@ impl IdentPool {
     pub(crate) fn override_ident(&self) -> &Rc<Ident> {
         &self.override_ident
     }
+    pub(crate) fn override_path(&self) -> Path {
+        self.build_path((*self.override_ident).clone())
+    }
     pub(crate) fn override_link(&self) -> DerivedLink {
         DerivedLink::new(&self.override_ident)
+    }
+    fn build_path(&self, ident: Ident) -> Path {
+        let ident_segment = PathSegment::from(ident);
+        if let Some(mut path) = self.leading_path.clone() {
+            path.segments.push(ident_segment);
+            path
+        } else {
+            ident_segment.into()
+        }
     }
 }
