@@ -1,0 +1,16 @@
+[package]
+name = "lib-conf-example-00"
+description = "This is an example for `lib_conf` and does not provide actual functionality."
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+license.workspace = true
+publish = true
+
+[dependencies]
+lib-conf = { workspace = true, features = ["serde"] }
+serde = { workspace = true, features = ["derive"] }
+
+[lints]
+workspace = true

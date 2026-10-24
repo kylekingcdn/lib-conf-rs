@@ -1,0 +1,19 @@
+[package]
+name = "example00-bin"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+license.workspace = true
+publish = false
+# publish.workspace = true
+# ^^^^^^^^^^^^^^^^^^^^^^^^ ENABLE AT DISCRETION
+
+[dependencies]
+example00-lib = { path = "../lib", package = "lib-conf-example-00" }
+config = { workspace = true }
+dotenvy = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+
+[lints]
+workspace = true

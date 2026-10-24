@@ -292,6 +292,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "example00-bin"
+version = "0.1.0"
+dependencies = [
+ "config",
+ "dotenvy",
+ "lib-conf-example-00",
+ "serde",
+]
+
+[[package]]
 name = "example1-bin-classic"
 version = "0.3.1"
 dependencies = [
@@ -686,6 +696,14 @@ dependencies = [
  "syn 3.0.5",
  "thiserror",
  "url",
+]
+
+[[package]]
+name = "lib-conf-example-00"
+version = "0.1.0"
+dependencies = [
+ "lib-conf",
+ "serde",
 ]
 
 [[package]]
