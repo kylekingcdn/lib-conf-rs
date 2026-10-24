@@ -2,7 +2,7 @@ mod field_attr;
 mod struct_attr;
 
 pub(crate) use self::{
-    field_attr::FieldAttr,
+    field_attr::{FieldAttr, NestedDefaultClass},
     struct_attr::StructAttr,
 };
 
@@ -525,6 +525,11 @@ impl ExprGroup for StrExprGroup {
 
 pub(crate) type StrExpr = ExprSubset<StrExprGroup>;
 
+impl StrExpr {
+    pub(crate) fn try_to_string(expr: Expr) -> Result<String, ParseError> {
+        Ok(Self::try_from(expr)?.to_string())
+    }
+}
 impl TryFrom<Expr> for StrExpr {
     type Error = ParseError;
 

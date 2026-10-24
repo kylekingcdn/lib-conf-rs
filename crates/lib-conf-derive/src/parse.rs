@@ -195,7 +195,7 @@ impl OriginStructAttrs {
                 },
                 Meta::NameValue(meta_name_value) => {
                     match attr.variant {
-                        StructAttr::ExampleFieldName => out.example_field_name = StrExpr::try_from(meta_name_value.value)?.to_string(),
+                        StructAttr::ExampleFieldName => out.example_field_name = StrExpr::try_to_string(meta_name_value.value)?,
                         StructAttr::Validate => out.validate = Some(meta_name_value.value.try_into()?),
                         StructAttr::ValidateError => out.validate_error = Some(syn::parse(meta_name_value.value.to_token_stream().into())?),
                         _unknown => unreachable!("shape validation covers unknown"),
