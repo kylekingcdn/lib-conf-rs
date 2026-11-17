@@ -1,4 +1,4 @@
-#![allow(unused, clippy::pedantic, clippy::allow_attributes)]
+#![allow(unused, clippy::pedantic, clippy::allow_attributes, reason = "example")]
 
 use config::Config;
 use example2_lib::{Example2Config, Example2Lib, Example2OverrideConfig};

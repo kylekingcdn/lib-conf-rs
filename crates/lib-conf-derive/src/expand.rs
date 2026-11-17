@@ -53,10 +53,8 @@ pub(super) fn process(input: TokenStream, origin: &Rc<OriginStruct>, output: &To
             eprintln!("    - \x1B[34m{EXPAND_DIR_VAR}\x1B[0m");
         }
     }
-    else {
-        if option_env!("LIBCONF_EXPAND_NO_TIPS").is_none() {
-            eprintln!("lib-conf expansion disabled. It can be enabled with env var: \x1B[34m{EXPAND_VAR}\x1B[0m");
-        }
+    else if option_env!("LIBCONF_EXPAND_NO_TIPS").is_none() {
+        eprintln!("lib-conf expansion disabled. It can be enabled with env var: \x1B[34m{EXPAND_VAR}\x1B[0m");
     }
 }
 

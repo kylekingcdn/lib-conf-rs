@@ -18,7 +18,7 @@ pub(crate) fn derive(input: TokenStream) -> Result<TokenStream, Error> {
     let expand_origin = origin.clone();
 
     let override_struct = Rc::new(OverrideStruct::new(origin.clone()));
-    
+
     let builder_struct = Rc::new(BuilderStruct::new(origin.clone(), override_struct.clone()));
     let config_struct = ConfigStruct::new(origin.clone(), override_struct.clone(), builder_struct.clone());
 
@@ -30,7 +30,7 @@ pub(crate) fn derive(input: TokenStream) -> Result<TokenStream, Error> {
     if origin.attrs.vote_debug {
         let report = consensus.as_rendered_report();
         eprintln!("————————————————————————————————");
-        eprintln!("\n{} Consensus", &config_struct.ident());
+        eprintln!("\n{} Consensus", config_struct.ident());
         eprintln!("{report}");
     }
 

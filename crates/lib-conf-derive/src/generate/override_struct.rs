@@ -15,9 +15,9 @@ use {
 };
 
 use arbitrait::{
-    IterVoteCollector, Propose,
+    Propose,
     ballot::unscored::MandateForbidBallot::{Abstain, Forbid, Mandate},
-    vote::{CastVote, CollectVotes, IdentifyVoter, Vote},
+    vote::{CastVote, IdentifyVoter, Vote},
 };
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
@@ -572,9 +572,6 @@ impl OverrideField {
         not(feature = "serde"),
         expect(dead_code, reason = "used w/ serde feature")
     )]
-    pub(crate) fn is_optional(&self) -> bool {
-        !self.attrs().override_required
-    }
     pub(crate) fn supports_copy(&self) -> bool {
         if let Some(override_from) = &self.attrs().override_from {
             override_from.copy

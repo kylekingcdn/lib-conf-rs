@@ -331,7 +331,7 @@ Expect degraded error quality and reduced correctness checks.");
             .filter(|f| !f.attrs().skip_override_field)
             .map(|f| f.merge_override_tokens(&conf_var_ident))
             .collect();
-    
+
         let validate_call = self.origin.attrs.validate_fn.as_ref().map(|val_fn|
             quote!(#val_fn(&self)?;)
         );
@@ -352,9 +352,9 @@ Expect degraded error quality and reduced correctness checks.");
 
                 fn #merge_fn_name(&mut self, #conf_var_ident: Self::Override) #ret_sig {
                     #(#fields)*
-    
+
                     #validate_call
-    
+
                     #ret_expr
                 }
             }
@@ -375,7 +375,7 @@ Expect degraded error quality and reduced correctness checks.");
             }
         }
     }
-    
+
     fn impl_tokens(&self) -> TokenStream {
         let ident = self.ident();
         let cfg_attrs = self.origin.cfg_tokens();
@@ -587,7 +587,7 @@ impl ToTokens for ConfigStruct {
         if self.plan().copy {
             tokens.extend(self.copy_impl_tokens());
         }
-        
+
         tokens.extend(self.merge_trait_impl_tokens());
 
         if self.plan().infallible_from_override {
@@ -819,7 +819,7 @@ impl ConfigField {
         let assign = if self.origin.is_option {
             let init_fallback = match nested_attrs.from_override {
                 FromOverrideSupport::Infallible => quote!(<#flat_ty>::from(val)),
-                FromOverrideSupport::Fallible(_) => quote!(<#flat_ty>::try_from(val)#from_override_suffix),
+                FromOverrideSupport::Fallible => quote!(<#flat_ty>::try_from(val)#from_override_suffix),
                 FromOverrideSupport::None => unreachable!("nested merge - Shouldn't be able to execute this branch if no from_override is avaialable")
             };
             quote! {
@@ -935,7 +935,7 @@ impl ConfigField {
             let map_err = origin.nested_from_override_map_err_expr();
             match from_override {
                 FromOverrideSupport::Infallible => quote!(<#flat_ty>::from(val)),
-                FromOverrideSupport::Fallible(_) => quote!(<#flat_ty>::try_from(val)#map_err),
+                FromOverrideSupport::Fallible => quote!(<#flat_ty>::try_from(val)#map_err),
                 FromOverrideSupport::None => unreachable!("nested from override - shouldn't be able to execute this branch if no from_override is avaialable")
             }
         }
@@ -1292,7 +1292,7 @@ impl ToTokens for ConfigErrorEnum {
         let self_variant = self.missing_fields_variant_tokens();
         let validation_variant = self.validation_variant_tokens();
         let variants = &self.nested_variants;
-        
+
         let enum_decl = quote! {
             #docs
             #[derive(#debug_path)]
@@ -1358,7 +1358,7 @@ impl ToTokens for ConfigErrorEnum {
                     if let #option_path::Some(name) = self_field_name {
                         chain.push(name.to_string());
                     }
-    
+
                     match self {
                         #(#variant_build_chains)*
                         _ => {},

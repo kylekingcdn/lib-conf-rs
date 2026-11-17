@@ -1,5 +1,5 @@
 use lib_conf::LibConfig;
-use crate::shared::*;
+use crate::shared::{validate_conf, ValidationError};
 
 #[derive(LibConfig, Debug, Clone)]
 pub struct WithDefaultConfig {

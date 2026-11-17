@@ -22,7 +22,7 @@ use syn::{Ident, Path, PathSegment};
 #[cfg_attr(feature = "syn-debug", derive(Debug))]
 pub(crate) struct IdentPool {
     prefix: Rc<Ident>,
-    suffix: Rc<Ident>,
+    // suffix: Rc<Ident>,
 
     origin_ident: Rc<Ident>,
     builder_ident: Rc<Ident>,
@@ -53,7 +53,7 @@ impl IdentPool {
 
         Ok(Self {
             prefix: format_ident!("{prefix}").into(),
-            suffix: format_ident!("{suffix}").into(),
+            // suffix: format_ident!("{suffix}").into(),
 
             builder_ident: format_ident!("{origin_ident}Builder").into(),
             override_ident: format_ident!("{prefix}Override{suffix}").into(),
@@ -91,9 +91,9 @@ impl IdentPool {
     pub(crate) fn prefix(&self) -> &Rc<Ident> {
         &self.prefix
     }
-    pub(crate) fn suffix(&self) -> &Rc<Ident> {
-        &self.suffix
-    }
+    // pub(crate) fn suffix(&self) -> &Rc<Ident> {
+    //     &self.suffix
+    // }
 
     pub(crate) fn origin_ident(&self) -> &Rc<Ident> {
         &self.origin_ident
@@ -102,9 +102,6 @@ impl IdentPool {
         self.build_path((*self.origin_ident).clone())
     }
     pub(crate) fn origin_link(&self) -> DerivedLink {
-        // temporary to ensure invalid links are gen'd for nested
-        // assert!(self.leading_path.is_none());
-
         DerivedLink::new(&self.origin_ident)
     }
 
@@ -115,9 +112,6 @@ impl IdentPool {
         self.build_path((*self.builder_ident).clone())
     }
     pub(crate) fn builder_link(&self) -> DerivedLink {
-        // temporary to ensure invalid links are gen'd for nested
-        // assert!(self.leading_path.is_none());
-
         DerivedLink::new(&self.builder_ident)
     }
 
@@ -128,9 +122,6 @@ impl IdentPool {
         self.build_path((*self.override_ident).clone())
     }
     pub(crate) fn override_link(&self) -> DerivedLink {
-        // temporary to ensure invalid links are gen'd for nested
-        // assert!(self.leading_path.is_none());
-
         DerivedLink::new(&self.override_ident)
     }
 
@@ -143,12 +134,9 @@ impl IdentPool {
     pub(crate) fn config_error_path(&self) -> &Path {
         &self.config_error_path
     }
-    pub(crate) fn config_error_link(&self) -> DerivedLink {
-        // temporary to ensure invalid links are gen'd for nested
-        // assert!(self.leading_path.is_none());
-
-        DerivedLink::new(self.config_error_path.clone())
-    }
+    // pub(crate) fn config_error_link(&self) -> DerivedLink {
+    //     DerivedLink::new(self.config_error_path.clone())
+    // }
 
     fn build_path(&self, ident: Ident) -> Path {
         let ident_segment = PathSegment::from(ident);

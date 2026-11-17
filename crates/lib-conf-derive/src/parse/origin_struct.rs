@@ -244,11 +244,11 @@ pub(crate) struct OriginStructAttrs {
 
     pub override_derives: Vec<TokenStream>,
     pub override_attrs: Vec<TokenStream>,
-    
+
     example_field_name: Option<String>,
     pub validate_fn: Option<CallExpr>,
     pub validate_error: Option<TypePath>,
-    
+
     pub vote_debug: bool,
     pub lib_conf_attribution: bool,
 }
@@ -267,9 +267,6 @@ impl OriginStructAttrs {
     }
     pub(crate) fn has_override_attrs(&self) -> bool {
         !self.override_attrs.is_empty()
-    }
-    pub(crate) fn has_validation(&self) -> bool {
-        self.validate_fn.is_some()
     }
 
     #[allow(

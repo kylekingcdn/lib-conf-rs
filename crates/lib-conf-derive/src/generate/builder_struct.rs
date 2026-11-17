@@ -319,7 +319,7 @@ impl BuilderStruct {
         let fn_props = self.build_fn_properties();
         let build_fn_name = fn_props.name();
         let config_error_path = self.ids().config_error_path();
-        
+
         let mut ret_ty = self.origin.ty.to_token_stream();
         if fallible {
             ret_ty = quote!(#result_path<#ret_ty, #config_error_path>);
@@ -409,9 +409,9 @@ impl BuilderStruct {
 
                 fn #build_fn_name(mut self) -> #ret_ty {
                     #merge_expr
-    
+
                     #validate_call
-    
+
                     #ret_expr
                 }
             }
@@ -459,7 +459,7 @@ impl ToTokens for BuilderStruct {
         !self.override_struct.has_required_fields() {
             tokens.extend(self.default_impl_tokens());
         }
-        
+
         tokens.extend(self.build_trait_impl_tokens());
     }
 }
@@ -560,7 +560,6 @@ impl BuilderField {
                 assert!(nested.builder_default);
             }
             let ident = field.ident();
-            let flat_ty = &field.origin.flat_ty;
             let docs = field.nested_builder_method_docs();
             let nested_builder_path = field.origin.nested_ids().unwrap().builder_path();
             let cfg_attrs = field.cfg_tokens();

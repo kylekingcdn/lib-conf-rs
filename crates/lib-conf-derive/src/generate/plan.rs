@@ -6,32 +6,32 @@ use arbitrait::{
 };
 use std::fmt;
 
-// !- Plan structsx a
+// !- Plan structs a
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct Plan {
-    pub config: ConfigPlan,
-    pub builder: BuilderPlan,
-    pub override_: OverridePlan,
-    //pub error_plan: Option<ErrorPlan>,
-}
-impl From<&Consensus> for Plan {
-    fn from(consensus: &Consensus) -> Self {
-        Self {
-            config: (&consensus.config).into(),
-            builder: (&consensus.builder).into(),
-            override_: (&consensus.override_).into(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct ErrorPlan {
-    pub validate_variant: bool,
-    pub missing_fields_variant: bool,
-    /// Field names of nested configs that receive an error variant
-    pub nested_variants: Vec<String>,
-}
+// #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+// pub(crate) struct Plan {
+//     pub config: ConfigPlan,
+//     pub builder: BuilderPlan,
+//     pub override_: OverridePlan,
+//     //pub error_plan: Option<ErrorPlan>,
+// }
+// impl From<&Consensus> for Plan {
+//     fn from(consensus: &Consensus) -> Self {
+//         Self {
+//             config: (&consensus.config).into(),
+//             builder: (&consensus.builder).into(),
+//             override_: (&consensus.override_).into(),
+//         }
+//     }
+// }
+//
+// #[derive(Debug, Clone, PartialEq, Eq)]
+// pub(crate) struct ErrorPlan {
+//     pub validate_variant: bool,
+//     pub missing_fields_variant: bool,
+//     /// Field names of nested configs that receive an error variant
+//     pub nested_variants: Vec<String>,
+// }
 
 #[expect(clippy::struct_excessive_bools, reason = "bools are the correct choice here")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -58,7 +58,6 @@ impl From<&ConfigConsensus> for ConfigPlan {
     }
 }
 
-#[expect(clippy::struct_excessive_bools, reason = "bools are the correct choice here")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct BuilderPlan {
     //pub copy: bool,
@@ -156,9 +155,9 @@ pub(crate) struct Consensus {
     //pub error_consensus: Option<ErrorConsensus>
 }
 impl Consensus {
-    pub(crate) fn as_plan(&self) -> Plan {
-        self.into()
-    }
+    // pub(crate) fn as_plan(&self) -> Plan {
+    //     self.into()
+    // }
     pub(crate) fn as_rendered_report(&self) -> String {
         [
             self.config.as_rendered_report(),

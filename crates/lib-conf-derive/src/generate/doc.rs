@@ -13,11 +13,11 @@ use syn::{Attribute, TypePath};
 
 // !- Doc attr addition helper
 
-/// Handles trim + prefix of leading space
-pub(crate) fn doc_line(text: impl Display, trim: bool) -> TokenStream {
-    let line = text.to_string();
-    doc_lines(vec![&line], trim)
-}
+// /// Handles trim + prefix of leading space
+// pub(crate) fn doc_line(text: impl Display, trim: bool) -> TokenStream {
+//     let line = text.to_string();
+//     doc_lines(vec![&line], trim)
+// }
 
 /// Handles trim + prefix of leading space
 pub(crate) fn doc_lines(lines: Vec<&str>, trim: bool) -> TokenStream {
@@ -39,10 +39,10 @@ pub(crate) fn doc_lines(lines: Vec<&str>, trim: bool) -> TokenStream {
         #(#[doc = #lines])*
     }
 }
-/// Handles line split + trim + prefix of leading space
-pub(crate) fn doc_lines_split(lines: impl Display, trim: bool) -> TokenStream {
-    doc_lines(lines.to_string().lines().collect(), trim)
-}
+// /// Handles line split + trim + prefix of leading space
+// pub(crate) fn doc_lines_split(lines: impl Display, trim: bool) -> TokenStream {
+//     doc_lines(lines.to_string().lines().collect(), trim)
+// }
 
 // !- Document trait
 
@@ -65,20 +65,20 @@ pub(crate) trait Document: Sized {
     // fn insert_transparent(mut self, text: impl Display, trim: bool) -> Self {
     //     self.insert_fmt(text, false)
     // }
-    /// Returns true if any docs are currently present
-    fn is_empty(&self) -> bool;
+    // /// Returns true if any docs are currently present
+    // fn is_empty(&self) -> bool;
 
     // fn preserve_whitespace(&self) -> bool;
 
-    /// iterates over provided lines and adds each as a new element
-    #[must_use]
-    fn add(mut self, doc: impl Into<Doc>) -> Self {
-        let doc = doc.into();
-        for line in doc.lines() {
-            self = self.insert(line);
-        }
-        self
-    }
+    // /// iterates over provided lines and adds each as a new element
+    // #[must_use]
+    // fn add(mut self, doc: impl Into<Doc>) -> Self {
+    //     let doc = doc.into();
+    //     for line in doc.lines() {
+    //         self = self.insert(line);
+    //     }
+    //     self
+    // }
 
     #[must_use]
     fn newl(self) -> Self {
@@ -180,9 +180,9 @@ impl Document for Doc {
         self.lines.push(line.to_string());
         self
     }
-    fn is_empty(&self) -> bool {
-        self.lines.is_empty()
-    }
+    // fn is_empty(&self) -> bool {
+    //     self.lines.is_empty()
+    // }
 }
 impl Display for Doc {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -312,12 +312,12 @@ impl AppendDoc {
             append: Doc::default(),
         }
     }
-    pub(crate) fn source(&self) -> &Vec<Attribute> {
-        &self.source
-    }
-    pub(crate) fn appended(&self) -> &Doc {
-        &self.append
-    }
+    // pub(crate) fn source(&self) -> &Vec<Attribute> {
+    //     &self.source
+    // }
+    // pub(crate) fn appended(&self) -> &Doc {
+    //     &self.append
+    // }
 }
 impl Document for AppendDoc {
     #[doc(hidden)]
@@ -326,9 +326,9 @@ impl Document for AppendDoc {
         self
 
     }
-    fn is_empty(&self) -> bool {
-        self.source.is_empty() && self.append.is_empty()
-    }
+    // fn is_empty(&self) -> bool {
+    //     self.source.is_empty() && self.append.is_empty()
+    // }
 }
 impl ToTokens for AppendDoc {
     fn to_tokens(&self, tokens: &mut TokenStream) {
@@ -493,6 +493,7 @@ pub(crate) struct Link {
     fragment: Option<String>,
     mono: bool,
 }
+#[allow(clippy::allow_attributes, dead_code, reason = "low-impact, future usage likely")]
 impl Link {
     pub(crate) fn new(name_path: impl Display, ref_path: impl Display) -> Self {
         Self{
@@ -584,6 +585,7 @@ impl Display for Link {
 pub(crate) struct DerivedLink {
     struct_path: TypePath,
 }
+#[allow(clippy::allow_attributes, dead_code, reason = "low-impact, future usage likely")]
 impl DerivedLink {
     pub(crate) fn new(struct_ident: impl IntoTypePath) -> Self {
         Self {

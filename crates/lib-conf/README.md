@@ -339,7 +339,6 @@ FOO_DEFAULT=true
   - [x] Migrate Some/None/Err/Ok as well
 - [x] Fix missing generics in assoc. struct types
   - [ ] Also missing in static assertions
-- [x] switch all merge/build calls to trait <Type as Trait>::fn calls
 
 ### Roadmap
 

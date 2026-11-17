@@ -46,9 +46,6 @@ impl MaybeFallibleFn {
             self.into_infallible()
         }
     }
-    pub(crate) fn as_infallible(&self) -> &FnProperties {
-        &self.0
-    }
 }
 
 #[cfg_attr(feature = "syn-debug", derive(Debug))]
@@ -67,12 +64,12 @@ impl FnProperties {
     pub(crate) fn name(&self) -> &Ident {
         &self.name
     }
-    pub(crate) fn ret_sig(&self) -> &ReturnSignature {
-        &self.ret_sig
-    }
-    pub(crate) fn ty(&self) -> Option<&TypePath> {
-        self.ret_sig.ty()
-    }
+    // pub(crate) fn ret_sig(&self) -> &ReturnSignature {
+    //     &self.ret_sig
+    // }
+    // pub(crate) fn ty(&self) -> Option<&TypePath> {
+    //     self.ret_sig.ty()
+    // }
     pub(crate) fn split_for_impl(&self) -> (&Ident, &ReturnSignature) {
         (&self.name, &self.ret_sig)
     }
@@ -86,12 +83,12 @@ impl FnProperties {
 pub(crate) struct ReturnSignature(Option<TypePath>);
 
 impl ReturnSignature {
-    pub(crate) fn new(ty: impl Into<Self>) -> Self {
-        ty.into()
-    }
-    pub(crate) fn empty() -> Self {
-        Self::default()
-    }
+    // pub(crate) fn new(ty: impl Into<Self>) -> Self {
+    //     ty.into()
+    // }
+    // pub(crate) fn empty() -> Self {
+    //     Self::default()
+    // }
     pub(crate) fn ty(&self) -> Option<&TypePath> {
         self.0.as_ref()
     }
@@ -99,9 +96,9 @@ impl ReturnSignature {
     pub(crate) fn ty_explicit(&self) -> TokenStream {
         self.0.as_ref().map(ToTokens::to_token_stream).unwrap_or(quote!(()))
     }
-    pub(crate) fn has_return(&self) -> bool {
-        self.0.is_some()
-    }
+    // pub(crate) fn has_return(&self) -> bool {
+    //     self.0.is_some()
+    // }
 }
 impl ToTokens for ReturnSignature {
     fn to_tokens(&self, tokens: &mut TokenStream) {
@@ -122,35 +119,35 @@ impl From<()> for ReturnSignature {
 }
 // !- Path/fn call generation
 
-/// Private re-exports fron lib-conf
-pub(crate) mod fwd {
-    use proc_macro2::TokenStream;
-    use quote::{quote, ToTokens};
-    use syn::{Path, parse_quote};
+// /// Private re-exports fron lib-conf
+// pub(crate) mod fwd {
+//     use proc_macro2::TokenStream;
+//     use quote::{quote, ToTokens};
+//     use syn::{Path, parse_quote};
+//
+//     pub(crate) fn path_base() -> Path {
+//         parse_quote!(::lib_conf::__private)
+//     }
+//     pub(crate) fn path(item: impl ToTokens) -> Path {
+//         let base = path_base();
+//         parse_quote!(#base::#item)
+//     }
+//     pub(crate) fn static_assert_path() -> TokenStream {
+//         path(quote!(static_assertions)).into_token_stream()
+//     }
+// }
 
-    pub(crate) fn path_base() -> Path {
-        parse_quote!(::lib_conf::__private)
-    }
-    pub(crate) fn path(item: impl ToTokens) -> Path {
-        let base = path_base();
-        parse_quote!(#base::#item)
-    }
-    pub(crate) fn static_assert_path() -> TokenStream {
-        path(quote!(static_assertions)).into_token_stream()
-    }
-}
-
-/// Builds a static_assertions macro call
+/// Builds a `static_assertions` macro call
 pub(crate) fn static_assert(macro_name: impl ToTokens, args: impl ToTokens) -> TokenStream {
     let path = CanonPath::StaticAssertions;
     quote!(#path::#macro_name(#args);)
 }
-pub(crate) fn assert_impl_one(ty: &impl ToTokens, traits: &[impl ToTokens]) -> TokenStream {
-    static_assert(quote!(assert_impl_one!), quote!(#ty: #(#traits), *))
-}
-pub(crate) fn assert_impl_any(ty: &impl ToTokens, traits: &[impl ToTokens]) -> TokenStream {
-    static_assert(quote!(assert_impl_any!), quote!(#ty: #(#traits), *))
-}
+// pub(crate) fn assert_impl_one(ty: &impl ToTokens, traits: &[impl ToTokens]) -> TokenStream {
+//     static_assert(quote!(assert_impl_one!), quote!(#ty: #(#traits), *))
+// }
+// pub(crate) fn assert_impl_any(ty: &impl ToTokens, traits: &[impl ToTokens]) -> TokenStream {
+//     static_assert(quote!(assert_impl_any!), quote!(#ty: #(#traits), *))
+// }
 pub(crate) fn assert_impl_all(ty: &impl ToTokens, traits: &[impl ToTokens]) -> TokenStream {
     static_assert(quote!(assert_impl_all!), quote!(#ty: #(#traits), *))
 }
@@ -255,56 +252,55 @@ impl From<CanonPath> for Path {
     }
 }
 
-/// Function impl variants
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum FnImplType {
-    /// Private fn containing the actual impl
-    Internal,
-    /// Public impl directly available on iten (as method or assoc fn)
-    Member,
-    /// Trait fn impl
-    Trait,
-}
-impl FnImplType {
-    pub(crate) fn vis(&self) -> TokenStream {
-        match self {
-            Self::Internal => quote!(), // private
-            Self::Member => quote!(pub), // public api
-            Self::Trait => quote!(), // implicit
-        }
-    }
-    pub(crate) fn is_internal(&self) -> bool {
-        matches!(self, &Self::Internal)
-    }
-    pub(crate) fn is_member(&self) -> bool {
-        matches!(self, &Self::Trait)
-    }
-    pub(crate) fn is_trait(&self) -> bool {
-        matches!(self, &Self::Trait)
-    }
-    /// Whether the true impl should be used
-    pub(crate) fn has_impl(&self) -> bool {
-        self.is_internal()
-    }
-    /// Whether the impl forwards to the internal fn
-    pub(crate) fn has_fwd_impl(&self) -> bool {
-        !self.has_impl()
-    }
-    /// Whether the fn should include docs
-    pub(crate) fn has_docs(&self) -> bool {
-        self.is_member()
-    }
-    pub(crate) fn internal_name(fn_name: &Ident) -> Ident {
-        format_ident!("{fn_name}_impl")
-    }
-    pub(crate) fn name(&self, fn_name: Ident) -> Ident {
-        match self {
-            Self::Internal => Self::internal_name(&fn_name),
-            _ => fn_name,
-        }
-    }
-}
+// /// Function impl variants
+// #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+// pub(crate) enum FnImplType {
+//     /// Private fn containing the actual impl
+//     Internal,
+//     /// Public impl directly available on iten (as method or assoc fn)
+//     Member,
+//     /// Trait fn impl
+//     Trait,
+// }
+// impl FnImplType {
+//     pub(crate) fn vis(&self) -> TokenStream {
+//         match self {
+//             Self::Internal => quote!(), // private
+//             Self::Member => quote!(pub), // public api
+//             Self::Trait => quote!(), // implicit
+//         }
+//     }
+//     pub(crate) fn is_internal(&self) -> bool {
+//         matches!(self, &Self::Internal)
+//     }
+//     pub(crate) fn is_member(&self) -> bool {
+//         matches!(self, &Self::Trait)
+//     }
+//     pub(crate) fn is_trait(&self) -> bool {
+//         matches!(self, &Self::Trait)
+//     }
+//     /// Whether the true impl should be used
+//     pub(crate) fn has_impl(&self) -> bool {
+//         self.is_internal()
+//     }
+//     /// Whether the impl forwards to the internal fn
+//     pub(crate) fn has_fwd_impl(&self) -> bool {
+//         !self.has_impl()
+//     }
+//     /// Whether the fn should include docs
+//     pub(crate) fn has_docs(&self) -> bool {
+//         self.is_member()
+//     }
+//     pub(crate) fn internal_name(fn_name: &Ident) -> Ident {
+//         format_ident!("{fn_name}_impl")
+//     }
+//     pub(crate) fn name(&self, fn_name: Ident) -> Ident {
+//         match self {
+//             Self::Internal => Self::internal_name(&fn_name),
+//             _ => fn_name,
+//         }
+//     }
+// }
 
 // !- Path traits
 
@@ -313,16 +309,12 @@ impl FnImplType {
 pub(crate) enum CanonTrait {
     From(TokenStream),
     TryFrom { from: TokenStream, error: Option<TokenStream> },
-    Into(TokenStream),
-    TryInto { to: TokenStream, error: Option<TokenStream> },
 }
 impl CanonTrait {
     pub(crate) fn path(&self) -> CanonPath {
         match self {
             Self::From(_) => CanonPath::From,
             Self::TryFrom { .. } => CanonPath::TryFrom,
-            Self::Into(_) => CanonPath::Into,
-            Self::TryInto { .. } => CanonPath::TryInto,
         }
     }
     fn params(&self) -> Vec<TokenStream> {
@@ -331,10 +323,6 @@ impl CanonTrait {
                 vec![from],
             Self::TryFrom { from, error } =>
                 vec![from, error.map(|e| quote!(Error = #e)).unwrap_or_default()],
-            Self::Into(to) =>
-                vec![to],
-            Self::TryInto { to, error } =>
-                vec![to, error.map(|e| quote!(Error = #e)).unwrap_or_default()],
         }
         .into_iter()
         .filter(|p| !p.is_empty())

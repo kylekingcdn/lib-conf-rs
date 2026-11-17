@@ -1,3 +1,5 @@
+#![allow(clippy::pedantic, clippy::allow_attributes, reason = "expansion tests")]
+
 pub mod nested;
 pub use nested::*;
 

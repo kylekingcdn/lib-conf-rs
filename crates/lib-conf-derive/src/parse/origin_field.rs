@@ -281,32 +281,30 @@ impl CastVote<InfallibleBuild> for OriginField {
                 Forbid
             }
             // nested build is infallible
-            else {
-                if self.is_option {
-                    evidence.add_piece(Topic::Type, Cause::HasType("Option<_>"));
-                    if nested.from_override.is_fallible() {
-                        evidence.add_piece(
-                            Topic::Attr,
-                            Cause::AttrPresent(FieldAttr::NestedTryFromOverride.into())
-                        );
-                        Forbid
-                    } else if nested.from_override.is_infallible() {
-                        evidence.add_piece(
-                            Topic::Attr,
-                            Cause::AttrPresent(FieldAttr::NestedFromOverride.into())
-                        );
-                        Mandate
-                    } else {
-                        evidence.add_piece(
-                            Topic::Attr,
-                            Cause::AttrMissing(FieldAttr::NestedNoFromOverride.into())
-                        );
-                        Forbid
-                    }
-                } else {
-                    evidence.add_piece(Topic::Type, Cause::NotType("Option<_>"));
+            else if self.is_option {
+                evidence.add_piece(Topic::Type, Cause::HasType("Option<_>"));
+                if nested.from_override.is_fallible() {
+                    evidence.add_piece(
+                        Topic::Attr,
+                        Cause::AttrPresent(FieldAttr::NestedTryFromOverride.into())
+                    );
+                    Forbid
+                } else if nested.from_override.is_infallible() {
+                    evidence.add_piece(
+                        Topic::Attr,
+                        Cause::AttrPresent(FieldAttr::NestedFromOverride.into())
+                    );
                     Mandate
+                } else {
+                    evidence.add_piece(
+                        Topic::Attr,
+                        Cause::AttrMissing(FieldAttr::NestedNoFromOverride.into())
+                    );
+                    Forbid
                 }
+            } else {
+                evidence.add_piece(Topic::Type, Cause::NotType("Option<_>"));
+                Mandate
             }
         } else {
             evidence.add_piece(Topic::Attr, Cause::AttrMissing(FieldAttr::Nested.into()));
@@ -416,7 +414,7 @@ impl CastVote<FallibleFromOverride> for OriginField {
     fn cast_ballot(&self) -> Vote<FallibleFromOverride> {
         let mut evidence = FallibleFromOverride::new_evidence();
         // TODO: forbid if nested && no nested from override variants
-        // && no default 
+        // && no default
         let res =
         if !self.has_default() && self.attrs.skip_override_field {
             evidence.add_piece(Topic::Type, Cause::NotType("Option<_>"));
@@ -676,7 +674,7 @@ impl FieldAttrs {
                     from_override: if attrs.nested_from_override {
                         FromOverrideSupport::Infallible
                     } else if attrs.nested_try_from_override {
-                        FromOverrideSupport::Fallible(config_error.clone().unwrap())
+                        FromOverrideSupport::Fallible
                     } else {
                         assert!(attrs.nested_no_from_override);
                         FromOverrideSupport::None
@@ -738,9 +736,9 @@ pub(crate) enum BuildSupport {
     Fallible(Rc<TypePath>),
 }
 impl BuildSupport {
-    pub(crate) fn is_infallible(&self) -> bool {
-        matches!(self, &Self::Infallible)
-    }
+    // pub(crate) fn is_infallible(&self) -> bool {
+    //     matches!(self, &Self::Infallible)
+    // }
     pub(crate) fn is_fallible(&self) -> bool {
         matches!(self, &Self::Fallible(_))
     }
@@ -774,7 +772,7 @@ impl BuildSupport {
 #[derive(Clone)]
 pub(crate) enum FromOverrideSupport {
     Infallible,
-    Fallible(Rc<TypePath>),
+    Fallible,
     None,
 }
 impl FromOverrideSupport {
@@ -782,19 +780,9 @@ impl FromOverrideSupport {
         matches!(self, &Self::Infallible)
     }
     pub(crate) fn is_fallible(&self) -> bool {
-        matches!(self, &Self::Fallible(_))
+        matches!(self, &Self::Fallible)
     }
     pub(crate) fn is_none(&self) -> bool {
         matches!(self, &Self::None)
-    }
-    pub(crate) fn any_support(&self) -> bool {
-        self.is_infallible() || self.is_fallible()
-    }
-    pub(crate) fn as_error(&self) -> Option<Rc<TypePath>> {
-        if let Self::Fallible(path) = self {
-            Some(path.clone())
-        } else {
-            None
-        }
     }
 }
