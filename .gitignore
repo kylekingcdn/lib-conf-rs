@@ -14,7 +14,7 @@ schemas/
 *.env
 !examples/*/.env
 !examples/**/.env
-!/crates/lib-conf-derive/tests/*.env
+!/crates/lib-conf/tests/*.env
 
 # platform
 .DS_Store
