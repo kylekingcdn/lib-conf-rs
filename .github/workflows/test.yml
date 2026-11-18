@@ -36,7 +36,7 @@ jobs:
         run: |
           for BIN_TOML in examples/*/*bin*/Cargo.toml; do
             BIN="$(dirname "${BIN_TOML}")"
-            if [[ "${BIN}" != *'-template'* ]]; then
+            if [[ "${BIN}" != *'-template'* ]] && [[ "${BIN}" != *'-invalid'* ]]; then
               (
                 cd "${BIN}"
 
