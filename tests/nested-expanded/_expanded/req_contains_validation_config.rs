@@ -121,7 +121,7 @@ for ReqContainsValidationConfig {
         ::std::result::Result::Ok(out)
     }
 }
-/// Possible errors encountered during builf of [`ReqContainsValidationConfig`](struct@ReqContainsValidationConfig)
+/// Possible errors encountered during build of [`ReqContainsValidationConfig`](struct@ReqContainsValidationConfig)
 #[derive(::std::fmt::Debug)]
 pub enum ReqContainsValidationConfigError {
     /// Unable to initialize struct due to missing required fields
@@ -136,6 +136,14 @@ pub enum ReqContainsValidationConfigError {
     },
 }
 impl ReqContainsValidationConfigError {
+    #[doc(hidden)]
+    fn __error_field_list(names: &[::std::string::String]) -> ::std::string::String {
+        names
+            .iter()
+            .map(|name| format!("- `{name}`"))
+            .collect::<::std::vec::Vec<_>>()
+            .join("\n")
+    }
     /// List of field names leading to the source of a nested error.
     ///
     /// Does not include the offending field(s) themselves, just the sequence of fields leading to their containing `Struct`
@@ -160,7 +168,7 @@ impl ::std::fmt::Display for ReqContainsValidationConfigError {
             Self::MissingRequiredFields { field_names } => {
                 format!(
                     "Missing required `ReqContainsValidationConfig` fields:\n{}",
-                    ::lib_conf::__private::error_field_list(field_names)
+                    Self::__error_field_list(field_names)
                 )
             }
             Self::FooField { error } => {

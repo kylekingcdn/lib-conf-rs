@@ -130,7 +130,7 @@ for OptContainsRequiredConfig {
         ::std::result::Result::Ok(out)
     }
 }
-/// Possible errors encountered during builf of [`OptContainsRequiredConfig`](struct@OptContainsRequiredConfig)
+/// Possible errors encountered during build of [`OptContainsRequiredConfig`](struct@OptContainsRequiredConfig)
 #[derive(::std::fmt::Debug)]
 pub enum OptContainsRequiredConfigError {
     /// Failed to merge nested [`WithRequiredConfig`](struct@WithRequiredConfig)
@@ -140,6 +140,14 @@ pub enum OptContainsRequiredConfigError {
     },
 }
 impl OptContainsRequiredConfigError {
+    #[doc(hidden)]
+    fn __error_field_list(names: &[::std::string::String]) -> ::std::string::String {
+        names
+            .iter()
+            .map(|name| format!("- `{name}`"))
+            .collect::<::std::vec::Vec<_>>()
+            .join("\n")
+    }
     /// List of field names leading to the source of a nested error.
     ///
     /// Does not include the offending field(s) themselves, just the sequence of fields leading to their containing `Struct`

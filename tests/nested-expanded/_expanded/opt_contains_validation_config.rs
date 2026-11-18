@@ -136,7 +136,7 @@ for OptContainsValidationConfig {
         ::std::result::Result::Ok(out)
     }
 }
-/// Possible errors encountered during builf of [`OptContainsValidationConfig`](struct@OptContainsValidationConfig)
+/// Possible errors encountered during build of [`OptContainsValidationConfig`](struct@OptContainsValidationConfig)
 #[derive(::std::fmt::Debug)]
 pub enum OptContainsValidationConfigError {
     /// Failed to merge nested [`WithValidationConfig`](struct@WithValidationConfig)
@@ -146,6 +146,14 @@ pub enum OptContainsValidationConfigError {
     },
 }
 impl OptContainsValidationConfigError {
+    #[doc(hidden)]
+    fn __error_field_list(names: &[::std::string::String]) -> ::std::string::String {
+        names
+            .iter()
+            .map(|name| format!("- `{name}`"))
+            .collect::<::std::vec::Vec<_>>()
+            .join("\n")
+    }
     /// List of field names leading to the source of a nested error.
     ///
     /// Does not include the offending field(s) themselves, just the sequence of fields leading to their containing `Struct`

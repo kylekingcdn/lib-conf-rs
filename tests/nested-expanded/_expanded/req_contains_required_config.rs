@@ -125,7 +125,7 @@ for ReqContainsRequiredConfig {
         self.merge_with_override(rhs);
     }
 }
-/// Possible errors encountered during builf of [`ReqContainsRequiredConfig`](struct@ReqContainsRequiredConfig)
+/// Possible errors encountered during build of [`ReqContainsRequiredConfig`](struct@ReqContainsRequiredConfig)
 #[derive(::std::fmt::Debug)]
 pub enum ReqContainsRequiredConfigError {
     /// Unable to initialize struct due to missing required fields
@@ -140,6 +140,14 @@ pub enum ReqContainsRequiredConfigError {
     },
 }
 impl ReqContainsRequiredConfigError {
+    #[doc(hidden)]
+    fn __error_field_list(names: &[::std::string::String]) -> ::std::string::String {
+        names
+            .iter()
+            .map(|name| format!("- `{name}`"))
+            .collect::<::std::vec::Vec<_>>()
+            .join("\n")
+    }
     /// List of field names leading to the source of a nested error.
     ///
     /// Does not include the offending field(s) themselves, just the sequence of fields leading to their containing `Struct`
@@ -164,7 +172,7 @@ impl ::std::fmt::Display for ReqContainsRequiredConfigError {
             Self::MissingRequiredFields { field_names } => {
                 format!(
                     "Missing required `ReqContainsRequiredConfig` fields:\n{}",
-                    ::lib_conf::__private::error_field_list(field_names)
+                    Self::__error_field_list(field_names)
                 )
             }
             Self::FooField { error } => {

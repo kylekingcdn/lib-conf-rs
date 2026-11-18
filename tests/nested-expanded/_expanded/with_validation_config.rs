@@ -107,13 +107,21 @@ impl ::std::convert::TryFrom<WithValidationOverrideConfig> for WithValidationCon
         ::std::result::Result::Ok(out)
     }
 }
-/// Possible errors encountered during builf of [`WithValidationConfig`](struct@WithValidationConfig)
+/// Possible errors encountered during build of [`WithValidationConfig`](struct@WithValidationConfig)
 #[derive(::std::fmt::Debug)]
 pub enum WithValidationConfigError {
     /// Config init failed during validation
     Validation(ValidationError),
 }
 impl WithValidationConfigError {
+    #[doc(hidden)]
+    fn __error_field_list(names: &[::std::string::String]) -> ::std::string::String {
+        names
+            .iter()
+            .map(|name| format!("- `{name}`"))
+            .collect::<::std::vec::Vec<_>>()
+            .join("\n")
+    }
     /// List of field names leading to the source of a nested error.
     ///
     /// Does not include the offending field(s) themselves, just the sequence of fields leading to their containing `Struct`

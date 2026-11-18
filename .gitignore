@@ -18,4 +18,3 @@ schemas/
 
 # platform
 .DS_Store
-/tests/nested-expanded/_expanded
