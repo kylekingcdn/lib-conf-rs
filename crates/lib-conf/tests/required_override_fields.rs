@@ -5,7 +5,7 @@ mod common;
 #[derive(Debug, Clone, lib_conf_derive::LibConfig)]
 #[config(example_field_name = "test")]
 pub struct TestConfig {
-    //#[config(override_required)]
+    #[config(override_required)]
     pub runtime_only: String,
 
     #[config(copy, default = 1)]
