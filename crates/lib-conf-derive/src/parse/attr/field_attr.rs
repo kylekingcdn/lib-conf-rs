@@ -239,7 +239,7 @@ pub(super) static FIELD_ATTR_MUT_EX: LazyLock<HashMap<FieldAttr, Vec<FieldAttr>>
         FieldAttr::BuilderSkip,
         // FieldAttr::Default,
     ]),
-    
+
     // nested validation handles these, covered for posterity / additional future usage of mut ex
     (FieldAttr::NestedBuild, vec![
         FieldAttr::NestedTryBuild,
