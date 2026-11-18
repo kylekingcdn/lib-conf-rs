@@ -3,9 +3,9 @@ use crate::{
         BuilderStruct, OverrideStruct, VariantField,
         doc::{AppendDoc, Doc, Document, Link},
         plan::{
-            ConfigConsensus, ConfigPlan, DeriveCopy, DeriveDefault,
+            Cause, ConfigConsensus, ConfigPlan, DeriveCopy, DeriveDefault,
             FallibleBuild, FallibleFromOverride, FallibleMerge,
-            InfallibleBuild, InfallibleFromOverride, InfallibleMerge,
+            InfallibleBuild, InfallibleFromOverride, InfallibleMerge, Topic,
         },
         util::{self, CanonPath, FnProperties, IntoTypePath},
     },
@@ -13,8 +13,9 @@ use crate::{
 };
 
 use arbitrait::{
-    IterVoteCollector,
-    vote::{CastVote, CollectVotes, IdentifyVoter, Vote},
+    Propose,
+    ballot::unscored::MandateForbidBallot::{Abstain, Mandate},
+    vote::{CastVote, IdentifyVoter, Vote},
 };
 use proc_macro2::TokenStream;
 use quote::{ToTokens, format_ident, quote};
@@ -81,6 +82,15 @@ impl ConfigStruct {
             .into_fallible_when(self.plan().fallible_merge, error_ty)
     }
     pub(crate) fn build_consensus(&self) -> ConfigConsensus {
+        let copy = self.fields.iter()
+            .map(ConfigField::cast_ballot)
+            .chain(std::iter::once(self.cast_ballot()))
+            .collect();
+        let default = self.fields.iter()
+            .map(ConfigField::cast_ballot)
+            .chain(std::iter::once(self.cast_ballot()))
+            .collect();
+
         let infallible_merge = self.fields.iter()
             .map(ConfigField::cast_ballot)
             .chain(std::iter::once(self.cast_ballot()))
@@ -89,6 +99,7 @@ impl ConfigStruct {
             .map(ConfigField::cast_ballot)
             .chain(std::iter::once(self.cast_ballot()))
             .collect();
+
         let infallible_from_override = self.fields.iter()
             .map(ConfigField::cast_ballot)
             .chain(std::iter::once(self.cast_ballot()))
@@ -98,8 +109,8 @@ impl ConfigStruct {
             .chain(std::iter::once(self.cast_ballot()))
             .collect();
         ConfigConsensus {
-            copy: IterVoteCollector::collect_votes(&self.fields),
-            default: IterVoteCollector::collect_votes(&self.fields),
+            copy,
+            default,
             infallible_merge,
             fallible_merge,
             infallible_from_override,
@@ -116,6 +127,30 @@ impl ConfigStruct {
 impl IdentifyVoter for ConfigStruct {
     fn voter_identity(&self) -> String {
         self.ident().to_string()
+    }
+}
+impl CastVote<DeriveDefault> for ConfigStruct {
+    fn cast_ballot(&self) -> Vote<DeriveDefault> {
+        let mut evidence = DeriveDefault::new_evidence();
+        let res = if self.fields.is_empty() {
+            evidence.add_piece(Topic::Struct, Cause::NoFields);
+            Mandate
+        } else {
+            Abstain
+        };
+        self.build_vote(res).with_evidence(evidence)
+    }
+}
+impl CastVote<DeriveCopy> for ConfigStruct {
+    fn cast_ballot(&self) -> Vote<DeriveCopy> {
+        let mut evidence = DeriveCopy::new_evidence();
+        let res = if self.fields.is_empty() {
+            evidence.add_piece(Topic::Struct, Cause::NoFields);
+            Mandate
+        } else {
+            Abstain
+        };
+        self.build_vote(res).with_evidence(evidence)
     }
 }
 impl CastVote<InfallibleMerge> for ConfigStruct {
