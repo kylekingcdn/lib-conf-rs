@@ -274,11 +274,7 @@ pub struct MySdkConfig {
   - This is because the provided expression is directly used to provide the 'Library default' value
     in generated struct's method docs
 - The provided value can be a literal (`true`, `5`, `Some(false)`), an
-  expression (`String::from("local")`), or a path/fn call
-  - Support for chained calls is not currently supported, however it is being worked on - e.g.
-    - `"hello".to_string()` is **not** supported
-    - `Some("hello".to_string())` ***is* supported**
-    - `String::from("hello")` ***is* supported**
+  expression (`String::from("local")`), an fn path, or an fn/method call
 
 ### `skip_all` <a name="skip_all"></a>
 
