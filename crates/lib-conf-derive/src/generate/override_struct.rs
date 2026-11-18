@@ -91,7 +91,7 @@ impl OverrideStruct {
             .map(OverrideField::cast_ballot)
             .chain(std::iter::once(self.cast_ballot()))
             .collect();
-            let default = self.fields.iter()
+        let default = self.fields.iter()
             .map(OverrideField::cast_ballot)
             .chain(std::iter::once(self.cast_ballot()))
             .collect();

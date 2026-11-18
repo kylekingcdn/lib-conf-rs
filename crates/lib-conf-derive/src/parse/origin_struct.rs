@@ -12,8 +12,7 @@ use crate::{
             CallExpr, GroupedAttrs, PassthroughAttrs, ProxiedAttr, StandardAttr,
             StrExpr, StructAttr, UnvalidatedGroupedAttrs, ValidateAttrs,
         },
-        error::ParseError,
-        IdentPool, OriginField, util,
+        error::ParseError, IdentPool, OriginField, shared::SharedAttrs, util,
     },
 };
 
@@ -212,7 +211,7 @@ impl TryFrom<TokenStream> for OriginStruct {
         let attrs = OriginStructAttrs::try_from_grouped(grouped.standard, grouped.proxied)?;
 
         let fields: Vec<OriginField> = fields.named.into_iter().map(|f|
-            OriginField::try_from_field(f, ids.clone())
+            OriginField::try_from_field(f, ids.clone(), attrs.shared.clone())
         ).collect::<Result<_,_>>()?;
 
         let parsed = Self {
@@ -258,6 +257,8 @@ pub(crate) struct OriginStructAttrs {
 
     pub vote_debug: bool,
     pub lib_conf_attribution: bool,
+    
+    pub shared: SharedAttrs,
 }
 impl OriginStructAttrs {
     fn example_field_name(&self) -> Option<&str> {
@@ -301,12 +302,14 @@ impl OriginStructAttrs {
                     match attr.variant {
                         _unknown => unreachable!("shape validation covers unknown"),
                     }
-                },
+                }
                 Meta::NameValue(meta_name_value) => {
                     match attr.variant {
                         StructAttr::ExampleFieldName => out.example_field_name = Some(StrExpr::try_to_string(meta_name_value.value)?),
                         StructAttr::Validate => out.validate_fn = Some(meta_name_value.value.try_into()?),
                         StructAttr::ValidateError => out.validate_error = Some(syn::parse2(meta_name_value.value.to_token_stream())?),
+                        StructAttr::TraitsCrate => out.shared.traits_path = Rc::new(syn::parse2(meta_name_value.value.to_token_stream())?),
+                        StructAttr::StaticAssertionsCrate => out.shared.static_assertions_path = Rc::new(syn::parse2(meta_name_value.value.to_token_stream())?),
                         _unknown => unreachable!("shape validation covers unknown"),
                     }
                 }

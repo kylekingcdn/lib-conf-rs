@@ -7,9 +7,9 @@ use crate::{
             FallibleBuild, FallibleFromOverride, FallibleMerge,
             InfallibleBuild, InfallibleFromOverride, InfallibleMerge, Topic,
         },
-        util::{self, CanonPath, FnProperties, IntoTypePath},
+        util::{self, CanonDepPath, CanonPath, FnProperties, IntoTypePath},
     },
-    parse::{self, FromOverrideSupport, IdentPool, OriginField, OriginStruct},
+    parse::{self, FromOverrideSupport, IdentPool, OriginField, OriginStruct, shared::SharedAttrs},
 };
 
 use arbitrait::{
@@ -62,12 +62,13 @@ impl ConfigStruct {
     pub(crate) fn ident(&self) -> &Rc<Ident> {
         self.ids().origin_ident()
     }
-    pub(crate) fn merge_trait_path(&self) -> CanonPath {
-        if self.plan().fallible_merge {
+    pub(crate) fn merge_trait_path(&self) -> CanonDepPath {
+        let path = if self.plan().fallible_merge {
             CanonPath::TryMergeOverride
         } else {
             CanonPath::MergeOverride
-        }
+        };
+        path.dep_path(self.origin.attrs.shared.traits_path())
     }
     pub(crate) fn make_merge_fn_properties() -> util::MaybeFallibleFn {
         util::MaybeFallibleFn::new(format_ident!("merge_with_override"), ())
@@ -736,17 +737,18 @@ impl ConfigField {
 
     pub(super) fn assert_tokens(&self) -> Vec<TokenStream> {
         use util::{assert_impl_all, CanonPath, CanonTrait};
+        let assert_path = self.attrs().shared.static_assertions_path();
 
         let mut out = Vec::new();
         let ty = &self.origin.ty;
         let flat_ty = &self.origin.flat_ty;
 
         // ensure base traits covered
-        out.push(assert_impl_all(ty, &[CanonPath::Clone, CanonPath::Debug]));
+        out.push(assert_impl_all(&assert_path, ty, &[CanonPath::Clone, CanonPath::Debug]));
 
         // ensure Copy if attr set
         if self.attrs().copy {
-            out.push(assert_impl_all(ty, &[CanonPath::Copy]));
+            out.push(assert_impl_all(&assert_path, ty, &[CanonPath::Copy]));
         }
 
         // override from mappings
@@ -754,17 +756,17 @@ impl ConfigField {
             let from_ty = &override_from.ty;
             if let Some(via_ty) = &override_from.via_ty {
                 // ensure override_via has From<override_from>
-                out.push(assert_impl_all(via_ty, &[CanonTrait::From(quote!(#from_ty))]));
+                out.push(assert_impl_all(&assert_path, via_ty, &[CanonTrait::From(quote!(#from_ty))]));
                 // ensure ty has From<override_via>
-                out.push(assert_impl_all(flat_ty, &[CanonTrait::From(quote!(#via_ty))]));
+                out.push(assert_impl_all(&assert_path, flat_ty, &[CanonTrait::From(quote!(#via_ty))]));
             } else {
                 // ensure ty has From<override_from>
-                out.push(assert_impl_all(flat_ty, &[CanonTrait::From(quote!(#from_ty))]));
+                out.push(assert_impl_all(&assert_path, flat_ty, &[CanonTrait::From(quote!(#from_ty))]));
             }
 
             // ensure override_from is Copy if attr set
             if override_from.copy {
-                out.push(assert_impl_all(from_ty, &[CanonPath::Copy]));
+                out.push(assert_impl_all(&assert_path, from_ty, &[CanonPath::Copy]));
             }
         }
 
@@ -777,35 +779,39 @@ impl ConfigField {
             let nested_error_path = nested_ids.config_error_path();
             // ensure Default if attr set
             if nested.builder_default {
-                out.push(assert_impl_all(&nested_builder_path, &[CanonPath::Default]));
+                out.push(assert_impl_all(&assert_path, &nested_builder_path, &[CanonPath::Default]));
             }
             // ensure Build/Merge if infallible attr set
             if nested.build.is_infallible() {
-                out.push(assert_impl_all(&flat_ty, &[CanonTrait::MergeOverride {
+                out.push(assert_impl_all(&assert_path, &flat_ty, &[CanonTrait::MergeOverride {
+                    pkg: self.attrs().shared.traits_path(),
                     override_: Some(quote!(#nested_ov_path)),
                 }]));
-                out.push(assert_impl_all(&nested_builder_path, &[CanonTrait::BuildConfig {
+                out.push(assert_impl_all(&assert_path, &nested_builder_path, &[CanonTrait::BuildConfig {
+                    pkg: self.attrs().shared.traits_path(),
                     config: Some(quote!(#flat_ty)),
                 }]));
             }
             // ensure TryBuild/TryMerge if fallible attr set
             else {
-                out.push(assert_impl_all(&flat_ty, &[CanonTrait::TryMergeOverride {
+                out.push(assert_impl_all(&assert_path, &flat_ty, &[CanonTrait::TryMergeOverride {
+                    pkg: self.attrs().shared.traits_path(),
                     override_: Some(quote!(#nested_ov_path)),
                     error: Some(quote!(#nested_error_path)),
                 }]));
-                out.push(assert_impl_all(&nested_builder_path, &[CanonTrait::TryBuildConfig {
+                out.push(assert_impl_all(&assert_path, &nested_builder_path, &[CanonTrait::TryBuildConfig {
+                    pkg: self.attrs().shared.traits_path(),
                     config: Some(quote!(#flat_ty)),
                     error: Some(quote!(#nested_error_path)),
                 }]));
             }
             // ensure From<Override> if attr set
             if nested.from_override.is_infallible() {
-                out.push(assert_impl_all(&flat_ty, &[CanonTrait::From(quote!(#nested_ov_path))]));
+                out.push(assert_impl_all(&assert_path, &flat_ty, &[CanonTrait::From(quote!(#nested_ov_path))]));
             }
             // ensure TryFrom<Override> if attr set
             else if nested.from_override.is_fallible() {
-                out.push(assert_impl_all(&flat_ty, &[CanonTrait::TryFrom {
+                out.push(assert_impl_all(&assert_path, &flat_ty, &[CanonTrait::TryFrom {
                     from: quote!(#nested_ov_path),
                     error: Some(quote!(#nested_error_path)),
                 }]));
@@ -848,7 +854,7 @@ impl ConfigField {
         let merge_props = nested_attrs.build.merge_properties();
         let merge_fn = merge_props.name();
         let merge_suffix = self.origin.nested_build_map_err_expr();
-        let merge_trait_path = nested_attrs.build.merge_trait_path();
+        let merge_trait_path = nested_attrs.build.merge_trait_path(self.attrs().shared.traits_path());
         let from_override_suffix = self.origin.nested_from_override_map_err_expr();
 
         let temp_assign = quote!(let val = #override_var_ident.#ident;);
@@ -856,12 +862,12 @@ impl ConfigField {
             let init_fallback = match nested_attrs.from_override {
                 FromOverrideSupport::Infallible => quote!(<#flat_ty>::from(val)),
                 FromOverrideSupport::Fallible => quote!(<#flat_ty>::try_from(val)#from_override_suffix),
-                FromOverrideSupport::None => unreachable!("nested merge - Shouldn't be able to execute this branch if no from_override is available")
+                FromOverrideSupport::None => unreachable!("nested merge - Shouldn't be able to execute this branch if no from_override is avaialable")
             };
             quote! {
                 // can safely ignore if not present in override
                 if let #option_path::Some(val) = val {
-                    // nested struct is present, simply do recursive merge
+                    // nested sruct is present, simply do recursive merge
                     if let #option_path::Some(current) = &mut self.#ident {
                         <#flat_ty as #merge_trait_path>::#merge_fn(current, val)#merge_suffix;
                     }
@@ -875,7 +881,7 @@ impl ConfigField {
         }
         // stored config is non-option: trivial merges
         else {
-            // stored config is non-option, trivial merge call
+            // stored comfig is non-option, trivial merge call
             if self.attrs().override_required {
                 quote! {
                     <#flat_ty as #merge_trait_path>::#merge_fn(&mut self.#ident, val)#merge_suffix;
@@ -883,7 +889,7 @@ impl ConfigField {
             }
             // requires if let check for override presence
             else {
-                // NOTE: keeping the inner portions separate to reduce maintenance burden, KISS
+                // NOTE: keeping the inner portions sepearate to reduce maintenance burden, KISS
                 quote! {
                     if let #option_path::Some(val) = val {
                         <#flat_ty as #merge_trait_path>::#merge_fn(&mut self.#ident, val)#merge_suffix;
@@ -972,7 +978,7 @@ impl ConfigField {
             match from_override {
                 FromOverrideSupport::Infallible => quote!(<#flat_ty>::from(val)),
                 FromOverrideSupport::Fallible => quote!(<#flat_ty>::try_from(val)#map_err),
-                FromOverrideSupport::None => unreachable!("nested from override - shouldn't be able to execute this branch if no from_override is available")
+                FromOverrideSupport::None => unreachable!("nested from override - shouldn't be able to execute this branch if no from_override is avaialable")
             }
         }
 
@@ -1008,7 +1014,7 @@ impl ConfigField {
             let merge_props = nested_attrs.build.merge_properties();
             let merge_fn = merge_props.name();
             let merge_suffix = self.origin.nested_build_map_err_expr();
-            let merge_trait_path = nested_attrs.build.merge_trait_path();
+            let merge_trait_path = nested_attrs.build.merge_trait_path(self.attrs().shared.traits_path());
             quote! {
                 if let #option_path::Some(val) = val {
                     let mut base = #default;
@@ -1254,6 +1260,7 @@ pub(crate) struct ConfigErrorEnum {
     with_self_variant: bool,
     validation_error: Option<TypePath>,
     nested_variants: Vec<ConfigErrorNestedVariant>,
+    shared: SharedAttrs,
 }
 impl ConfigErrorEnum {
     pub(crate) fn new(config: &ConfigStruct) -> Self {
@@ -1271,8 +1278,10 @@ impl ConfigErrorEnum {
             with_self_variant: config.origin.has_required_fields(),
             validation_error: config.origin.attrs.validate_error.clone(),
             nested_variants,
+            shared: config.origin.attrs.shared.clone(),
         }
     }
+
     pub(crate) fn missing_fields_variant_tokens(&self) -> Option<TokenStream> {
         self.with_self_variant.then(|| {
             quote! {
@@ -1294,7 +1303,7 @@ impl ConfigErrorEnum {
     }
     pub(crate) fn missing_fields_display_tokens(&self) -> Option<TokenStream> {
         self.with_self_variant.then(|| {
-            let error_fields_path = CanonPath::private_path(parse_quote!(error_field_list));
+            let error_fields_path = quote!(Self::__error_field_list);
             let origin_ident = &self.origin_ident;
             let message = format!("Missing required `{origin_ident}` fields:\n{{}}");
             quote! {
@@ -1309,40 +1318,17 @@ impl ConfigErrorEnum {
             }
         })
     }
-}
-impl ToTokens for ConfigErrorEnum {
-    #[expect(clippy::redundant_closure_for_method_calls, reason = "reduce imports that are otherwise unused")]
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        // assert?
-        let ident = &self.ident;
-        let debug_path = CanonPath::Debug;
-        let display_path = CanonPath::Display;
-        let option_path = CanonPath::Option;
-        let result_path = CanonPath::Result;
-        let error_path = CanonPath::Error;
+    pub(crate) fn member_fn_tokens(&self) -> TokenStream {
         let string_path = CanonPath::String;
         let vec_path = CanonPath::Vec;
-        let config_error_path = CanonPath::ConfigError;
-        let origin_link = &self.origin_link;
-        let docs = Doc::from(format!("Possible errors encountered during builf of {origin_link}"));
-        let self_variant = self.missing_fields_variant_tokens();
-        let validation_variant = self.validation_variant_tokens();
-        let variants = &self.nested_variants;
+        let config_error_path = CanonPath::ConfigError.dep_path(self.shared.traits_path());
 
-        let enum_decl = quote! {
-            #docs
-            #[derive(#debug_path)]
-            pub enum #ident {
-                #self_variant
-                #validation_variant
-                #(#variants)*
+        quote! {
+            #[doc(hidden)]
+            fn __error_field_list(names: &[#string_path]) -> #string_path {
+                names.iter().map(|name| format!("- `{name}`")).collect::<#vec_path<_>>().join("\n")
             }
-        };
 
-        let variant_build_chains: Vec<_> = self.nested_variants.iter().map(|v| v.build_chain_match_tokens()).collect();
-        let variant_origin_matches: Vec<_> = self.nested_variants.iter().map(|v| v.origin_message_match_tokens()).collect();
-
-        let member_fns = quote! {
             /// List of field names leading to the source of a nested error.
             ///
             /// Does not include the offending field(s) themselves, just the sequence of fields leading to their containing `Struct`
@@ -1361,13 +1347,19 @@ impl ToTokens for ConfigErrorEnum {
             pub fn origin_message(&self) -> #string_path {
                 <Self as #config_error_path>::origin_message(self)
             }
-        };
+        }
+    }
+    #[expect(clippy::redundant_closure_for_method_calls, reason = "reduce imports that are otherwise unused")]
+    pub(crate) fn display_impl_tokens(&self) -> TokenStream {
+        let ident = &self.ident;
+        let display_path = CanonPath::Display;
+        let result_path = CanonPath::Result;
 
         let self_display = self.missing_fields_display_tokens();
         let validation_display = self.validation_display_tokens();
         let variant_display: Vec<_> = self.nested_variants.iter().map(|v| v.display_match_tokens()).collect();
 
-        let display_impl = quote! {
+        quote! {
             #[automatically_derived]
             impl #display_path for #ident {
                 fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
@@ -1380,14 +1372,48 @@ impl ToTokens for ConfigErrorEnum {
                     #result_path::Ok(())
                 }
             }
-        };
+        }
+    }
+    pub(crate) fn enum_decl_tokens(&self) -> TokenStream {
+        let ident = &self.ident;
+        let debug_path = CanonPath::Debug;
+        let origin_link = &self.origin_link;
+        let docs = Doc::from(format!("Possible errors encountered during build of {origin_link}"));
+        let self_variant = self.missing_fields_variant_tokens();
+        let validation_variant = self.validation_variant_tokens();
+        let variants = &self.nested_variants;
 
-        let error_impl = quote! {
+        quote! {
+            #docs
+            #[derive(#debug_path)]
+            pub enum #ident {
+                #self_variant
+                #validation_variant
+                #(#variants)*
+            }
+        }
+    }
+    pub(crate) fn error_impl_tokens(&self) -> TokenStream {
+        let ident = &self.ident;
+        let error_path = CanonPath::Error;
+
+        quote! {
             #[automatically_derived]
             impl #error_path for #ident {}
-        };
+        }
+    }
+    #[expect(clippy::redundant_closure_for_method_calls, reason = "reduce imports that are otherwise unused")]
+    pub(crate) fn config_error_impl_tokens(&self) -> TokenStream {
+        let ident = &self.ident;
+        let option_path = CanonPath::Option;
+        let string_path = CanonPath::String;
+        let vec_path = CanonPath::Vec;
+        let config_error_path = CanonPath::ConfigError.dep_path(self.shared.traits_path());
 
-        let config_error_impl = quote! {
+        let variant_build_chains: Vec<_> = self.nested_variants.iter().map(|v| v.build_chain_match_tokens()).collect();
+        let variant_origin_matches: Vec<_> = self.nested_variants.iter().map(|v| v.origin_message_match_tokens()).collect();
+
+        quote! {
             #[automatically_derived]
             impl #config_error_path for #ident {
                 fn build_field_chain(&self, chain: &mut #vec_path<#string_path>, self_field_name: #option_path<&str>) {
@@ -1407,10 +1433,14 @@ impl ToTokens for ConfigErrorEnum {
                     }
                 }
             }
-        };
-
-        let from_validation_error_impl = self.validation_error.as_ref().map(|error| {
+        }
+    }
+    #[expect(clippy::wrong_self_convention, reason = "not a from_*() initializer fn")]
+    pub(crate) fn from_validation_error_impl_tokens(&self) -> Option<TokenStream> {
+        self.validation_error.as_ref().map(|error| {
+            let ident = &self.ident;
             let from_path = CanonPath::From;
+
             quote! {
                 #[automatically_derived]
                 impl #from_path<#error> for #ident {
@@ -1419,7 +1449,18 @@ impl ToTokens for ConfigErrorEnum {
                     }
                 }
             }
-        });
+        })
+    }
+}
+impl ToTokens for ConfigErrorEnum {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let ident = &self.ident;
+        let enum_decl = self.enum_decl_tokens();
+        let member_fns = self.member_fn_tokens();
+        let display_impl = self.display_impl_tokens();
+        let error_impl = self.error_impl_tokens();
+        let config_error_impl = self.config_error_impl_tokens();
+        let from_validation_error_impl = self.from_validation_error_impl_tokens();
 
         tokens.extend(quote! {
             #enum_decl

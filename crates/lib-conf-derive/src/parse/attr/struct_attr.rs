@@ -24,9 +24,12 @@ pub(crate) enum StructAttr {
     ExampleFieldName,
     Validate,
     ValidateError,
-    
+
     VoteDebug,
     LibConfAttribution,
+
+    TraitsCrate,
+    StaticAssertionsCrate,
 }
 impl StructAttr {
     pub(crate) const DERIVE: &str = "derive";
@@ -43,6 +46,9 @@ impl StructAttr {
 
     pub(crate) const VOTE_DEBUG: &'static str = "vote_debug";
     pub(crate) const LIB_CONF_ATTRIBUTION: &str = "lib_conf_attribution";
+
+    pub(crate) const TRAITS_CRATE: &str = "traits_crate";
+    pub(crate) const STATIC_ASSERTIONS_CRATE: &str = "static_assertions_crate";
 }
 
 // ! Struct attr trait impls
@@ -64,6 +70,9 @@ impl AttrVariant for StructAttr {
 
             Self::VoteDebug => Self::VOTE_DEBUG,
             Self::LibConfAttribution => Self::LIB_CONF_ATTRIBUTION,
+
+            Self::TraitsCrate => Self::TRAITS_CRATE,
+            Self::StaticAssertionsCrate => Self::STATIC_ASSERTIONS_CRATE,
         }
     }
     fn empty_set() -> &'static Vec<Self> {
@@ -136,6 +145,8 @@ impl TryFrom<(Option<StructAttr>, &Ident)> for StructAttr {
                 Self::VALIDATE_ERROR => Ok(Self::ValidateError),
                 Self::VOTE_DEBUG => Ok(Self::VoteDebug),
                 Self::LIB_CONF_ATTRIBUTION => Ok(Self::LibConfAttribution),
+                Self::TRAITS_CRATE => Ok(Self::TraitsCrate),
+                Self::STATIC_ASSERTIONS_CRATE => Ok(Self::StaticAssertionsCrate),
                 _unknown => Err(ParseError::UnknownAttr { ident: ident.clone() })
             },
             Some(_unknown) => Err(ParseError::UnknownAttr { ident: ident.clone() })
@@ -164,6 +175,8 @@ pub(super) static STRUCT_ATTR_SHAPES: LazyLock<HashMap<StructAttr, Vec<Shape>>> 
     (StructAttr::ValidateError,         vec![Shape::KeyValue]),
     (StructAttr::VoteDebug,             vec![Shape::Flag]),
     (StructAttr::LibConfAttribution,    vec![Shape::Flag]),
+    (StructAttr::TraitsCrate,           vec![Shape::KeyValue]),
+    (StructAttr::StaticAssertionsCrate, vec![Shape::KeyValue]),
 ].into());
 
 /// Attributes that depend on other attrs being present

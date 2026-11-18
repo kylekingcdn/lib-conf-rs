@@ -2,6 +2,7 @@ pub(crate) mod attr;
 pub(crate) mod error;
 pub(crate) mod origin_field;
 pub(crate) mod origin_struct;
+pub(crate) mod shared;
 pub(crate) mod util;
 
 pub(crate) use origin_field::{FieldAttrs, FromOverrideSupport, OriginField};

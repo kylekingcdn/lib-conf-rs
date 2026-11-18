@@ -5,7 +5,7 @@ use crate::{
             Cause, DeriveCopy, DeriveDefault, FallibleBuild, FallibleFromOverride,
             InfallibleBuild, InfallibleFromOverride, Topic,
         },
-        util::CanonPath,
+        util::{CanonDepPath, CanonPath},
     },
     parse::{
         attr::{
@@ -13,6 +13,7 @@ use crate::{
             ProxiedAttr, StandardAttr, UnvalidatedGroupedAttrs, ValidateAttrs,
         },
         error::ParseError,
+        shared::SharedAttrs,
         IdentPool, util,
     },
 };
@@ -204,7 +205,7 @@ impl OriginField {
 
         quote!(#ident: #ty)
     }
-    pub(crate) fn try_from_field(field: Field, ids: Rc<IdentPool>) -> Result<Self, Error> {
+    pub(crate) fn try_from_field(field: Field, ids: Rc<IdentPool>, shared: SharedAttrs) -> Result<Self, Error> {
         let ident: Rc<Ident> = field.ident.unwrap().into(); // already checked fields are named
 
         let unwrapped_option = util::unwrap_option(&field.ty);
@@ -222,7 +223,7 @@ impl OriginField {
 
         // parse #[config(..)] attrs into structured opts - 2 passes
         let attrs_in = FieldAttrsIn::try_from_grouped(grouped.standard, grouped.proxied, &ctx)?;
-        let attrs = FieldAttrs::new(attrs_in, is_option);
+        let attrs = FieldAttrs::new(attrs_in, is_option, shared);
 
         let nested_ids = attrs.nested().map(|nested| {
             let nested_ty = parse_quote!(#flat_ty);
@@ -492,7 +493,6 @@ impl ValidateAttrs<FieldAttr, ValidationContext> for UnvalidatedGroupedAttrs<Fie
 #[derive(Clone, Default)]
 pub(crate) struct FieldAttrsIn {
     pub copy: bool,
-
     pub default: Option<DefaultExpr>,
 
     skip_all: bool,
@@ -659,9 +659,11 @@ pub(crate) struct FieldAttrs {
 
     /// custom attrs to attach to override fields
     pub override_attrs: Vec<TokenStream>,
+
+    pub shared: SharedAttrs,
 }
 impl FieldAttrs {
-    fn new(attrs: FieldAttrsIn, is_option: bool) -> Self {
+    fn new(attrs: FieldAttrsIn, is_option: bool, shared: SharedAttrs) -> Self {
         Self {
             copy: attrs.copy,
 
@@ -707,6 +709,8 @@ impl FieldAttrs {
                 }
             ),
             override_attrs: attrs.override_attrs,
+
+            shared,
         }
     }
     pub(crate) fn override_from(&self) -> Option<&OverrideFromAttrs> {
@@ -761,19 +765,19 @@ impl BuildSupport {
             None
         }
     }
-    pub(crate) fn build_trait_path(&self) -> CanonPath {
+    pub(crate) fn build_trait_path(&self, pkg: Rc<TypePath>) -> CanonDepPath {
         if self.is_fallible() {
             CanonPath::TryBuildConfig
         } else {
             CanonPath::BuildConfig
-        }
+        }.dep_path(pkg)
     }
-    pub(crate) fn merge_trait_path(&self) -> CanonPath {
+    pub(crate) fn merge_trait_path(&self, pkg: Rc<TypePath>) -> CanonDepPath {
         if self.is_fallible() {
             CanonPath::TryMergeOverride
         } else {
             CanonPath::MergeOverride
-        }
+        }.dep_path(pkg)
     }
     pub(crate) fn merge_properties(&self) -> FnProperties {
         ConfigStruct::make_merge_fn_properties().into_fallible_if_err(self.as_error())

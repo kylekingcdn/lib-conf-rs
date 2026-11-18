@@ -121,13 +121,12 @@ impl From<()> for ReturnSignature {
 // !- Path/fn call generation
 
 /// Builds a `static_assertions` macro call
-pub(crate) fn static_assert(macro_name: impl ToTokens, args: impl ToTokens) -> TokenStream {
-    let path = CanonPath::StaticAssertions;
-    quote!(#path::#macro_name(#args);)
+pub(crate) fn static_assert(pkg: &Rc<TypePath>, macro_name: impl ToTokens, args: impl ToTokens) -> TokenStream {
+    quote!(#pkg::#macro_name(#args);)
 }
 
-pub(crate) fn assert_impl_all(ty: &impl ToTokens, traits: &[impl ToTokens]) -> TokenStream {
-    static_assert(quote!(assert_impl_all!), quote!(#ty: #(#traits), *))
+pub(crate) fn assert_impl_all(pkg: &Rc<TypePath>, ty: &impl ToTokens, traits: &[impl ToTokens]) -> TokenStream {
+    static_assert(pkg, quote!(assert_impl_all!), quote!(#ty: #(#traits), *))
 }
 
 pub(crate) fn build_type(ident: &Ident, generics: &Generics) -> Type {
@@ -162,14 +161,11 @@ pub(crate) enum CanonPath {
     TryInto,
     Add,
     AddAssign,
-    LibConfPrivate,
-    LibConfTraits,
     BuildConfig,
     TryBuildConfig,
     MergeOverride,
     TryMergeOverride,
     ConfigError,
-    StaticAssertions,
 }
 impl CanonPath {
     pub(crate) fn path(self) -> Path {
@@ -195,29 +191,17 @@ impl CanonPath {
             Self::TryInto => parse_quote!(::std::convert::TryInto),
             Self::Add => parse_quote!(::std::ops::Add),
             Self::AddAssign => parse_quote!(::std::ops::AddAssign),
-            Self::LibConfPrivate => parse_quote!(::lib_conf::__private),
-            Self::LibConfTraits => parse_quote!(::lib_conf::traits),
-            Self::BuildConfig => Self::libconf_trait(parse_quote!(build::BuildConfig)),
-            Self::TryBuildConfig => Self::libconf_trait(parse_quote!(build::TryBuildConfig)),
-            Self::MergeOverride => Self::libconf_trait(parse_quote!(merge::MergeOverride)),
-            Self::TryMergeOverride => Self::libconf_trait(parse_quote!(merge::TryMergeOverride)),
-            Self::ConfigError => Self::libconf_trait(parse_quote!(error::ConfigError)),
-            Self::StaticAssertions => Self::private_path(parse_quote!(static_assertions)),
+            Self::BuildConfig => parse_quote!(build::BuildConfig),
+            Self::TryBuildConfig => parse_quote!(build::TryBuildConfig),
+            Self::MergeOverride => parse_quote!(merge::MergeOverride),
+            Self::TryMergeOverride => parse_quote!(merge::TryMergeOverride),
+            Self::ConfigError => parse_quote!(error::ConfigError),
         }
     }
-    pub(crate) fn join(self, trailing: impl Into<Path>) -> Path {
-        let mut path = self.path();
-        for seg in trailing.into().segments {
-            path.segments.push(seg);
-        }
-        path
+    pub(crate) fn dep_path(self, pkg: Rc<TypePath>) -> CanonDepPath {
+        CanonDepPath::new(pkg, self)
     }
-    pub(crate) fn private_path(tail: Path) -> Path {
-        Self::LibConfPrivate.join(tail)
-    }
-    pub(crate) fn libconf_trait(tail: Path) -> Path {
-        Self::LibConfTraits.join(tail)
-    }
+
 }
 impl ToTokens for CanonPath {
     fn to_tokens(&self, tokens: &mut TokenStream) {
@@ -230,6 +214,29 @@ impl From<CanonPath> for Path {
     }
 }
 
+#[derive(Debug, Clone)]
+pub(crate) struct CanonDepPath {
+    pub pkg: Rc<TypePath>,
+    pub item: CanonPath,
+}
+impl CanonDepPath {
+    pub(crate) fn new(pkg: Rc<TypePath>, item: CanonPath) -> Self {
+        Self {
+            pkg,
+            item,
+        }
+    }
+    pub(crate) fn path(&self) -> Path {
+        let pkg = &self.pkg;
+        let item = &self.item;
+        parse_quote!(#pkg::#item)
+    }
+}
+impl ToTokens for CanonDepPath {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        self.path().to_tokens(tokens);
+    }
+}
 // !- Path traits
 
 /// Absolute path helper for generic traits
@@ -237,20 +244,20 @@ impl From<CanonPath> for Path {
 pub(crate) enum CanonTrait {
     From(TokenStream),
     TryFrom { from: TokenStream, error: Option<TokenStream> },
-    BuildConfig { config: Option<TokenStream> },
-    TryBuildConfig { config: Option<TokenStream>, error: Option<TokenStream> },
-    MergeOverride { override_: Option<TokenStream> },
-    TryMergeOverride { override_: Option<TokenStream>, error: Option<TokenStream> },
+    BuildConfig { pkg: Rc<TypePath>, config: Option<TokenStream> },
+    TryBuildConfig { pkg: Rc<TypePath>, config: Option<TokenStream>, error: Option<TokenStream> },
+    MergeOverride { pkg: Rc<TypePath>, override_: Option<TokenStream> },
+    TryMergeOverride { pkg: Rc<TypePath>, override_: Option<TokenStream>, error: Option<TokenStream> },
 }
 impl CanonTrait {
-    pub(crate) fn path(&self) -> CanonPath {
+    pub(crate) fn path(&self) -> Path {
         match self {
-            Self::From(_) => CanonPath::From,
-            Self::TryFrom { .. } => CanonPath::TryFrom,
-            Self::BuildConfig { .. } => CanonPath::BuildConfig,
-            Self::TryBuildConfig { .. } => CanonPath::TryBuildConfig,
-            Self::MergeOverride { .. } => CanonPath::MergeOverride,
-            Self::TryMergeOverride { .. } => CanonPath::TryMergeOverride,
+            Self::From(_) => CanonPath::From.into(),
+            Self::TryFrom { .. } => CanonPath::TryFrom.into(),
+            Self::BuildConfig { pkg, .. } => CanonPath::BuildConfig.dep_path(pkg.clone()).path(),
+            Self::TryBuildConfig { pkg, .. } => CanonPath::TryBuildConfig.dep_path(pkg.clone()).path(),
+            Self::MergeOverride { pkg, .. } => CanonPath::MergeOverride.dep_path(pkg.clone()).path(),
+            Self::TryMergeOverride { pkg, .. } => CanonPath::TryMergeOverride.dep_path(pkg.clone()).path(),
         }
     }
     fn params(&self) -> Vec<TokenStream> {
@@ -260,17 +267,17 @@ impl CanonTrait {
                 from,
                 error.map(|e| quote!(Error = #e)).unwrap_or_default(),
             ],
-            Self::BuildConfig { config } => vec![
+            Self::BuildConfig { config, .. } => vec![
                 config.map(|c| quote!(Config = #c)).unwrap_or_default(),
             ],
-            Self::TryBuildConfig { config, error } => vec![
+            Self::TryBuildConfig { config, error, .. } => vec![
                 config.map(|c| quote!(Config = #c)).unwrap_or_default(),
                 error.map(|e| quote!(Error = #e)).unwrap_or_default(),
             ],
-            Self::MergeOverride { override_ } => vec![
+            Self::MergeOverride { override_, .. } => vec![
                 override_.map(|o| quote!(Override = #o)).unwrap_or_default(),
             ],
-            Self::TryMergeOverride { override_, error } => vec![
+            Self::TryMergeOverride { override_, error, .. } => vec![
                 override_.map(|o| quote!(Override = #o)).unwrap_or_default(),
                 error.map(|e| quote!(Error = #e)).unwrap_or_default(),
             ],

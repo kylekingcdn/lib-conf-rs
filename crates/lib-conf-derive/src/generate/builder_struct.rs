@@ -3,7 +3,7 @@ use crate::{
         doc::{AppendDoc, Doc, Document},
         ConfigStruct, OverrideStruct, VariantField,
         plan::{BuilderConsensus, BuilderPlan, FallibleBuild, InfallibleBuild},
-        util::{self, CanonPath, FnProperties},
+        util::{self, CanonDepPath, CanonPath, FnProperties},
     },
     parse::{IdentPool, OriginStruct},
 };
@@ -68,12 +68,13 @@ impl BuilderStruct {
         self.origin.all_fields_copy() && self.override_struct.plan().copy
     }
 
-    pub(crate) fn build_trait_path(&self) -> CanonPath {
-        if self.plan().fallible_build {
+    pub(crate) fn build_trait_path(&self) -> CanonDepPath {
+        let path = if self.plan().fallible_build {
             CanonPath::TryBuildConfig
         } else {
             CanonPath::BuildConfig
-        }
+        };
+        path.dep_path(self.origin.attrs.shared.traits_path())
     }
     pub(crate) fn make_build_fn_properties(config_ty: impl util::IntoTypePath) -> util::MaybeFallibleFn {
         util::MaybeFallibleFn::new(format_ident!("build"), config_ty)
@@ -363,6 +364,7 @@ impl BuilderStruct {
         } else {
             (CanonPath::MergeOverride, None)
         };
+        let merge_trait = merge_trait.dep_path(self.origin.attrs.shared.traits_path());
         let merge_expr = quote! {
             <Self::Config as #merge_trait>::#merge_fn_name(&mut self.inner, override_conf)#merge_expr_suffix;
         };
@@ -588,7 +590,7 @@ impl BuilderField {
             let build_fn_props = field.origin.nested_build_fn_properties().expect("nested fields always have properties");
             let build_fn_name = build_fn_props.name();
             let build_fn_suffix = nested.build.is_fallible().then_some(quote!(?));
-            let build_trait_path = nested.build.build_trait_path();
+            let build_trait_path = nested.build.build_trait_path(field.attrs().shared.traits_path());
             let closure_param_ty = is_default_fn.then(||quote!(#nested_builder_path));
             let closure_param_val = is_default_fn.then(||quote!(<#nested_builder_path>::default()));
 
