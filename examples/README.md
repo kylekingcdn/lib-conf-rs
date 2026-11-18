@@ -20,3 +20,4 @@ Example | Description
 `3-req-fields` | Similar to #1, but has some fields that are mandatory (no default, non-`Option`)
 `4-generics` | Contains a `Config` struct that, for whatever reason, requires generics
 `5-req-override` | Provides a `Config` struct with a field that *can only* be initialized **at run-time**
+`6-validation` | Fallible `ConfigBuilder::build()` through custom validate fn
