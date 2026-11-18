@@ -240,7 +240,7 @@ If `serde` is not mandatory:
     [`lib-conf/derive-pub-override-fields`](#derive-pub-override-fields) feature
 
 - For binary crates:
-  - Consider enabling support for [`serde`] if possible, it's what provides simple support for runtime configuration
+  - Consider enabling support for `serde` if possible, it's what provides simple support for runtime configuration
   - Otherwise, enable [`derive-pub-override-fields`](#derive-pub-override-fields) to ensure that
     you can write to override struct fields
 
