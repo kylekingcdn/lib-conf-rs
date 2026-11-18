@@ -1,5 +1,5 @@
 [package]
-name = "example6-bin"
+name = "example6-bin-invalid"
 version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
@@ -11,7 +11,7 @@ publish.workspace = true
 example6-lib = { path = "../lib", package = "lib-conf-example-6" }
 config = { workspace = true }
 dotenvy = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
+serde = { workspace = true, features = ["derive", "std"] }
 
 [lints]
 workspace = true

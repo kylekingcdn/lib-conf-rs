@@ -9,8 +9,8 @@ license.workspace = true
 publish = true
 
 [dependencies]
-lib-conf = { workspace = true, features = ["serde"] }
-serde = { workspace = true, features = ["derive"] }
+lib-conf = { workspace = true, features = ["derive", "serde"] }
+serde = { workspace = true, features = ["derive", "std"] }
 thiserror = { workspace = true }
 
 [lints]
