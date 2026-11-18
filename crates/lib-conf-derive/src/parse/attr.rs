@@ -441,7 +441,7 @@ pub(crate) trait AttrVariant:
 {
     fn as_str(self) -> &'static str;
 
-    /// Proxied attrs are attrs like `#[config(attr(allow(unused)))]` that get placed on derived itens
+    /// Proxied attrs are attrs like `#[config(attr(allow(unused)))]` that get placed on derived items
     fn is_proxied(self) -> bool {
         Self::proxied_set().contains(&self)
     }

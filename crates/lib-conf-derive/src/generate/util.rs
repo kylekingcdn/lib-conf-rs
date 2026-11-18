@@ -117,37 +117,15 @@ impl From<()> for ReturnSignature {
         Self(None)
     }
 }
-// !- Path/fn call generation
 
-// /// Private re-exports fron lib-conf
-// pub(crate) mod fwd {
-//     use proc_macro2::TokenStream;
-//     use quote::{quote, ToTokens};
-//     use syn::{Path, parse_quote};
-//
-//     pub(crate) fn path_base() -> Path {
-//         parse_quote!(::lib_conf::__private)
-//     }
-//     pub(crate) fn path(item: impl ToTokens) -> Path {
-//         let base = path_base();
-//         parse_quote!(#base::#item)
-//     }
-//     pub(crate) fn static_assert_path() -> TokenStream {
-//         path(quote!(static_assertions)).into_token_stream()
-//     }
-// }
+// !- Path/fn call generation
 
 /// Builds a `static_assertions` macro call
 pub(crate) fn static_assert(macro_name: impl ToTokens, args: impl ToTokens) -> TokenStream {
     let path = CanonPath::StaticAssertions;
     quote!(#path::#macro_name(#args);)
 }
-// pub(crate) fn assert_impl_one(ty: &impl ToTokens, traits: &[impl ToTokens]) -> TokenStream {
-//     static_assert(quote!(assert_impl_one!), quote!(#ty: #(#traits), *))
-// }
-// pub(crate) fn assert_impl_any(ty: &impl ToTokens, traits: &[impl ToTokens]) -> TokenStream {
-//     static_assert(quote!(assert_impl_any!), quote!(#ty: #(#traits), *))
-// }
+
 pub(crate) fn assert_impl_all(ty: &impl ToTokens, traits: &[impl ToTokens]) -> TokenStream {
     static_assert(quote!(assert_impl_all!), quote!(#ty: #(#traits), *))
 }

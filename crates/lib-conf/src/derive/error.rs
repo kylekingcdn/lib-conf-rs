@@ -48,7 +48,7 @@ pub trait ConfigErrorBundled: sealed::Sealed {}
 ///     #[error(transparent)]
 ///     Validate(#[from] ValidateSdkConfigError),
 ///     //               ^^^^^^^^^^^|^^^^^^^^^^
-///     //     the error type retured by your validate fn
+///     //     the error type returned by your validate fn
 ///
 ///     // ..
 /// }

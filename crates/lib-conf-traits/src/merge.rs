@@ -26,7 +26,7 @@ pub trait MergeOverride {
     
     /// Merges the [`Override`](Self::Override) struct into self.
     ///
-    /// # Inplementation notes
+    /// # Implementation notes
     ///
     /// Implementation will typically resemble below, one for **each of the struct's fields**
     ///
@@ -85,7 +85,7 @@ pub trait TryMergeOverride {
     /// - Failure in validation of self or a nested config
     /// - An optional nested config is only partially provided
     ///
-    /// # Inplementation notes
+    /// # Implementation notes
     ///
     /// Implementation will typically resemble below, one for **each of the struct's fields**
     ///

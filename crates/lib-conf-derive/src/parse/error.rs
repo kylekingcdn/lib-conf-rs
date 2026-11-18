@@ -87,7 +87,7 @@ To resolve:
 
     #[error("Conditions for nesting `{config_ident}` as  `Option<>` are not currently met.
 
-Support for nesting `{config_ident}` as `Option<>` can be acheived by:
+Support for nesting `{config_ident}` as `Option<>` can be achieved by:
 - Adjusting `{config_ident}` to meet requirements for a derived `From/TryFrom<{override_ident}>` impl
   - This is only feasible if `{config_ident}` is provided by this crate.
   - For more information, see the 'Background' docs section of `lib-conf-derive`

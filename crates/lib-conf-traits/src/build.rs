@@ -11,7 +11,7 @@ use crate::{
 ///
 /// # Implementation notes
 ///
-/// Inplementations should typically be on a named `Builder` struct containing 2 fields:
+/// Implementations should typically be on a named `Builder` struct containing 2 fields:
 ///
 /// - `inner:` [`Config`](Self::Config)
 /// - `override_conf:` [`Option<OverrideConfig>`](@'MergeOverride::Override)
@@ -49,7 +49,7 @@ pub trait BuildConfig {
 ///
 /// # Implementation notes
 ///
-/// Inplementations should typically be on a named `Builder` struct containing 2 fields:
+/// Implementations should typically be on a named `Builder` struct containing 2 fields:
 ///
 /// - `inner:` [`Config`](Self::Config)
 /// - `override_conf:` [`Option<OverrideConfig>`](TryMergeOverride::Override)
