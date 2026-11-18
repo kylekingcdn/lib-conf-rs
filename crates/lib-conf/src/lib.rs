@@ -24,7 +24,7 @@ pub mod adapter;
 
 #[cfg(feature = "derive")]
 #[cfg_attr(docsrs, doc(cfg(feature = "derive")))]
-pub use lib_conf_derive::LibConfig;
+pub use lib_conf_derive::{LibConfig, config_docs};
 
 /// Exposes traits from [`lib-conf-traits`](lib_conf_traits)
 pub use lib_conf_traits as traits;

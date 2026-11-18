@@ -312,9 +312,9 @@ impl AppendDoc {
             append: Doc::default(),
         }
     }
-    // pub(crate) fn source(&self) -> &Vec<Attribute> {
-    //     &self.source
-    // }
+    pub(crate) fn source(&self) -> &Vec<Attribute> {
+        &self.source
+    }
     // pub(crate) fn appended(&self) -> &Doc {
     //     &self.append
     // }
@@ -324,11 +324,7 @@ impl Document for AppendDoc {
     fn insert(mut self, line: impl Display) -> Self {
         self.append = self.append.insert(line);
         self
-
     }
-    // fn is_empty(&self) -> bool {
-    //     self.source.is_empty() && self.append.is_empty()
-    // }
 }
 impl ToTokens for AppendDoc {
     fn to_tokens(&self, tokens: &mut TokenStream) {

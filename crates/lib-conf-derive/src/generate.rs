@@ -1,4 +1,5 @@
 pub(crate) mod builder_struct;
+pub(crate) mod config_docs;
 pub(crate) mod config_struct;
 pub(crate) mod doc;
 pub(crate) mod override_struct;
@@ -7,6 +8,7 @@ pub(crate) mod util;
 
 pub(crate) use {
     builder_struct::BuilderStruct,
+    config_docs::ConfigDocs,
     config_struct::ConfigStruct,
     override_struct::OverrideStruct,
 };

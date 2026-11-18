@@ -7,6 +7,7 @@ use lib_conf::LibConfig;
 use std::time::Duration;
 
 /// Settings for `example1` of `lib-conf`
+#[lib_conf::config_docs]
 #[derive(Debug, Clone, LibConfig)]
 #[config(example_field_name = "example1")]
 pub struct Example1Config {

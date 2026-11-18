@@ -1,9 +1,9 @@
 use crate::{
-    generate::{BuilderStruct, ConfigStruct, OverrideStruct, plan::Consensus},
+    generate::{BuilderStruct, ConfigDocs, ConfigStruct, OverrideStruct, plan::Consensus},
     parse::OriginStruct,
 };
 use proc_macro2::TokenStream;
-use quote::quote;
+use quote::{quote, ToTokens};
 use std::rc::Rc;
 use syn::Error;
 
@@ -18,16 +18,15 @@ pub(crate) fn derive(input: TokenStream) -> Result<TokenStream, Error> {
     let expand_origin = origin.clone();
 
     let override_struct = Rc::new(OverrideStruct::new(origin.clone()));
-
     let builder_struct = Rc::new(BuilderStruct::new(origin.clone(), override_struct.clone()));
     let config_struct = ConfigStruct::new(origin.clone(), override_struct.clone(), builder_struct.clone());
 
-    let consensus = Consensus {
-        config: config_struct.build_consensus(),
-        builder: builder_struct.build_consensus(),
-        override_: override_struct.build_consensus(),
-    };
     if origin.attrs.vote_debug {
+        let consensus = Consensus {
+            config: config_struct.build_consensus(),
+            builder: builder_struct.build_consensus(),
+            override_: override_struct.build_consensus(),
+        };
         let report = consensus.as_rendered_report();
         eprintln!("————————————————————————————————");
         eprintln!("\n{} Consensus", config_struct.ident());
@@ -47,3 +46,11 @@ pub(crate) fn derive(input: TokenStream) -> Result<TokenStream, Error> {
     Ok(output)
 }
 
+pub(crate) fn config_docs(input: TokenStream) -> Result<TokenStream, Error> {
+    let origin = OriginStruct::try_from(input.clone())?;
+    let config_docs = ConfigDocs::from(origin).build();
+    let output = config_docs.into_token_stream();
+    //eprintln!("config docs attr:\n{output}");
+
+    Ok(output)
+}

@@ -26,3 +26,11 @@ pub fn derive_lib_config(input: TokenStream) -> TokenStream {
     let output = lib_config::derive(input.into());
     output.unwrap_or_else(syn::Error::into_compile_error).into()
 }
+
+/// Can be used on a struct that derives [`LibConfig`](derive_lib_config) for improved documentation.
+#[proc_macro_attribute]
+pub fn config_docs(_args: TokenStream, input: TokenStream) -> TokenStream {
+    // derive output
+    let output = lib_config::config_docs(input.into());
+    output.unwrap_or_else(syn::Error::into_compile_error).into()
+}

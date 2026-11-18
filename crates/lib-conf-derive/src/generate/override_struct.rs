@@ -53,7 +53,7 @@ impl OverrideStruct {
                 phantom_fields.push(field.clone());
             }
         }
-        let ty = util::build_type(origin.ids().override_ident(), &origin.generics);
+        let ty = util::build_type(origin.ids().override_ident(), origin.generics());
         Self {
             ty,
             fields,
@@ -418,7 +418,7 @@ impl OverrideStruct {
             .map(ToTokens::into_token_stream)
             .collect();
         let phantom_fields = self.phantom_fields_tokens();
-        let generics = &self.origin.generics;
+        let generics = self.origin.generics();
         let where_clause = &generics.where_clause;
         quote! {
             #docs
@@ -450,7 +450,7 @@ impl OverrideStruct {
             impl_generics,
             ty_generics,
             where_clause,
-        ) = self.origin.generics.split_for_impl();
+        ) = self.origin.generics().split_for_impl();
         quote! {
             #cfg_attrs
             #doc_cfg_attrs
@@ -503,7 +503,7 @@ impl OverrideStruct {
             impl_generics,
             ty_generics,
             where_clause,
-        ) = self.origin.generics.split_for_impl();
+        ) = self.origin.generics().split_for_impl();
 
         quote! {
             #cfg_attrs

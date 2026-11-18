@@ -26,7 +26,10 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens};
 use std::rc::Rc;
 use std::sync::LazyLock;
-use syn::{Error, Field, Ident, Meta, parse_quote, spanned::Spanned, Type, TypePath};
+use syn::{
+    AngleBracketedGenericArguments, Error, Field, Ident, Meta,
+    parse_quote, PathArguments, spanned::Spanned, Type, TypePath,
+};
 
 // !- Statics
 
@@ -64,6 +67,15 @@ impl OriginField {
     }
     pub(crate) fn ids(&self) -> &IdentPool {
         &self.ids
+    }
+    pub(crate) fn ty_generics(&self) -> Option<&AngleBracketedGenericArguments> {
+        if let Type::Path(ty) = &self.flat_ty
+        && let Some(tail) = ty.path.segments.last()
+        && let PathArguments::AngleBracketed(args) = &tail.arguments {
+            Some(args)
+        } else {
+            None
+        }
     }
     pub(crate) fn nested_ids(&self) -> Option<&IdentPool> {
         self.nested_ids.as_deref()
@@ -736,9 +748,9 @@ pub(crate) enum BuildSupport {
     Fallible(Rc<TypePath>),
 }
 impl BuildSupport {
-    // pub(crate) fn is_infallible(&self) -> bool {
-    //     matches!(self, &Self::Infallible)
-    // }
+    pub(crate) fn is_infallible(&self) -> bool {
+        matches!(self, &Self::Infallible)
+    }
     pub(crate) fn is_fallible(&self) -> bool {
         matches!(self, &Self::Fallible(_))
     }

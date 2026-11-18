@@ -1,6 +1,7 @@
 use crate::{
     generate::{
         self,
+        doc::AppendDoc,
         plan::{
             Cause, FallibleBuild, FallibleFromOverride,
             InfallibleBuild, InfallibleFromOverride, Topic,
@@ -25,7 +26,7 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, ToTokens};
 use std::rc::Rc;
 use std::sync::LazyLock;
-use syn::{Attribute, Data, DeriveInput, Error, Fields, Generics, Ident, Meta, Type, TypePath};
+use syn::{Data, DeriveInput, Error, Fields, Generics, Ident, Meta, Type, TypePath};
 
 // !- Statics
 
@@ -47,8 +48,10 @@ pub(crate) static STRUCT_SUFFIX_CSV: LazyLock<String> = LazyLock::new(||
 #[cfg_attr(feature = "syn-debug", derive(Debug))]
 #[derive(Clone)]
 pub(crate) struct OriginStruct {
+    input: DeriveInput,
+
     pub ty: Type,
-    pub generics: Generics,
+    //pub generics: Generics,
 
     pub fields: Vec<Rc<OriginField>>,
 
@@ -63,6 +66,12 @@ pub(crate) struct OriginStruct {
 impl OriginStruct {
     pub(crate) fn ids(&self) -> &IdentPool {
         &self.ids
+    }
+    pub(crate) fn generics(&self) -> &Generics {
+        &self.input.generics
+    }
+    pub(crate) fn into_input(self) -> DeriveInput {
+        self.input
     }
     // ! Attributes
     pub(crate) fn example_field_name(&self) -> Ident {
@@ -84,8 +93,8 @@ impl OriginStruct {
     pub(crate) fn doc_cfg_tokens(&self) -> TokenStream {
         self.passthrough_attrs.doc_cfg_tokens()
     }
-    pub(crate) fn _doc_attrs(&self) -> &Vec<Attribute> {
-        &self.passthrough_attrs.doc
+    pub(crate) fn append_docs(&self) -> AppendDoc {
+        self.passthrough_attrs.doc().clone().into()
     }
     // ! Helpers
     pub(crate) fn has_required_fields(&self) -> bool {
@@ -99,7 +108,7 @@ impl OriginStruct {
         self.fields.iter().any(|f| f.is_optional())
     }
     pub(crate) fn has_generics(&self) -> bool {
-        self.generics.type_params().next().is_some()
+        self.generics().type_params().next().is_some()
     }
     pub(crate) fn use_phantom_fields(&self) -> bool {
         self.has_generics()
@@ -108,6 +117,7 @@ impl OriginStruct {
         self.fields.iter().all(|f| f.attrs.copy)
     }
 }
+
 impl IdentifyVoter for OriginStruct {
     fn voter_identity(&self) -> String {
         self.ids.origin_ident().to_string()
@@ -179,8 +189,8 @@ impl TryFrom<TokenStream> for OriginStruct {
     fn try_from(input: TokenStream) -> Result<Self, Error> {
         // do essential shape validation first
         let derive_input: DeriveInput = syn::parse2(input)?;
-        let data_struct = match derive_input.data {
-            Data::Struct(inner) => Ok(inner),
+        let data_struct = match &derive_input.data {
+            Data::Struct(inner) => Ok(inner.clone()),
             Data::Enum(inner) => Err(ParseError::EnumUnsupported(inner.enum_token.span).error()),
             Data::Union(inner) => Err(ParseError::UnionUnsupported(inner.union_token.span).error()),
         }?;
@@ -193,10 +203,10 @@ impl TryFrom<TokenStream> for OriginStruct {
         // done shape validation
 
         let ty = generate::util::build_type(&derive_input.ident, &derive_input.generics);
-        let ids = Rc::new(IdentPool::try_new(derive_input.ident.into())?);
+        let ids = Rc::new(IdentPool::try_new(derive_input.ident.clone().into())?);
 
         // first attr pass, group into vecs by normal attrs or passthrough + validate
-        let grouped = GroupedAttrs::<StructAttr>::try_from_attrs(derive_input.attrs, &mut ())?;
+        let grouped = GroupedAttrs::<StructAttr>::try_from_attrs(derive_input.attrs.clone(), &mut ())?;
 
         // parse #[config(..)] attrs into structured opts
         let attrs = OriginStructAttrs::try_from_grouped(grouped.standard, grouped.proxied)?;
@@ -206,16 +216,13 @@ impl TryFrom<TokenStream> for OriginStruct {
         ).collect::<Result<_,_>>()?;
 
         let parsed = Self {
+            input: derive_input,
             ty,
-            generics: derive_input.generics,
             fields: fields.into_iter().map(Into::into).collect(),
             ids,
             attrs,
             passthrough_attrs: grouped.passthrough,
         };
-
-        // TODO: handle
-        //parsed.validate_nested_compatibility()?;
 
         Ok(parsed)
     }

@@ -143,25 +143,6 @@ impl CastVote<InfallibleFromOverride> for ConfigStruct {
     }
 }
 impl ConfigStruct {
-    // ! Struct-based item docs
-    // #[allow(clippy::wrong_self_convention)]
-//     fn from_override_docs(&self) -> Doc {
-//         let origin_ident = self.ids().origin_ident();
-//         let origin_link = self.ids().origin_link().struct_only();
-//         let origin_builder_link = self.ids().origin_link().method_explicit("builder");
-//         let builder_new_link = self.ids().builder_link().method_explicit("new");
-//         let override_link = self.ids().override_link().struct_only();
-//
-//         Doc::new()
-//         + format!("Provides a builder used to configure {origin_link} at compile-time.")
-//         + ()
-//         + format!("Can be constructed using either {origin_builder_link} or {builder_new_link}.")
-//         + ()
-//         + format!("For run-time configuration of `{origin_ident}`, see {override_link}")
-//     }
-}
-
-impl ConfigStruct {
     // ! Struct token output
     fn assert_fn_tokens(&self) -> TokenStream {
         if self.origin.has_generics() {
@@ -324,7 +305,7 @@ Expect degraded error quality and reduced correctness checks.");
             impl_generics,
             ty_generics,
             where_clause,
-        ) = self.origin.generics.split_for_impl();
+        ) = self.origin.generics().split_for_impl();
 
         let fields: Vec<_> = self.fields
             .iter()
@@ -384,7 +365,7 @@ Expect degraded error quality and reduced correctness checks.");
             impl_generics,
             ty_generics,
             where_clause,
-        ) = self.origin.generics.split_for_impl();
+        ) = self.origin.generics().split_for_impl();
 
         let assert_fn = self.assert_fn_tokens();
         let new_fn = self.new_fn_tokens();
@@ -414,7 +395,7 @@ Expect degraded error quality and reduced correctness checks.");
             impl_generics,
             ty_generics,
             where_clause,
-        ) = self.origin.generics.split_for_impl();
+        ) = self.origin.generics().split_for_impl();
 
         quote! {
             #cfg_attrs
@@ -426,7 +407,7 @@ Expect degraded error quality and reduced correctness checks.");
     fn default_impl_tokens(&self) -> TokenStream {
         let cfg_attrs = self.origin.cfg_tokens();
         let doc_cfg_attrs = self.origin.doc_cfg_tokens();
-        util::bare_default_impl_tokens(self.ident(), &self.origin.generics, &cfg_attrs, &doc_cfg_attrs)
+        util::bare_default_impl_tokens(self.ident(), self.origin.generics(), &cfg_attrs, &doc_cfg_attrs)
     }
     #[expect(clippy::wrong_self_convention, reason = "not a from_*() initializer fn")]
     fn from_override_impl_tokens(&self) -> TokenStream {
@@ -443,7 +424,7 @@ Expect degraded error quality and reduced correctness checks.");
             impl_generics,
             ty_generics,
             where_clause,
-        ) = self.origin.generics.split_for_impl();
+        ) = self.origin.generics().split_for_impl();
 
         let inner_expr = if self.plan().default {
             let merge_props = self.merge_fn_properties();
@@ -494,7 +475,7 @@ Expect degraded error quality and reduced correctness checks.");
             impl_generics,
             ty_generics,
             where_clause,
-        ) = self.origin.generics.split_for_impl();
+        ) = self.origin.generics().split_for_impl();
 
         let mut fields = Vec::new();
         for field in &self.fields {
@@ -535,7 +516,7 @@ Expect degraded error quality and reduced correctness checks.");
             impl_generics,
             ty_generics,
             where_clause,
-        ) = self.origin.generics.split_for_impl();
+        ) = self.origin.generics().split_for_impl();
 
         quote! {
             #cfg_attrs
@@ -563,7 +544,7 @@ Expect degraded error quality and reduced correctness checks.");
             impl_generics,
             ty_generics,
             where_clause,
-        ) = self.origin.generics.split_for_impl();
+        ) = self.origin.generics().split_for_impl();
 
         quote! {
             #cfg_attrs
@@ -762,6 +743,26 @@ impl ConfigField {
             // ensure Default if attr set
             if nested.builder_default {
                 out.push(assert_impl_all(&nested_builder_path, &[CanonPath::Default]));
+            }
+            // ensure Build/Merge if infallible attr set
+            if nested.build.is_infallible() {
+                out.push(assert_impl_all(&flat_ty, &[CanonTrait::MergeOverride {
+                    override_: Some(quote!(#nested_ov_path)),
+                }]));
+                out.push(assert_impl_all(&nested_builder_path, &[CanonTrait::BuildConfig {
+                    config: Some(quote!(#flat_ty)),
+                }]));
+            }
+            // ensure TryBuild/TryMerge if fallible attr set
+            else {
+                out.push(assert_impl_all(&flat_ty, &[CanonTrait::TryMergeOverride {
+                    override_: Some(quote!(#nested_ov_path)),
+                    error: Some(quote!(#nested_error_path)),
+                }]));
+                out.push(assert_impl_all(&nested_builder_path, &[CanonTrait::TryBuildConfig {
+                    config: Some(quote!(#flat_ty)),
+                    error: Some(quote!(#nested_error_path)),
+                }]));
             }
             // ensure From<Override> if attr set
             if nested.from_override.is_infallible() {

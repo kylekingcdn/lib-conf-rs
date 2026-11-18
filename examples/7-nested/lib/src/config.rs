@@ -4,8 +4,9 @@ use service::{ServiceConfig, ServiceConfigError, ServiceConfigBuilder, ServiceOv
 use lib_conf::LibConfig;
 
 /// Settings for `example7` of `lib-conf`
+#[lib_conf::config_docs]
 #[derive(Debug, Clone, LibConfig)]
-#[config(example_field_name = "example7")]
+#[config(example_field_name = "example7", lib_conf_attribution)]
 pub struct Example7Config {
     // - Example Notes
     //

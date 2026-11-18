@@ -43,7 +43,7 @@ impl BuilderStruct {
             .map(BuilderField::new)
             .collect();
 
-        let ty = util::build_type(origin.ids().builder_ident(), &origin.generics);
+        let ty = util::build_type(origin.ids().builder_ident(), origin.generics());
         Self {
             ty,
             fields,
@@ -190,7 +190,7 @@ impl BuilderStruct {
         let struct_ident = self.ident();
         let origin_ty = &self.origin.ty;
         let override_ty = self.override_field_ty_tokens();
-        let generics = &self.origin.generics;
+        let generics = self.origin.generics();
         let where_clause = &generics.where_clause;
 
         quote! {
@@ -353,7 +353,7 @@ impl BuilderStruct {
             impl_generics,
             ty_generics,
             where_clause,
-        ) = self.origin.generics.split_for_impl();
+        ) = self.origin.generics().split_for_impl();
 
         let merge_fn_props = ConfigStruct::make_merge_fn_properties()
             .into_fallible_when(fallible, error_ty.clone());
@@ -420,7 +420,7 @@ impl BuilderStruct {
     fn default_impl_tokens(&self) -> TokenStream {
         let cfg_attrs = self.origin.cfg_tokens();
         let doc_cfg_attrs = self.origin.doc_cfg_tokens();
-        util::bare_default_impl_tokens(self.ident(), &self.origin.generics, &cfg_attrs, &doc_cfg_attrs)
+        util::bare_default_impl_tokens(self.ident(), self.origin.generics(), &cfg_attrs, &doc_cfg_attrs)
     }
     fn impl_tokens(&self) -> TokenStream {
         let struct_ident = self.ident();
@@ -435,7 +435,7 @@ impl BuilderStruct {
             impl_generics,
             ty_generics,
             where_clause,
-        ) = self.origin.generics.split_for_impl();
+        ) = self.origin.generics().split_for_impl();
 
         quote! {
             #cfg_attrs
@@ -542,12 +542,18 @@ impl BuilderField {
         let docs = self.setter_docs();
         let cfg_attrs = self.cfg_tokens();
         let doc_cfg_attrs = self.doc_cfg_tokens();
+        let vis = if self.attrs().nested().is_none_or(|nested| nested.pub_setter) {
+            quote!(pub)
+        } else {
+            quote!(pub(crate))
+        };
+
         quote! {
             #docs
             #cfg_attrs
             #doc_cfg_attrs
             #[must_use]
-            pub fn #ident(mut self, val: #ty) -> Self {
+            #vis fn #ident(mut self, val: #ty) -> Self {
                 self.inner.#ident = val;
                 self
             }
@@ -556,12 +562,12 @@ impl BuilderField {
     pub(crate) fn nested_builder_method_tokens(&self) -> TokenStream {
         fn gen_method(field: &BuilderField, is_default_fn: bool) -> TokenStream {
             let nested = field.attrs().nested().unwrap();
-            if is_default_fn {
-                assert!(nested.builder_default);
-            }
+            assert!(!is_default_fn || nested.builder_default);
+
             let ident = field.ident();
             let docs = field.nested_builder_method_docs();
             let nested_builder_path = field.origin.nested_ids().unwrap().builder_path();
+            let nested_ty_generics = field.origin.ty_generics();
             let cfg_attrs = field.cfg_tokens();
             let doc_cfg_attrs = field.doc_cfg_tokens();
             let mut method_basename = format_ident!("{ident}_builder");
@@ -569,7 +575,6 @@ impl BuilderField {
                 method_basename = format_ident!("{method_basename}_default");
             }
 
-            // TODO: dedicated fn for nested builder method properties
             let self_path: Path = parse_quote!(Self);
             let nested_error = &nested.config_error;
             let fn_props = util::MaybeFallibleFn::new(method_basename, self_path.clone());
@@ -604,7 +609,6 @@ impl BuilderField {
                 ret_expr = quote!(#result_path::Ok(#ret_expr));
             }
 
-            // fixme: nested generics
             quote! {
                 #docs
                 #cfg_attrs
@@ -612,7 +616,7 @@ impl BuilderField {
                 #[must_use]
                 pub fn #fn_name<F>(mut self, f: F) #ret_sig
                 where
-                    F: Fn(#closure_param_ty) -> #nested_builder_path,
+                    F: Fn(#closure_param_ty) -> #nested_builder_path #nested_ty_generics,
                 {
                     // pass off builder to user closure body, allowing for configuration
                     let builder = f(#closure_param_val);

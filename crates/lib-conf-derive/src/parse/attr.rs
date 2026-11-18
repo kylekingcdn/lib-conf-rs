@@ -414,7 +414,10 @@ impl From<Vec<Attribute>> for PassthroughAttrs {
                 #[cfg(feature = "syn-debug")]
                 {
                     if let Some(ident) = attr.path().get_ident() {
-                        eprintln!("Ignoring unknown struct attribute: {ident}");
+                        let ident_str = ident.to_string();
+                        if &ident_str != "derive" {
+                            eprintln!("Ignoring unknown struct attribute: {ident}");
+                        }
                     }
                 }
             }

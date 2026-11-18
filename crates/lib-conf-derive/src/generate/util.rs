@@ -252,56 +252,6 @@ impl From<CanonPath> for Path {
     }
 }
 
-// /// Function impl variants
-// #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-// pub(crate) enum FnImplType {
-//     /// Private fn containing the actual impl
-//     Internal,
-//     /// Public impl directly available on iten (as method or assoc fn)
-//     Member,
-//     /// Trait fn impl
-//     Trait,
-// }
-// impl FnImplType {
-//     pub(crate) fn vis(&self) -> TokenStream {
-//         match self {
-//             Self::Internal => quote!(), // private
-//             Self::Member => quote!(pub), // public api
-//             Self::Trait => quote!(), // implicit
-//         }
-//     }
-//     pub(crate) fn is_internal(&self) -> bool {
-//         matches!(self, &Self::Internal)
-//     }
-//     pub(crate) fn is_member(&self) -> bool {
-//         matches!(self, &Self::Trait)
-//     }
-//     pub(crate) fn is_trait(&self) -> bool {
-//         matches!(self, &Self::Trait)
-//     }
-//     /// Whether the true impl should be used
-//     pub(crate) fn has_impl(&self) -> bool {
-//         self.is_internal()
-//     }
-//     /// Whether the impl forwards to the internal fn
-//     pub(crate) fn has_fwd_impl(&self) -> bool {
-//         !self.has_impl()
-//     }
-//     /// Whether the fn should include docs
-//     pub(crate) fn has_docs(&self) -> bool {
-//         self.is_member()
-//     }
-//     pub(crate) fn internal_name(fn_name: &Ident) -> Ident {
-//         format_ident!("{fn_name}_impl")
-//     }
-//     pub(crate) fn name(&self, fn_name: Ident) -> Ident {
-//         match self {
-//             Self::Internal => Self::internal_name(&fn_name),
-//             _ => fn_name,
-//         }
-//     }
-// }
-
 // !- Path traits
 
 /// Absolute path helper for generic traits
@@ -309,20 +259,43 @@ impl From<CanonPath> for Path {
 pub(crate) enum CanonTrait {
     From(TokenStream),
     TryFrom { from: TokenStream, error: Option<TokenStream> },
+    BuildConfig { config: Option<TokenStream> },
+    TryBuildConfig { config: Option<TokenStream>, error: Option<TokenStream> },
+    MergeOverride { override_: Option<TokenStream> },
+    TryMergeOverride { override_: Option<TokenStream>, error: Option<TokenStream> },
 }
 impl CanonTrait {
     pub(crate) fn path(&self) -> CanonPath {
         match self {
             Self::From(_) => CanonPath::From,
             Self::TryFrom { .. } => CanonPath::TryFrom,
+            Self::BuildConfig { .. } => CanonPath::BuildConfig,
+            Self::TryBuildConfig { .. } => CanonPath::TryBuildConfig,
+            Self::MergeOverride { .. } => CanonPath::MergeOverride,
+            Self::TryMergeOverride { .. } => CanonPath::TryMergeOverride,
         }
     }
     fn params(&self) -> Vec<TokenStream> {
         match self.clone() {
-            Self::From(from) =>
-                vec![from],
-            Self::TryFrom { from, error } =>
-                vec![from, error.map(|e| quote!(Error = #e)).unwrap_or_default()],
+            Self::From(from) => vec![from],
+            Self::TryFrom { from, error } => vec![
+                from,
+                error.map(|e| quote!(Error = #e)).unwrap_or_default(),
+            ],
+            Self::BuildConfig { config } => vec![
+                config.map(|c| quote!(Config = #c)).unwrap_or_default(),
+            ],
+            Self::TryBuildConfig { config, error } => vec![
+                config.map(|c| quote!(Config = #c)).unwrap_or_default(),
+                error.map(|e| quote!(Error = #e)).unwrap_or_default(),
+            ],
+            Self::MergeOverride { override_ } => vec![
+                override_.map(|o| quote!(Override = #o)).unwrap_or_default(),
+            ],
+            Self::TryMergeOverride { override_, error } => vec![
+                override_.map(|o| quote!(Override = #o)).unwrap_or_default(),
+                error.map(|e| quote!(Error = #e)).unwrap_or_default(),
+            ],
         }
         .into_iter()
         .filter(|p| !p.is_empty())

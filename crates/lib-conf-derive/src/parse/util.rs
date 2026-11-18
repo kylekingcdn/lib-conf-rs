@@ -26,16 +26,6 @@ pub(crate) fn snake_case_to_upper_pascal(snek: &str) -> String {
     }
 
     pasc
-
-    // snek.split('_')
-    //     .map(|word| {
-    //         let mut letters = word.chars();
-    //         match letters.next() {
-    //             None => String::new(),
-    //             Some(first) => first.to_uppercase().collect::<String>() + letters.as_str(),
-    //         }
-    //     })
-    //     .collect()
 }
 
 pub(crate) fn upper_pascal_to_snake_case(pasc: &str) -> String {
@@ -70,7 +60,11 @@ pub(crate) enum ParsedDocAttr {
     Cfg,
     Other,
 }
-
+impl ParsedDocAttr {
+    pub(crate) fn is_comment(&self) -> bool {
+        matches!(self, &Self::Comment)
+    }
+}
 /// # Returns
 ///
 /// - `None` if not `doc` attr
@@ -96,6 +90,13 @@ pub(crate) fn parse_doc_attrs(attr: &Attribute) -> Option<ParsedDocAttr> {
         }
         ParsedDocAttr::Other
     })
+}
+
+pub(crate) fn strip_doc_comments(attrs: Vec<Attribute>) -> Vec<Attribute> {
+    attrs.into_iter().filter(|attr| {
+        let attr_ty = parse_doc_attrs(&attr);
+        attr_ty.is_none_or(|doc_attr| !doc_attr.is_comment())
+    }).collect()
 }
 
 /// Parse an attribute for use, if it's a `cfg` attr
