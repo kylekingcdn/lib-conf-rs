@@ -22,7 +22,6 @@ use proc_macro::TokenStream;
 #[doc = include_str!("../doc/nested.md")]
 #[proc_macro_derive(LibConfig, attributes(config))]
 pub fn derive_lib_config(input: TokenStream) -> TokenStream {
-    // derive output
     let output = lib_config::derive(input.into());
     output.unwrap_or_else(syn::Error::into_compile_error).into()
 }
@@ -30,7 +29,6 @@ pub fn derive_lib_config(input: TokenStream) -> TokenStream {
 /// Can be used on a struct that derives [`LibConfig`](derive_lib_config) for improved documentation.
 #[proc_macro_attribute]
 pub fn config_docs(_args: TokenStream, input: TokenStream) -> TokenStream {
-    // derive output
     let output = lib_config::config_docs(input.into());
     output.unwrap_or_else(syn::Error::into_compile_error).into()
 }

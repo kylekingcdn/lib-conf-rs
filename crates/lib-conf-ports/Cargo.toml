@@ -25,7 +25,6 @@ _enable =  [
 # module gates
 sqlx-postgres = [
     "_enable",
-    "lib-conf?/adapter",
     "dep:sqlx", "sqlx?/postgres",
     "dep:log",
     "dep:secrecy",

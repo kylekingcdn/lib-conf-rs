@@ -47,10 +47,9 @@ pub(crate) fn derive(input: TokenStream) -> Result<TokenStream, Error> {
 }
 
 pub(crate) fn config_docs(input: TokenStream) -> Result<TokenStream, Error> {
-    let origin = OriginStruct::try_from(input.clone())?;
+    let origin = OriginStruct::try_from(input)?;
     let config_docs = ConfigDocs::from(origin).build();
     let output = config_docs.into_token_stream();
-    //eprintln!("config docs attr:\n{output}");
 
     Ok(output)
 }

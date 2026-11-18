@@ -8,7 +8,7 @@ members = [
     "tests/nested-test-cases",
 ]
 exclude = [
-    # FIXME: broken due to feature unification?
+    # excluded due to feature unification
     "examples/2-serde-optional/bin-no-serde",
     "tests/nested-expanded",
 ]

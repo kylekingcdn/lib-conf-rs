@@ -61,8 +61,8 @@ pub(crate) enum ParsedDocAttr {
     Other,
 }
 impl ParsedDocAttr {
-    pub(crate) fn is_comment(&self) -> bool {
-        matches!(self, &Self::Comment)
+    pub(crate) fn is_comment(self) -> bool {
+        matches!(self, Self::Comment)
     }
 }
 /// # Returns
@@ -94,7 +94,7 @@ pub(crate) fn parse_doc_attrs(attr: &Attribute) -> Option<ParsedDocAttr> {
 
 pub(crate) fn strip_doc_comments(attrs: Vec<Attribute>) -> Vec<Attribute> {
     attrs.into_iter().filter(|attr| {
-        let attr_ty = parse_doc_attrs(&attr);
+        let attr_ty = parse_doc_attrs(attr);
         attr_ty.is_none_or(|doc_attr| !doc_attr.is_comment())
     }).collect()
 }

@@ -1,3 +1,4 @@
 [env]
 LIBCONF_EXPAND = "1"
 LIBCONF_EXPAND_DIR = { value = "../nested-expanded", relative = true }
+LIBCONF_EXPAND_PREFIX = "use super::*;"

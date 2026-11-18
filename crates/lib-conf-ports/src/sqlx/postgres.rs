@@ -2,10 +2,7 @@
 ///
 pub use log::LevelFilter;
 
-use lib_conf::{
-    LibConfig,
-    adapter::duration::SecondsAdapter,
-};
+use lib_conf::{LibConfig, adapter};
 use secrecy::{ExposeSecret, SecretString};
 use sqlx::postgres::PgPoolOptions;
 use std::time::Duration;
@@ -131,7 +128,7 @@ pub struct PgPoolConfig {
     /// itself with an additional new connection.
     #[config(
         copy, default = Duration::from_secs(2),
-        override_from = u64, override_via = SecondsAdapter,
+        override_from = u64, override_via = adapter::duration::Sec,
     )]
     pub(crate) acquire_slow_threshold: Duration,
 
@@ -153,7 +150,7 @@ pub struct PgPoolConfig {
     ///     * If [`after_connect`][PgPoolOptions::after_connect] is set, that will also be executed.
     #[config(
         copy, default = Duration::from_secs(30),
-        override_from = u64, override_via = SecondsAdapter,
+        override_from = u64, override_via = adapter::duration::Sec,
     )]
     pub(crate) acquire_timeout: Duration,
 
@@ -173,7 +170,7 @@ pub struct PgPoolConfig {
     /// session.
     #[config(
         copy,
-        override_from = u64, override_via = SecondsAdapter,
+        override_from = u64, override_via = adapter::duration::Sec,
     )]
     pub(crate) max_lifetime: Option<Duration>,
 
@@ -186,7 +183,7 @@ pub struct PgPoolConfig {
     /// For usage-based database server billing, this can be a cost saver.
     #[config(
         copy,
-        override_from = u64, override_via = SecondsAdapter,
+        override_from = u64, override_via = adapter::duration::Sec,
     )]
     pub(crate) idle_timeout: Option<Duration>,
 }

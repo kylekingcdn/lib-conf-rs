@@ -15,6 +15,7 @@ pub(crate) struct ConfigDocs {
 impl ConfigDocs {
     pub(crate) fn docs(&self) -> AppendDoc {
         let mut docs = self.origin.append_docs();
+        #[expect(clippy::collapsible_if, reason = "will be split shortly")]
         if !docs.source().is_empty() {
             if self.origin.attrs.lib_conf_attribution {
                 docs = docs

@@ -9,6 +9,7 @@ Contained are integration "tests" used to:
 ## Layout
 
 There are currently 2 crates contained:
+
 - `nested-test-cases`
 - `nested-expanded`
 
@@ -17,14 +18,15 @@ There are currently 2 crates contained:
 Contains various `LibConfig`-derived config structs in nested combinations.
 
 This crate provides flags to `lib-conf-derive` which instruct it to write it's expanded
-output to files. It also writes the source config struct without any of `lib-conf`'s attributes.
+output to files.
+It also writes the source config struct without any of `lib-conf`'s attributes.
 
 ### `nested-expanded`
 
 Contains the files that were expanded from `nested-test-cases`.
 
 Additionally, some files are shared from `nested-test-cases` using symlinks to ensure
-required, non-derived items are available.
+non-derived items required for compilation are available.
 
 ## Debugging
 
@@ -77,9 +79,9 @@ Any unexpected changes will be evident when committing work.
 
 ## Workspace exclusion
 
-Both of these crates have been excluded from the workspace.
+The `nested-expanded` crate has been excluded from the workspace.
 
 This prevents:
 - Excessive noise introduced during development.
   - A single compilation error in the derive macro would otherwise result in 40+ duplicate errors.
-- Cyclic checking by `rust-analyzer` or tools that watch for file changes (such as `bacon`)
+- Cyclic checking by `rust-analyzer` or tools that watch for file changes (such as `bacon`), upon expansion
