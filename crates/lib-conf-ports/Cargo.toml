@@ -14,11 +14,25 @@ workspace = true
 [features]
 # feature groups
 default = []
+# base deps shared when 1 or more ports are enabled
+_enable =  [
+    "dep:lib-conf", "lib-conf?/derive",
+    "dep:serde", "lib-conf?/serde", "log?/serde", "secrecy?/serde",
+]
+# feature flags
+"derive-expand" = ["lib-conf?/derive-expand"]
+
 # module gates
-sqlx-postgres = ["sqlx/postgres", "dep:lib-conf", "dep:log", "dep:secrecy", "dep:serde"]
+sqlx-postgres = [
+    "_enable",
+    "lib-conf?/adapter",
+    "dep:sqlx", "sqlx?/postgres",
+    "dep:log",
+    "dep:secrecy",
+]
 
 [dependencies]
-lib-conf = { workspace = true, optional = true, features = ["standard"] }
+lib-conf = { workspace = true, optional = true  }
 log = { workspace = true, optional = true, features = ["serde"] }
 secrecy = { workspace = true, optional = true, features = ["serde"] }
 serde = { workspace = true, optional = true, features = ["derive"] }

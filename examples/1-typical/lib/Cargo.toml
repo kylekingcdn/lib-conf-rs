@@ -8,6 +8,10 @@ repository.workspace = true
 license.workspace = true
 publish = true
 
+[features]
+default = []
+expand = ["lib-conf/derive-expand"]
+
 [dependencies]
 lib-conf = { workspace = true, features = ["serde"] }
 serde = { workspace = true, features = ["derive"] }

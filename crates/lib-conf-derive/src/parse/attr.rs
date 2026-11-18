@@ -2,7 +2,7 @@ mod field_attr;
 mod struct_attr;
 
 pub(crate) use self::{
-    field_attr::{FieldAttr, NestedDefaultClass},
+    field_attr::FieldAttr,
     struct_attr::StructAttr,
 };
 
@@ -17,10 +17,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::hash::Hash;
 use std::marker::PhantomData;
-use syn::{
-    Attribute, Expr, Ident, Lit, Meta, parse_quote,
-    spanned::Spanned, Token, punctuated::Punctuated,
-};
+use syn::{Attribute, Expr, Ident, Lit, Meta, parse_quote, spanned::Spanned};
 
 // !- Attribute keys
 
@@ -59,91 +56,165 @@ impl<Variant: AttrVariant> Default for GroupedAttrs<Variant> {
         }
     }
 }
-impl<Variant: AttrVariant> TryFrom<Vec<Attribute>> for GroupedAttrs<Variant> {
-    type Error = syn::Error;
+impl<Variant: AttrVariant> GroupedAttrs<Variant> {
+    pub(crate) fn try_from_attrs<Ctx>(attrs: Vec<Attribute>, validation_ctx: &mut Ctx) -> Result<Self, syn::Error>
+    where
+        UnvalidatedGroupedAttrs<Variant>: ValidateAttrs<Variant, Ctx>
+    {
+        let unvalidated = UnvalidatedGroupedAttrs::<Variant>::try_from(attrs)?;
+        let grouped = unvalidated.validate(validation_ctx)?;
+        Ok(grouped)
+    }
+}
 
+// !- Validate attrs trait
+
+pub(crate) trait ValidateAttrs<Variant: AttrVariant, Ctx>: Sized {
+    /// Validation specific to the attr variant
+    fn validate_scoped(&self, context: &mut Ctx) -> Result<(), ParseError>;
+
+    /// Validation independent of attr variant
+    fn validate_base(&self) -> Result<(), ParseError>;
+
+    fn into_validated(self) -> GroupedAttrs<Variant>;
+
+    fn validate(self, context: &mut Ctx) -> Result<GroupedAttrs<Variant>, ParseError> {
+        self.validate_scoped(context)?;
+        self.validate_base()?;
+
+        Ok(self.into_validated())
+    }
+}
+
+// !- Unvalidated grouped attrs
+
+#[cfg_attr(feature = "syn-debug", derive(Debug))]
+#[derive(Clone)]
+pub(crate) struct UnvalidatedGroupedAttrs<Variant: AttrVariant> {
+    pub grouped: GroupedAttrs<Variant>,
+    pub seen: HashMap<Variant, Ident>,
+    pub first_helper_span: Option<Span>,
+}
+impl<Variant: AttrVariant> Default for UnvalidatedGroupedAttrs<Variant> {
+    fn default() -> Self {
+        Self {
+            grouped: GroupedAttrs::default(),
+            seen: HashMap::new(),
+            first_helper_span: None,
+        }
+    }
+}
+impl<Variant: AttrVariant> TryFrom<Vec<Attribute>> for UnvalidatedGroupedAttrs<Variant> {
+    type Error = syn::Error;
     fn try_from(attrs: Vec<Attribute>) -> Result<Self, Self::Error> {
         let mut out = Self::default();
-        let mut seen = HashMap::<Variant, Ident>::new(); // Map of Variant types seen on first pass
         let mut other_attrs = Vec::new(); // temp storage for non #[config] attrs before filter & set
-        let mut first_helper_span = None;
 
         for attr in attrs {
             // handle `#[config(..)]` attrs
             if attr.path().is_ident(HELPER_ATTR_CONFIG) {
-                if first_helper_span.is_none() {
-                    first_helper_span = Some(attr.span());
+
+                if out.first_helper_span.is_none() {
+                    out.first_helper_span = Some(attr.span());
                 }
-                let metas = attr.parse_args_with(Punctuated::<Meta, Token![,]>::parse_terminated)?;
-                for meta in metas {
-                    let ident = meta.path().require_ident()?.clone();
-                    let variant = Variant::try_from(&ident).map_err(Into::into)?;
-
-                    // handle proxied attr
-                    if variant.is_proxied() {
-                        variant.validate_shape(Shape::List, &ident)?;
-                        out.proxied.push(ProxiedAttr {
-                            variant,
-                            // ident: ident.clone(),
-                            inner: meta.require_list()?.tokens.clone(), // FIXME: use match for full extract
-                        });
-                        seen.insert(variant, ident);
-                    }
-
-                    // handle standard attr
-                    else {
-                        let shape = Shape::from(&meta);
-                        variant.validate_shape(shape, &ident)?;
-                        Self::validate_unique(variant, &seen)?;
-                        out.standard.push(StandardAttr {
-                            variant,
-                            ident: ident.clone(),
-                            meta,
-                        });
-                        seen.insert(variant, ident);
-                    }
+                for meta in attr.parse_args_with(util::MetaListInner::parse_terminated)? {
+                    out.parse_helper_attr(None, meta)?;
                 }
             }
 
-            // handle passthrough attr
-            // not `#[config(..)]` -  add to to passthrough list if it passes filter
+            // handle
+            // handle non-`#[config(..)]` (passthrough) attrs
             else {
                 other_attrs.push(attr);
             }
         }
 
-        // do actual filter and set of passthrough attrs
-        out.passthrough = other_attrs.into();
-
-        out.validate_proxied_compat(&seen)?;
-
-        // error on missing required
-        if !Variant::required_set().is_empty()
-            && let Some(span) = first_helper_span {
-                Self::validate_required_present(&seen, span)?;
-            }
-        // error on implicit attr specified
-        Self::validate_implicit(&seen)?;
-        // error on incompatible attrs
-        Self::validate_mutex(&seen)?;
-        // validate deps
-        Self::validate_deps(&seen)?;
+        // handles filtering passthrough attrs
+        out.grouped.passthrough = other_attrs.into();
 
         Ok(out)
     }
 }
-impl<Variant: AttrVariant> GroupedAttrs<Variant> {
-    fn validate_unique(attr: Variant, seen: &HashMap<Variant, Ident>) -> Result<(), ParseError> {
-        if let Some(ident) = seen.get(&attr) {
+impl<Variant: AttrVariant> UnvalidatedGroupedAttrs<Variant> {
+    fn parse_helper_attr(
+        &mut self,
+        parent: Option<Variant>,
+        meta: Meta,
+    ) -> Result<(), syn::Error> {
+        let ident = meta.path().require_ident()?.clone();
+        let variant = Variant::try_from((parent, &ident)).map_err(Into::into)?;
+
+        // handle proxied attr
+        if variant.is_proxied() {
+            assert!(parent.is_none());
+            variant.validate_shape(Shape::List, &ident)?;
+            self.grouped.proxied.push(ProxiedAttr {
+                variant,
+                inner: meta.require_list()?.tokens.clone(), // FIXME: use match for full extract
+            });
+            self.seen.insert(variant, ident);
+        }
+
+        // handle standard attr
+        else {
+            let shape = Shape::from(&meta);
+            // handle shape & unique validation during attr scan (fail-fast)
+            variant.validate_shape(shape, &ident)?;
+            self.validate_unique(variant)?;
+
+            // nested attrs, recurse
+            if let Meta::List(inner) = meta {
+                let nested_metas = util::parse_inner_meta_list(&inner)?;
+                for nested in nested_metas {
+                    self.parse_helper_attr(Some(variant), nested)?;
+                }
+                self.grouped.standard.push(StandardAttr {
+                    variant,
+                    ident: ident.clone(),
+                    meta: Meta::Path(inner.path),
+                });
+            } else {
+                self.grouped.standard.push(StandardAttr {
+                    variant,
+                    ident: ident.clone(),
+                    meta,
+                });
+            }
+            self.seen.insert(variant, ident);
+        }
+        Ok(())
+    }
+    pub(crate) fn validate_common(&self) -> Result<(), ParseError> {
+        self.validate_proxied_compat()?;
+
+        // error on missing required attr (and a #[config()] group exists)
+        self.validate_required_present()?;
+
+        // error on implicit attr specified
+        self.validate_implicit()?;
+
+        // error on multiple exclusive deps prior to normal mutex & deps checks
+        //self.validate_exclusive_deps()?;
+
+        // error on incompatible attrs
+        self.validate_mutex()?;
+
+        // validate deps
+        self.validate_deps()?;
+
+        Ok(())
+    }
+    fn validate_unique(&self, attr: Variant) -> Result<(), ParseError> {
+        if let Some(ident) = self.seen.get(&attr) {
             Err(ParseError::DuplicateAttr { ident: ident.clone() })
         } else {
             Ok(())
         }
     }
-    fn validate_implicit(seen: &HashMap<Variant, Ident>) -> Result<(), ParseError> {
-        for (attr, ident) in seen {
+    fn validate_implicit(&self) -> Result<(), ParseError> {
+        for (attr, ident) in &self.seen {
             for implicit in attr.implied_attrs() {
-                if let Some(implicit_ident) = seen.get(implicit) {
+                if let Some(implicit_ident) = self.seen.get(implicit) {
                     return Err(ParseError::ImplicitAttr {
                         ident: implicit_ident.clone(), // error on implied
                         other: ident.clone(),
@@ -153,10 +224,10 @@ impl<Variant: AttrVariant> GroupedAttrs<Variant> {
         }
         Ok(())
     }
-    fn validate_mutex(seen: &HashMap<Variant, Ident>) -> Result<(), ParseError> {
-        for (attr, ident) in seen {
+    fn validate_mutex(&self) -> Result<(), ParseError> {
+        for (attr, ident) in &self.seen {
             for incompat in attr.incompatible_attrs() {
-                if let Some(incompat_ident) = seen.get(incompat) {
+                if let Some(incompat_ident) = self.seen.get(incompat) {
                     return Err(ParseError::IncompatibleAttrs {
                         ident: incompat_ident.clone(), // error on implied
                         other: ident.clone(),
@@ -166,11 +237,11 @@ impl<Variant: AttrVariant> GroupedAttrs<Variant> {
         }
         Ok(())
     }
-    fn validate_deps(seen: &HashMap<Variant, Ident>) -> Result<(), ParseError> {
-        for (attr, ident) in seen {
+    fn validate_deps(&self) -> Result<(), ParseError> {
+        for (attr, ident) in &self.seen {
             let attr_deps = attr.dependencies();
             for dep in attr_deps {
-                if !seen.contains_key(dep) {
+                if !self.seen.contains_key(dep) {
                     return Err(ParseError::MissingAttrDep { present: ident.clone(), missing: (*dep).into() });
                 }
             }
@@ -178,15 +249,39 @@ impl<Variant: AttrVariant> GroupedAttrs<Variant> {
 
         Ok(())
     }
+    // fn validate_exclusive_deps(&self) -> Result<(), ParseError> {
+    //     for (attr, ident) in &self.seen {
+    //         let attr_deps = attr.exclusive_dependencies();
+    //         if !attr_deps.is_empty() {
+    //             let mut first_dep = None;
+    //             for dep in attr_deps {
+    //                 if let Some(second_ident) = self.#seen.get(dep) {
+    //                     if let Some(first) = first_dep  {
+    //                         return Err(ParseError::MultipleExclusiveDeps { first, second: second_ident.clone() });
+    //                     } else {
+    //                         first_dep = Some(second_ident.clone());
+    //                     }
+    //                 }
+    //             }
+    //             if first_dep.is_none() {
+    //                 return Err(ParseError::MissingExclusiveDep {
+    //                         present: ident.clone(),
+    //                         supported: attr_deps.into_iter().map(|v| v.as_str()).collect(),
+    //                     });
+    //             }
+    //         }
+    //     }
 
+    //     Ok(())
+    // }
     /// dedicated fn to properly resolve idents for error
-    fn validate_proxied_compat(&self, seen: &HashMap<Variant, Ident>) -> Result<(), ParseError> {
+    fn validate_proxied_compat(&self) -> Result<(), ParseError> {
         // manually handle mut ex validation on first pass for proxied attr
         // fixme, loop through all seen attrs, remove if let Some(attr_ident) = seen.get()
-        for proxied in &self.proxied {
-            if let Some(attr_ident) = seen.get(&proxied.variant) {
+        for proxied in &self.grouped.proxied {
+            if let Some(attr_ident) = self.seen.get(&proxied.variant) {
                 for incompat in proxied.variant.incompatible_attrs() {
-                    if let Some(incompat_ident) = seen.get(incompat) {
+                    if let Some(incompat_ident) = self.seen.get(incompat) {
                         Err(ParseError::IncompatibleAttrs {
                             ident: attr_ident.clone(),
                             other: incompat_ident.clone(),
@@ -197,14 +292,16 @@ impl<Variant: AttrVariant> GroupedAttrs<Variant> {
         }
         Ok(())
     }
-    
-    fn validate_required_present(seen: &HashMap<Variant, Ident>, span: Span) -> Result<(), ParseError> {
-        for req_attr in Variant::required_set() {
-            if !seen.contains_key(req_attr) {
-                Err(ParseError::MissingRequiredAttr {
-                    name: req_attr.as_str(),
-                    span,
-                })?;
+
+    fn validate_required_present(&self) -> Result<(), ParseError> {
+        if !Variant::required_set().is_empty() && let Some(span) = &self.first_helper_span {
+            for req_attr in Variant::required_set() {
+                if !self.seen.contains_key(req_attr) {
+                    Err(ParseError::MissingRequiredAttr {
+                        name: req_attr.as_str(),
+                        span: *span,
+                    })?;
+                }
             }
         }
         Ok(())
@@ -234,7 +331,7 @@ pub(crate) struct StandardAttr<Variant: AttrVariant> {
 #[derive(Clone)]
 pub(crate) struct ProxiedAttr<Variant: AttrVariant> {
     /// The path as the attr family variant
-    /// ///
+    ///
     /// E.g, `some_attrs` in `#[config(some_attrs(allow(dead_code)))]`
     pub variant: Variant,
 
@@ -242,7 +339,7 @@ pub(crate) struct ProxiedAttr<Variant: AttrVariant> {
     ///
     /// E.g, `allow(dead_code)` in `#[config(some_attrs(allow(dead_code)))]`
     ///
-    /// **NOTE**: inner list must not be split/delimited
+    /// **NOTE**: inner list must not be split/delimited, it's of an unknown (potentially non-compliant) format
     pub inner: TokenStream,
 }
 
@@ -322,7 +419,7 @@ impl From<Vec<Attribute>> for PassthroughAttrs {
                 }
             }
         }
-        
+
         parsed
     }
 }
@@ -334,13 +431,13 @@ pub(crate) trait AttrVariant:
     Copy + Clone +
     PartialEq + Eq +
     Hash +
-    TryFrom<Ident, Error: Into<syn::Error>> +
-    for<'a> TryFrom<&'a Ident, Error: Into<syn::Error>> +
+    TryFrom<(Option<Self>, Ident), Error: Into<syn::Error>> +
+    for<'a> TryFrom<(Option<Self>, &'a Ident), Error: Into<syn::Error>> +
     Into<&'static str> +
     'static
 {
     fn as_str(self) -> &'static str;
-    
+
     /// Proxied attrs are attrs like `#[config(attr(allow(unused)))]` that get placed on derived itens
     fn is_proxied(self) -> bool {
         Self::proxied_set().contains(&self)
@@ -355,6 +452,7 @@ pub(crate) trait AttrVariant:
     fn opt_incompatible_set() -> &'static Vec<Self>;
     fn required_set() -> &'static Vec<Self>;
     fn dependency_map() -> &'static HashMap<Self, Vec<Self>>;
+    //fn exclusive_dependency_map() -> &'static HashMap<Self, Vec<Self>>;
     fn incompatible_map() -> &'static HashMap<Self, Vec<Self>>;
     fn implied_map() -> &'static HashMap<Self, Vec<Self>>;
     fn shapes_map() -> &'static HashMap<Self, Vec<Shape>>;
@@ -362,6 +460,9 @@ pub(crate) trait AttrVariant:
     fn dependencies(&self) -> &'static Vec<Self> {
         Self::dependency_map().get(self).unwrap_or(Self::empty_set())
     }
+    // fn exclusive_dependencies(&self) -> &'static Vec<Self> {
+    //     Self::exclusive_dependency_map().get(self).unwrap_or(Self::empty_set())
+    // }
     fn incompatible_attrs(&self) -> &'static Vec<Self> {
         Self::incompatible_map().get(self).unwrap_or(Self::empty_set())
     }
@@ -440,7 +541,7 @@ impl<G: ExprGroup> ExprSubset<G> {
             Err(ParseError::InvalidAttrExpr { span: expr.span() })
         }
     }
-    
+
 }
 impl<G: ExprGroup> From<ExprSubset<G>> for Expr {
     fn from(subset: ExprSubset<G>) -> Self {
@@ -483,6 +584,7 @@ impl TryFrom<Expr> for CallExpr {
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct DefaultExprGroup;
 
+// !- FIXME: path fn call possibly broken
 impl ExprGroup for DefaultExprGroup {
     fn in_subset(expr: &Expr) -> bool {
         matches!(expr,

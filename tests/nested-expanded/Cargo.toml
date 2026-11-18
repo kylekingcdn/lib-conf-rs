@@ -1,0 +1,17 @@
+[package]
+name = "lib-conf-nested-expanded"
+edition = "2024"
+rust-version = "1.91"
+repository = "https://github.com/kylekingcdn/lib-conf-rs"
+license = "MIT"
+publish = false
+
+[features]
+default = []
+
+[dependencies]
+lib-conf = { path = "../../crates/lib-conf", features = ["serde","derive","syn-debug"] }
+serde = { version = "1.0.229", features = ["derive"] }
+thiserror = "2.0.20"
+
+[workspace]

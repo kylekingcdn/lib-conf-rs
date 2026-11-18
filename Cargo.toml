@@ -5,10 +5,12 @@ members = [
     "examples/*/bin*",
     "examples/*/lib",
     "examples/readme",
+    "tests/nested-test-cases",
 ]
 exclude = [
     # FIXME: broken due to feature unification?
     "examples/2-serde-optional/bin-no-serde",
+    "tests/nested-expanded",
 ]
 
 [workspace.package]
@@ -26,10 +28,14 @@ opt-level = 1
 opt-level = 3
 
 [workspace.dependencies]
+arbitrait = { version = "0.0.4", default-features = false, path = "../arbitrait-rs/crates/arbitrait" }
 config = { version = "0.15.25", default-features = false }
 dotenvy = "0.15.7"
 lib-conf = { version = "0.4.2", path = "crates/lib-conf" }
+#lib-conf-adapter = { version = "0.4.2", path = "crates/lib-conf-adapter" }
 lib-conf-derive = { version = "0.4.2", path = "crates/lib-conf-derive" }
+#lib-conf-ports = { version = "0.4.2", path = "crates/lib-conf-ports" }
+lib-conf-traits = { version = "0.0.1", path = "crates/lib-conf-traits" }
 log = { version = "0.4.18", default-features = false }
 prettyplease = "0.3.0"
 proc-macro2 = "1.0.107"
@@ -37,6 +43,7 @@ quote = "1.0.47"
 serde = "1.0.229"
 secrecy = "0.10.3"
 sqlx = { version = "0.8.6", default-features = false }
+static_assertions = { version = "1.1.0", default-features = false }
 syn = "3.0.4"
 thiserror = "2.0.20"
 tracing = { version = "0.1.44", default-features = false }
@@ -47,3 +54,33 @@ pedantic = { level = "warn", priority = -1 }
 bool_assert_comparison = "allow"
 match_bool = "allow"
 single_match_else = "allow"
+allow_attributes = "warn"
+allow_attributes_without_reason = "warn"
+duplicated_attributes = "warn"
+
+[workspace.lints.cargo]
+pedantic = { level = "warn", priority = -1 }
+
+[workspace.metadata.bacon.keybindings]
+d = "job:docs-rs"
+g = "job:expand-gen"
+e = "job:expand-build"
+
+[workspace.metadata.bacon.jobs.docs-rs]
+command = ["cargo", "+nightly", "docs-rs", "-p", "lib-conf"]
+extraneous_args = false
+background = true
+
+[workspace.metadata.bacon.jobs.expand-gen]
+command = ["cargo", "check"]
+workdir = "./tests/nested-test-cases"
+background = true
+default_watch = false
+watch = ["./tests/nested-test-cases/src"]
+
+[workspace.metadata.bacon.jobs.expand-build]
+command = ["cargo", "check"]
+workdir = "./tests/nested-expanded"
+background = true
+default_watch = false
+watch = ["./tests/nested-expanded/src"]

@@ -1,5 +1,5 @@
 //! This is an example library for [`lib_conf`] and does not provide actual functionality.
-#![allow(unused, clippy::pedantic)]
+#![allow(unused, clippy::pedantic, clippy::allow_attributes, clippy::allow_attributes_without_reason)]
 
 use crate::internal::SecondsAdapter;
 

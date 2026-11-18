@@ -1,0 +1,2 @@
+[env]
+LIBCONF_EXPAND_NO_TIPS = "1"

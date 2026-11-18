@@ -328,11 +328,82 @@ FOO_DEFAULT=true
 
 ## Progress
 
-### Roadmap
+### Actively working on
 
-- Add default value getters to Config struct
-- Generate .env.example util fn for consumers, using defaults + required
-- Add/confirm official support for nested usage
+- [ ] Add official support for nested usage
   - e.g. `lib1 -> lib2 -> bin`, where both libs use `lib-conf` and both
     are exposed to binary
-  - Support lib2 exposing a subset of lib1 options to bin
+- [x] Use `static_assertions` to hint on missing/incompat traits
+- [ ] Ensure `TypePath` usage is correct (try w/ tuple?)
+- [x] Migrate all core/std paths to full fully qualified / canonical
+  - [x] Migrate Some/None/Err/Ok as well
+- [x] Fix missing generics in assoc. struct types
+  - [ ] Also missing in static assertions
+- [x] switch all merge/build calls to trait <Type as Trait>::fn calls
+
+### Roadmap
+
+- Extensive generation example
+  - Optional `example_value` field attr for customized assignment value used in examples
+  <!--
+    Notes to self:
+    - Types, traits, and impl's should be feature gated
+      - Doc root / readme install instructions should guide library authors to exposing passthrough features
+        - Handling of new feature adoption for pre-existing crates?
+          - Explicit feature for both opt-in and opt-out, throw error on `#[cfg(not(any(feature = "on", feature = "off")))]`?
+    - Add public types:
+      - `ExampleSchema`
+        - Contains basic config tree info, rendered as hierarchical 'Groups`:
+          - Groups have:
+            - Chain of parent names: `Vec<String>`
+            - Name (struct name)
+            - Field list
+          - Fields have:
+            - Name
+            - Description (docs) [first line only?]
+            - Default value if any
+            - Mandatory/Optional bool
+              - Tri-state to handle req field under option struct?
+                - e.g field is required if other fields in group (or sub groups) exist
+                  - `# Required: true / false / by association` ?
+        - Start off by just deriving `Into<ExampleSchema>` for LibConfig structs
+          - Not too difficult for bins to implement for root confq
+          - Eventually add full blown `ExampleSchema` derive for binaries, piggybacking off LibConfig `Into` impl, when available
+      - `ExampleOutput<F: FormatExample>(String, PhantomData<T>);`
+        - Add type alisses, e.g. `pub type DotEnvExample = ExampleOutput<DotEnv>;`
+      - `ExampleGenerator`
+        - `fn format<F: FormatExample>(example: ExampleSchema) -> ExampleOutput<T>;`
+        - `fn generate<F: FormatExample>(config: impl Into<ExampleSchema>) -> ExampleOutput<T>;`
+    - Add traits:
+      - `pub trait FormatExample`
+        - Represents a file format
+        - `fn format(example: ExampleSchema) -> ExampleOutput<Self>;`
+  -->
+- Ignore excluded conditional-compilation fields (`#[cfg(..)]` evaluates to `false`) from detected constraints
+  - Such as:
+    - `all_fields_optional`
+    - `has_required_fields`
+    - etc.
+  - These evaluated conditions are used to decide if `Default`, `From<OverrideConfig>`, etc. impls are derived
+    - Further, this has a direct impact on attribute validation
+    <!--
+      Notes to self:
+      - Not sure if evaluation of parsed cfg's at proc expansion-time is even supported
+        - I definitely haven't seen it before
+        - Proper impl is probably to parse/dedeupe cfgs, then place those over the actual impls
+    -->
+- Lazy error propagation (no fail fast) to allow for sinultaneous error reporting
+  <!--
+    Notes to self:
+    - Use `syn::Error::combine` along with a custom `BatchError` struct
+      - `BatchError` stores `Vec<ParseError>` internally
+      - Into<syn::Error> impl calls `into_iter().reduce(|x| x.combine())`
+    - Should add transparent + from `SynError` variant to `ParseError`
+    - Should swap parse fn error types from `Syn::Error` to `ParseError`
+    - Should break up parse fns at inner loop, returning `ParseError` from looped fn and `BatchError` from outer
+      - Retains ability to use `?` propagation - handling error append from calling fn
+  -->
+- Diagnostic message support
+- Add Config struct getters for field defaults
+- Support for example serialization
+  - Provides consumers with auto-updated `.env.example`/`config.example.ext` files by including fn call in `build.rs`

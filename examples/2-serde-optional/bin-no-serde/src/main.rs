@@ -1,5 +1,5 @@
 // prevent workspace build failures with --all-features
-#![allow(unused, clippy::pedantic)]
+#![allow(unused, clippy::pedantic, clippy::allow_attributes, clippy::allow_attributes_without_reason)]
 
 use example2_lib::{Example2Config, Example2Lib, Example2OverrideConfig};
 use secrecy::SecretString;

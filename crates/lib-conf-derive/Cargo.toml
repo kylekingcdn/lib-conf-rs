@@ -13,10 +13,13 @@ workspace = true
 
 [features]
 default = []
-serde = ["secrecy/serde", "url/serde"]
+expand = []
+pub-override-fields = []
+serde = []
 syn-debug = ["syn/extra-traits"]
 
 [dependencies]
+arbitrait = { workspace = true }
 prettyplease = { workspace = true }
 proc-macro2 = { workspace = true }
 quote = { workspace = true }
@@ -25,13 +28,6 @@ thiserror = { workspace = true }
 
 [lib]
 proc-macro = true
-
-[dev-dependencies]
-config = { workspace = true }
-dotenvy = { workspace = true }
-secrecy = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
-url =  { workspace = true, features = ["serde"] } # no-serde support broken?
 
 [package.metadata.docs.rs]
 all-features = true

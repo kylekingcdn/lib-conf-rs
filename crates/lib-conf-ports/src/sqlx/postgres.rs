@@ -3,8 +3,8 @@
 pub use log::LevelFilter;
 
 use lib_conf::{
-    adapter::duration::SecondsAdapter,
     LibConfig,
+    adapter::duration::SecondsAdapter,
 };
 use secrecy::{ExposeSecret, SecretString};
 use sqlx::postgres::PgPoolOptions;

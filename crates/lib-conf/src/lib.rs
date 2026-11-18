@@ -5,11 +5,26 @@
 
 #![doc = include_str!("../README.md")]
 
+// !- Crate modules
+
+/// Common types and dependenxy re-exports that may be referenced in derived code
+#[cfg(feature = "derive")]
+#[cfg_attr(docsrs, doc(cfg(feature = "derive")))]
+mod derive;
+
+// Re-export all from derive module (keeps feature gates clean)
+#[cfg(feature = "derive")]
+#[cfg_attr(docsrs, doc(cfg(feature = "derive")))]
+pub use derive::*;
+
+/// Exposes a small set of conversion handlers for `override_via`
+pub mod adapter;
+
+// !- Sub-crate re-exports
+
 #[cfg(feature = "derive")]
 #[cfg_attr(docsrs, doc(cfg(feature = "derive")))]
 pub use lib_conf_derive::LibConfig;
 
-/// Exposes a small set of conversion handlers for `override_via`
-#[cfg(feature = "adapter")]
-#[cfg_attr(docsrs, doc(cfg(feature = "adapter")))]
-pub mod adapter;
+/// Exposes traits from [`lib-conf-traits`](lib_conf_traits)
+pub use lib_conf_traits as traits;

@@ -1,4 +1,4 @@
-#![allow(unused, clippy::pedantic)]
+#![allow(unused, clippy::pedantic, clippy::allow_attributes, clippy::allow_attributes_without_reason)]
 pub(crate) use lib_conf_example_readme::crab_log; // emulate dep
 
 use crab_log::CrabLogConfig;

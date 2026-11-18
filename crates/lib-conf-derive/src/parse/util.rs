@@ -1,9 +1,68 @@
 use crate::parse::attr;
 
 use syn::{
-    Attribute, Expr, GenericArgument, Lit, Meta,
-    PathArguments, punctuated::Punctuated, Token, Type,
+    Attribute, Expr, GenericArgument, Lit, Meta, MetaList,
+    PathArguments, punctuated::Punctuated, token, Type,
 };
+
+// !- String manipulation
+
+pub(crate) fn snake_case_to_upper_pascal(snek: &str) -> String {
+    let mut pasc = String::with_capacity(snek.len());
+    let mut up_flag = true;
+
+    for mut letter in snek.chars() {
+        if letter == '_' {
+            up_flag = true;
+        } else {
+            // if up flag was set by prev char (or start):
+            // - convert to upper & toggle flag
+            if up_flag {
+                letter = letter.to_ascii_uppercase();
+                up_flag = false;
+            }
+            pasc.push(letter);
+        }
+    }
+
+    pasc
+
+    // snek.split('_')
+    //     .map(|word| {
+    //         let mut letters = word.chars();
+    //         match letters.next() {
+    //             None => String::new(),
+    //             Some(first) => first.to_uppercase().collect::<String>() + letters.as_str(),
+    //         }
+    //     })
+    //     .collect()
+}
+
+pub(crate) fn upper_pascal_to_snake_case(pasc: &str) -> String {
+    let mut snek = String::with_capacity((pasc.len()*5)/4);
+
+    for mut letter in pasc.chars() {
+        if letter.is_uppercase() {
+            if !snek.is_empty() {
+                snek.push('_');
+            }
+            letter = letter.to_ascii_lowercase();
+        }
+        snek.push(letter);
+    }
+
+    snek
+}
+
+// !- General attr parsing utils
+
+pub(crate) type MetaListInner = Punctuated::<Meta, token::Comma>;
+
+pub(crate) fn parse_inner_meta_list(meta_list: &MetaList) -> Result<MetaListInner, syn::Error> {
+    meta_list.parse_args_with(MetaListInner::parse_terminated)
+}
+
+// !- Doc attr parsing
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum ParsedDocAttr {
@@ -18,23 +77,20 @@ pub(crate) enum ParsedDocAttr {
 /// - Otherwise `Some(kind)`
 pub(crate) fn parse_doc_attrs(attr: &Attribute) -> Option<ParsedDocAttr> {
     attr.path().is_ident(attr::DOC_ATTR).then(|| {
-        //eprintln!("parsing doc: {}", attr.to_token_stream());
-        #[allow(clippy::collapsible_if)]
+        #[expect(clippy::collapsible_if, reason = "improved readability")]
         // brief validation of correct shape before insert
         if let Ok(doc_meta) = attr.meta.require_name_value() {
             if let Expr::Lit(doc_lit) = &doc_meta.value &&
                let Lit::Str(_doc_lit_str) = &doc_lit.lit {
-                //eprintln!("got doc comment: {}", _doc_lit_str.value());
                 return ParsedDocAttr::Comment;
             }
         }
-        else if let Ok(doc_meta) = attr.meta.require_list() {
-            if let Ok(metas) = doc_meta.parse_args_with(Punctuated::<Meta, Token![,]>::parse_terminated) &&
+        else if let Ok(meta_list) = attr.meta.require_list() {
+            if let Ok(metas) = parse_inner_meta_list(meta_list) &&
                 let Some(first) = metas.first() &&
                 first.path().is_ident(attr::CFG) &&
                 first.require_list().is_ok()
             {
-                //eprintln!("Passing through #[doc(cfg)] attr: {}", attr.to_token_stream());
                 return ParsedDocAttr::Cfg;
             }
         }
@@ -51,13 +107,7 @@ pub(crate) fn parse_doc_attrs(attr: &Attribute) -> Option<ParsedDocAttr> {
 pub(crate) fn parse_cfg_attribute(attr: &Attribute) -> Option<bool> {
     attr.path().is_ident(attr::CFG).then(|| {
         // brief validation of correct shape before insert
-        if let Ok(_cfg_meta_list) = attr.meta.require_list() {
-            // eprintln!("Passing through `#[cfg]` attr: {}", attr.to_token_stream());
-            true
-        } else {
-            // eprintln!("got `#[cfg]` attr in unexpected shape: {}", attr.to_token_stream());
-            false
-        }
+        attr.meta.require_list().is_ok()
     })
 }
 

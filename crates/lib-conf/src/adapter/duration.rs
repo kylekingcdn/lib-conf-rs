@@ -1,17 +1,25 @@
 use std::time::Duration;
 
+// Alternatively, could use a single struct that handles all units using a phantom generic field (for the unit)
+//
+// Each variation would only require a single `From<DurationAdapter<Unit>>` impl
+//
+// However, opted to KISS here instead
+//
+// Might revise in the future, but the current impl is far simpler and a good resource to use as an example for users
+
 // !- Seconds adapter
 
 /// Handles mapping a [`Duration`] from runtime config, provided as seconds
-pub struct SecondsAdapter(u64);
+pub struct Sec(u64);
 
-impl From<u64> for SecondsAdapter {
-    fn from(val: u64) -> Self {
-        Self(val)
+impl<F: Into<u64>> From<F> for Sec {
+    fn from(override_field: F) -> Self {
+        Self(override_field.into())
     }
 }
-impl From<SecondsAdapter> for Duration {
-    fn from(adapter: SecondsAdapter) -> Self {
+impl From<Sec> for Duration {
+    fn from(adapter: Sec) -> Self {
         Self::from_secs(adapter.0)
     }
 }
@@ -19,15 +27,15 @@ impl From<SecondsAdapter> for Duration {
 // !- Mins adapter
 
 /// Handles mapping a [`Duration`] from runtime config, provided as minutes
-pub struct MinutesAdapter(u64);
+pub struct Min(u64);
 
-impl From<u64> for MinutesAdapter {
-    fn from(val: u64) -> Self {
-        Self(val)
+impl<F: Into<u64>> From<F> for Min {
+    fn from(override_field: F) -> Self {
+        Self(override_field.into())
     }
 }
-impl From<MinutesAdapter> for Duration {
-    fn from(adapter: MinutesAdapter) -> Self {
+impl From<Min> for Duration {
+    fn from(adapter: Min) -> Self {
         Self::from_mins(adapter.0)
     }
 }
@@ -35,15 +43,15 @@ impl From<MinutesAdapter> for Duration {
 // !- Hours adapter
 
 /// Handles mapping a [`Duration`] from runtime config, provided as hours
-pub struct HoursAdapter(u64);
+pub struct Hour(u64);
 
-impl From<u64> for HoursAdapter {
-    fn from(val: u64) -> Self {
-        Self(val)
+impl<F: Into<u64>> From<F> for Hour {
+    fn from(override_field: F) -> Self {
+        Self(override_field.into())
     }
 }
-impl From<HoursAdapter> for Duration {
-    fn from(adapter: HoursAdapter) -> Self {
+impl From<Hour> for Duration {
+    fn from(adapter: Hour) -> Self {
         Self::from_hours(adapter.0)
     }
 }

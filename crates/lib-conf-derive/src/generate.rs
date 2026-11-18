@@ -1,6 +1,8 @@
 pub(crate) mod builder_struct;
 pub(crate) mod config_struct;
+pub(crate) mod doc;
 pub(crate) mod override_struct;
+pub(crate) mod plan;
 pub(crate) mod util;
 
 pub(crate) use {
@@ -10,9 +12,11 @@ pub(crate) use {
 };
 
 use crate::{
-    generate::util::AppendDoc,
+    generate::doc::AppendDoc,
     parse::{FieldAttrs, IdentPool, OriginField},
 };
+
+use arbitrait::vote::IdentifyVoter;
 use proc_macro2::TokenStream;
 use std::marker::PhantomData;
 use std::rc::Rc;
@@ -58,5 +62,10 @@ impl<T> VariantField<T> {
     }
     pub(crate) fn doc_cfg_tokens(&self) -> TokenStream {
         self.origin.passthrough_attrs().doc_cfg_tokens()
+    }
+}
+impl<T> IdentifyVoter for VariantField<T> {
+    fn voter_identity(&self) -> String {
+        self.origin.voter_identity()
     }
 }

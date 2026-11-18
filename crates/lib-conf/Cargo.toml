@@ -14,19 +14,30 @@ workspace = true
 [features]
 # feature groups
 default = ["derive"]
-standard = ["derive", "serde", "adapter"]
-# lib-conf features
-adapter = []
-adapter-tracing-level = ["adapter", "dep:tracing"]
-# dep gates
-derive = ["dep:lib-conf-derive"]
+standard = ["derive", "serde"]
+# lib-conf components
+# - adapters (for 3rd party crates)
+adapter-tracing = ["dep:tracing"]
+# - derive
+derive = ["dep:lib-conf-derive", "dep:thiserror", "dep:static_assertions"]
+derive-expand = ["derive", "lib-conf-derive/expand"]
+derive-pub-override-fields = ["derive", "lib-conf-derive/pub-override-fields"]
 # passthrough flags
-serde = ["lib-conf-derive?/serde"]
+serde = ["lib-conf-derive?/serde", "secrecy/serde", "url/serde"]
 syn-debug = ["lib-conf-derive?/syn-debug"]
 
 [dependencies]
 lib-conf-derive = { workspace = true, optional = true }
-tracing = { workspace = true, optional = true }
+lib-conf-traits = { workspace = true }
+thiserror = { workspace = true, optional = true }
+static_assertions = { workspace = true, optional = true }
+
+[dev-dependencies]
+config = { workspace = true }
+dotenvy = { workspace = true }
+secrecy = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+url =  { workspace = true, features = ["serde"] } # no-serde support broken?
 
 [package.metadata.docs.rs]
 all-features = true

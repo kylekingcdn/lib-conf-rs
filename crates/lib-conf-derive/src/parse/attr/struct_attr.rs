@@ -1,8 +1,6 @@
-use crate::{
-    parse::{
-        attr::{AttrVariant, Shape},
-        error::ParseError,
-    },
+use crate::parse::{
+    attr::{AttrVariant, Shape},
+    error::ParseError,
 };
 
 use std::collections::HashMap;
@@ -22,23 +20,29 @@ pub(crate) enum StructAttr {
     Attr,
     BuilderAttr,
     OverrideAttr,
-    
+
     ExampleFieldName,
     Validate,
     ValidateError,
+    
+    VoteDebug,
+    LibConfAttribution,
 }
 impl StructAttr {
     pub(crate) const DERIVE: &str = "derive";
     pub(crate) const BUILDER_DERIVE: &'static str = "builder_derive";
     pub(crate) const OVERRIDE_DERIVE: &'static str = "override_derive";
-    
+
     pub(crate) const ATTR: &'static str = "attr";
     pub(crate) const BUILDER_ATTR: &'static str = "builder_attr";
     pub(crate) const OVERRIDE_ATTR: &'static str = "override_attr";
-    
+
     pub(crate) const EXAMPLE_FIELD_NAME: &str = "example_field_name";
     pub(crate) const VALIDATE: &str = "validate";
-    pub(crate) const VALIDATE_ERROR: &str = "validate_error";
+    pub(crate) const VALIDATE_ERROR: &'static str = "validate_error";
+
+    pub(crate) const VOTE_DEBUG: &'static str = "vote_debug";
+    pub(crate) const LIB_CONF_ATTRIBUTION: &str = "lib_conf_attribution";
 }
 
 // ! Struct attr trait impls
@@ -57,6 +61,9 @@ impl AttrVariant for StructAttr {
             Self::ExampleFieldName => Self::EXAMPLE_FIELD_NAME,
             Self::Validate => Self::VALIDATE,
             Self::ValidateError => Self::VALIDATE_ERROR,
+
+            Self::VoteDebug => Self::VOTE_DEBUG,
+            Self::LibConfAttribution => Self::LIB_CONF_ATTRIBUTION,
         }
     }
     fn empty_set() -> &'static Vec<Self> {
@@ -74,6 +81,9 @@ impl AttrVariant for StructAttr {
     fn dependency_map() -> &'static HashMap<Self, Vec<Self>> {
         &STRUCT_ATTR_DEPS
     }
+    // fn exclusive_dependency_map() -> &'static HashMap<Self, Vec<Self>> {
+    //     &STRUCT_ATTR_EXCLUSIVE_DEPS
+    // }
     fn incompatible_map() -> &'static HashMap<Self, Vec<Self>> {
         &STRUCT_ATTR_MUT_EX
     }
@@ -109,53 +119,60 @@ impl From<&StructAttr> for String {
         struct_attr.to_string()
     }
 }
-impl TryFrom<&Ident> for StructAttr {
+impl TryFrom<(Option<StructAttr>, &Ident)> for StructAttr {
     type Error = ParseError;
 
-    fn try_from(value: &Ident) -> Result<Self, Self::Error> {
-        match value.to_string().as_str() {
-            Self::DERIVE => Ok(Self::Derive),
-            Self::BUILDER_DERIVE => Ok(Self::BuilderDerive),
-            Self::OVERRIDE_DERIVE => Ok(Self::OverrideDerive),
-            Self::ATTR => Ok(Self::Attr),
-            Self::BUILDER_ATTR => Ok(Self::BuilderAttr),
-            Self::OVERRIDE_ATTR => Ok(Self::OverrideAttr),
-            Self::EXAMPLE_FIELD_NAME => Ok(Self::ExampleFieldName),
-            Self::VALIDATE => Ok(Self::Validate),
-            Self::VALIDATE_ERROR => Ok(Self::ValidateError),
-            _unknown => Err(ParseError::UnknownAttr { ident: value.clone() })
+    fn try_from((parent, ident): (Option<StructAttr>, &Ident)) -> Result<Self, Self::Error> {
+        match parent {
+            None => match ident.to_string().as_str() {
+                Self::DERIVE => Ok(Self::Derive),
+                Self::BUILDER_DERIVE => Ok(Self::BuilderDerive),
+                Self::OVERRIDE_DERIVE => Ok(Self::OverrideDerive),
+                Self::ATTR => Ok(Self::Attr),
+                Self::BUILDER_ATTR => Ok(Self::BuilderAttr),
+                Self::OVERRIDE_ATTR => Ok(Self::OverrideAttr),
+                Self::EXAMPLE_FIELD_NAME => Ok(Self::ExampleFieldName),
+                Self::VALIDATE => Ok(Self::Validate),
+                Self::VALIDATE_ERROR => Ok(Self::ValidateError),
+                Self::VOTE_DEBUG => Ok(Self::VoteDebug),
+                Self::LIB_CONF_ATTRIBUTION => Ok(Self::LibConfAttribution),
+                _unknown => Err(ParseError::UnknownAttr { ident: ident.clone() })
+            },
+            Some(_unknown) => Err(ParseError::UnknownAttr { ident: ident.clone() })
         }
     }
 }
-impl TryFrom<Ident> for StructAttr {
+impl TryFrom<(Option<StructAttr>, Ident)> for StructAttr {
     type Error = ParseError;
 
-    fn try_from(value: Ident) -> Result<Self, Self::Error> {
-        (&value).try_into()
+    fn try_from((parent, ident): (Option<StructAttr>, Ident)) -> Result<Self, Self::Error> {
+        (parent, &ident).try_into()
     }
 }
 
 // ! Struct attr statics
 
 pub(super) static STRUCT_ATTR_SHAPES: LazyLock<HashMap<StructAttr, Vec<Shape>>> = LazyLock::new(|| [
-    (StructAttr::Derive,            vec![Shape::List]),
-    (StructAttr::BuilderDerive,     vec![Shape::List]),
-    (StructAttr::OverrideDerive,    vec![Shape::List]),
-    (StructAttr::Attr,              vec![Shape::List]),
-    (StructAttr::BuilderAttr,       vec![Shape::List]),
-    (StructAttr::OverrideAttr,      vec![Shape::List]),
-    (StructAttr::ExampleFieldName,  vec![Shape::KeyValue]),
-    (StructAttr::Validate,          vec![Shape::KeyValue]),
-    (StructAttr::ValidateError,     vec![Shape::KeyValue]),
+    (StructAttr::Derive,                vec![Shape::List]),
+    (StructAttr::BuilderDerive,         vec![Shape::List]),
+    (StructAttr::OverrideDerive,        vec![Shape::List]),
+    (StructAttr::Attr,                  vec![Shape::List]),
+    (StructAttr::BuilderAttr,           vec![Shape::List]),
+    (StructAttr::OverrideAttr,          vec![Shape::List]),
+    (StructAttr::ExampleFieldName,      vec![Shape::KeyValue]),
+    (StructAttr::Validate,              vec![Shape::KeyValue]),
+    (StructAttr::ValidateError,         vec![Shape::KeyValue]),
+    (StructAttr::VoteDebug,             vec![Shape::Flag]),
+    (StructAttr::LibConfAttribution,    vec![Shape::Flag]),
 ].into());
 
 /// Attributes that depend on other attrs being present
 pub(super) static STRUCT_ATTR_DEPS: LazyLock<HashMap<StructAttr, Vec<StructAttr>>> = LazyLock::new(|| [
     (StructAttr::Validate, vec![
-        StructAttr::ValidateError
+        StructAttr::ValidateError,
     ]),
     (StructAttr::ValidateError, vec![
-        StructAttr::Validate
+        StructAttr::Validate,
     ]),
 ].into());
 
@@ -176,7 +193,6 @@ static STRUCT_ATTR_OPT_INCOMPAT: LazyLock<Vec<StructAttr>> = LazyLock::new(|| [
 ].into());
 
 static STRUCT_ATTR_REQUIRED: LazyLock<Vec<StructAttr>> = LazyLock::new(|| [
-    StructAttr::ExampleFieldName,
 ].into());
 
 static STRUCT_ATTR_PROXY: LazyLock<Vec<StructAttr>> = LazyLock::new(|| [

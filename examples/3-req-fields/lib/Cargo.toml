@@ -9,7 +9,7 @@ license.workspace = true
 publish = true
 
 [dependencies]
-lib-conf = { workspace = true, features = ["serde"] }
+lib-conf = { workspace = true, features = ["serde","derive-expand"] }
 serde = { workspace = true, features = ["derive"] }
 
 [lints]

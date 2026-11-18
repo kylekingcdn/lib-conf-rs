@@ -1,20 +1,28 @@
 use crate::{
     generate::{
+        doc::{AppendDoc, DerivedLink, Doc, Document, Link, Table},
+        plan::{Cause, DeriveCopy, DeriveDefault, OverrideConsensus, OverridePlan, Topic},
+        util::{self, CanonPath},
         VariantField,
-        util::{self, AppendDoc, DerivedLink, Doc, Document, Link, Table},
     },
-    parse::{self, IdentPool, OriginField, OriginStruct},
+    parse::{self, attr::FieldAttr, IdentPool, OriginField, OriginStruct},
 };
 
 #[cfg(feature = "serde")]
 use {
     quote::format_ident,
-    crate::generate::util::CodeBlock,
+    crate::generate::doc::CodeBlock,
 };
 
+use arbitrait::{
+    IterVoteCollector, Propose,
+    ballot::unscored::MandateForbidBallot::{Abstain, Forbid, Mandate},
+    vote::{CastVote, CollectVotes, IdentifyVoter, Vote},
+};
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
 use std::rc::Rc;
+use std::sync::OnceLock;
 use syn::{Ident, parse_quote, Type};
 
 #[derive(Debug, Copy, Clone)]
@@ -22,7 +30,6 @@ pub(crate) struct OverrideVariant;
 
 // !- Override struct
 
-#[cfg_attr(feature = "syn-debug", derive(Debug))]
 #[derive(Clone)]
 pub(crate) struct OverrideStruct {
     ty: Type,
@@ -30,6 +37,9 @@ pub(crate) struct OverrideStruct {
 
     origin: Rc<OriginStruct>,
     phantom_fields: Vec<Rc<OriginField>>,
+
+    consensus: Rc <OnceLock<OverrideConsensus>>,
+    plan: Rc<OnceLock<OverridePlan>>,
 }
 impl OverrideStruct {
     pub(crate) fn new(origin: Rc<OriginStruct>) -> Self {
@@ -37,7 +47,7 @@ impl OverrideStruct {
         let mut fields = Vec::new();
         let mut phantom_fields = Vec::new();
         for field in &origin.fields {
-            if !field.attrs.skip_override_field() {
+            if !field.attrs.skip_override_field {
                 fields.push(OverrideField::new(field.clone()));
             } else if with_phantoms {
                 phantom_fields.push(field.clone());
@@ -50,6 +60,9 @@ impl OverrideStruct {
 
             origin,
             phantom_fields,
+
+            consensus: Rc::new(OnceLock::new()),
+            plan: Rc::new(OnceLock::new()),
         }
     }
     pub(crate) fn ids(&self) -> &IdentPool {
@@ -64,10 +77,6 @@ impl OverrideStruct {
     pub(crate) fn has_required_fields(&self) -> bool {
         self.fields.iter().any(OverrideField::is_required)
     }
-    #[allow(dead_code)] // only used w/ serde feature
-    pub(crate) fn has_optional_fields(&self) -> bool {
-        self.fields.iter().any(OverrideField::is_optional)
-    }
     pub(crate) fn has_unset_fields(&self) -> bool {
         self.fields.iter().any(|f| f.origin.with_unset_field())
     }
@@ -77,11 +86,56 @@ impl OverrideStruct {
     pub(crate) fn has_conditional_unset_fields(&self) -> bool {
         self.fields.iter().any(|f| f.origin.with_unset_field() && f.origin.is_conditional())
     }
-    pub(crate) fn all_fields_copy(&self) -> bool {
-        self.fields.iter().all(OverrideField::supports_copy)
+    pub(crate) fn build_consensus(&self) -> OverrideConsensus {
+        let copy = self.fields.iter()
+            .map(OverrideField::cast_ballot)
+            .chain(std::iter::once(self.cast_ballot()))
+            .collect();
+            let default = self.fields.iter()
+            .map(OverrideField::cast_ballot)
+            .chain(std::iter::once(self.cast_ballot()))
+            .collect();
+        OverrideConsensus {
+            copy,
+            default,
+        }
+    }
+    pub(crate) fn consensus(&self) -> &OverrideConsensus {
+        self.consensus.get_or_init(|| self.build_consensus())
+    }
+    pub(crate) fn plan(&self) -> &OverridePlan {
+        self.plan.get_or_init(|| self.consensus().as_plan())
     }
 }
-
+impl IdentifyVoter for OverrideStruct {
+    fn voter_identity(&self) -> String {
+        self.ident().to_string()
+    }
+}
+impl CastVote<DeriveDefault> for OverrideStruct {
+    fn cast_ballot(&self) -> Vote<DeriveDefault> {
+        let mut evidence = DeriveDefault::new_evidence();
+        let res = if self.fields.is_empty() {
+            evidence.add_piece(Topic::Struct, Cause::NoFields);
+            Mandate
+        } else {
+            Abstain
+        };
+        self.build_vote(res).with_evidence(evidence)
+    }
+}
+impl CastVote<DeriveCopy> for OverrideStruct {
+    fn cast_ballot(&self) -> Vote<DeriveCopy> {
+        let mut evidence = DeriveCopy::new_evidence();
+        let res = if self.fields.is_empty() {
+            evidence.add_piece(Topic::Struct, Cause::NoFields);
+            Mandate
+        } else {
+            Abstain
+        };
+        self.build_vote(res).with_evidence(evidence)
+    }
+}
 
 impl OverrideStruct {
     // ! Struct-based doc segments
@@ -105,7 +159,7 @@ impl OverrideStruct {
     #[cfg(feature = "serde")]
     fn doc_example(&self) -> CodeBlock {
         let ident = self.ident();
-        let field_name = format_ident!("{}", &self.origin.attrs.example_field_name);
+        let field_name = format_ident!("{}", self.origin.example_field_name());
         CodeBlock::new("rust,ignore")
         + "#[derive(Debug, Clone, Deserialize)]"
         + "pub struct Conf {"
@@ -115,7 +169,7 @@ impl OverrideStruct {
           "    #[serde(default)]"
         )
         + format!(
-          "    {field_name}: {ident}," // TODO: add struct opt for specifying field name
+          "    {field_name}: {ident},"
         )
         + "}"
     }
@@ -241,7 +295,7 @@ impl OverrideStruct {
         let mut alias_table = Table::new_1("Alias");
         let mut example_list = Doc::new();
 
-        for alias in **parse::UNSET_ALIASES {
+        for alias in **parse::origin_field::UNSET_ALIASES {
             alias_table += format!("`{alias}`");
             example_list += format!("- `{example_ident}_{alias}`");
         }
@@ -311,7 +365,7 @@ impl OverrideStruct {
     fn derive_tokens(&self) -> TokenStream {
         let mut base = quote! { #[derive(Debug, Clone)] };
 
-        if self.all_fields_copy() {
+        if self.plan().copy {
             base.extend(quote! { #[derive(Copy)] });
         }
 
@@ -336,6 +390,9 @@ impl OverrideStruct {
     }
     fn phantom_fields_tokens(&self) -> TokenStream {
         let mut out = TokenStream::new();
+
+        let phantom_data_path = CanonPath::PhantomData;
+
         for field in &self.phantom_fields {
             let ident = field.phantom_ident();
             let ty = &field.ty;
@@ -344,13 +401,13 @@ impl OverrideStruct {
             out.extend(quote!(#[serde(default)]));
 
             out.extend(quote! {
-                #ident: ::std::marker::PhantomData<#ty>,
+                #ident: #phantom_data_path<#ty>,
             });
         }
         out
     }
     fn struct_tokens(&self) -> TokenStream {
-        let docs = util::doc_lines_split(self.struct_docs(), false);
+        let docs = self.struct_docs();
         let cfg_attrs = self.origin.cfg_tokens();
         let doc_cfg_attrs = self.origin.doc_cfg_tokens();
         let derives = self.derive_tokens();
@@ -397,7 +454,6 @@ impl OverrideStruct {
         quote! {
             #cfg_attrs
             #doc_cfg_attrs
-            #[automatically_derived]
             impl #impl_generics #ident #ty_generics #where_clause {
                 #getters
             }
@@ -406,6 +462,8 @@ impl OverrideStruct {
     fn default_impl_tokens(&self) -> TokenStream {
         assert!(!self.has_required_fields());
 
+        let default_path = CanonPath::Default;
+        let option_path = CanonPath::Option;
         let struct_ident = self.ident();
         let cfg_attrs = self.origin.cfg_tokens();
         let doc_cfg_attrs = self.origin.doc_cfg_tokens();
@@ -418,7 +476,7 @@ impl OverrideStruct {
             let cfg_attrs = field.cfg_tokens();
             fields.extend(quote! {
                 #cfg_attrs
-                #ident: None,
+                #ident: #option_path::None,
             });
 
             // unset field
@@ -431,12 +489,13 @@ impl OverrideStruct {
         }
         // phantom fields
         let mut phantoms = TokenStream::new();
+        let phantom_data_path = CanonPath::PhantomData;
         for field in &self.phantom_fields {
             let ident = field.phantom_ident();
             let cfg_attrs = field.passthrough_attrs().cfg_tokens();
             phantoms.extend(quote! {
                 #cfg_attrs
-                #ident: ::std::marker::PhantomData,
+                #ident: #phantom_data_path,
             });
         }
         // generics
@@ -446,14 +505,12 @@ impl OverrideStruct {
             where_clause,
         ) = self.origin.generics.split_for_impl();
 
-        // #[allow(clippy::redundant_field_names)] added for:
-        //   https://github.com/rust-lang/rust-clippy/issues/17525
         quote! {
             #cfg_attrs
             #doc_cfg_attrs
             #[automatically_derived]
-            #[allow(clippy::redundant_field_names)]
-            impl #impl_generics Default for #struct_ident #ty_generics #where_clause {
+            #[allow(clippy::redundant_field_names, reason = "https://github.com/rust-lang/rust-clippy/issues/17525")]
+            impl #impl_generics #default_path for #struct_ident #ty_generics #where_clause {
                 fn default() -> Self {
                     Self {
                         #fields
@@ -465,10 +522,10 @@ impl OverrideStruct {
     }
 }
 impl ToTokens for OverrideStruct {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         tokens.extend(self.struct_tokens());
         tokens.extend(self.impl_tokens());
-        if !self.has_required_fields() {
+        if self.plan().default {
             // all fields must be optional for default impl
             tokens.extend(self.default_impl_tokens());
         }
@@ -479,25 +536,60 @@ impl ToTokens for OverrideStruct {
 
 pub(crate) type OverrideField = VariantField<OverrideVariant>;
 
+impl CastVote<DeriveCopy> for OverrideField {
+    fn cast_ballot(&self) -> Vote<DeriveCopy> {
+        if let Some(override_from) = &self.attrs().override_from {
+            let flag = override_from.copy;
+            let evidence = DeriveCopy::new_evidence()
+                .with_piece(Topic::Attr, Cause::AttrPresent(FieldAttr::OverrideFrom.into()))
+                .with_piece(Topic::Attr, Cause::from_flag_attr(flag, FieldAttr::OverrideFromCopy));
+            self.build_vote(Some(override_from.copy).into()).with_evidence(evidence)
+        } else {
+            // proxy vote to origin field
+            self.origin.cast_ballot()
+        }
+    }
+}
+impl CastVote<DeriveDefault> for OverrideField {
+    fn cast_ballot(&self) -> Vote<DeriveDefault> {
+        let mut evidence = DeriveDefault::new_evidence();
+        let res = if self.attrs().override_required {
+            evidence.add_piece(Topic::Attr, Cause::AttrPresent(FieldAttr::OverrideRequired.into()));
+            Forbid
+        } else {
+            evidence.add_piece(Topic::Attr, Cause::AttrMissing(FieldAttr::OverrideRequired.into()));
+            Mandate
+        };
+        self.build_vote(res).with_evidence(evidence)
+    }
+}
+
 impl OverrideField {
     pub(crate) fn is_required(&self) -> bool {
         self.attrs().override_required
     }
-    #[allow(dead_code)] // only used w/ serde feature
+    #[cfg_attr(
+        not(feature = "serde"),
+        expect(dead_code, reason = "used w/ serde feature")
+    )]
     pub(crate) fn is_optional(&self) -> bool {
         !self.attrs().override_required
     }
     pub(crate) fn supports_copy(&self) -> bool {
-        if self.attrs().override_from.is_some() {
-            self.attrs().override_from_copy
+        if let Some(override_from) = &self.attrs().override_from {
+            override_from.copy
         } else {
             self.attrs().copy
         }
     }
     pub(crate) fn flat_ty(&self) -> Type {
-        match self.attrs().override_from {
-            Some(ref ty) => Type::Path(ty.clone()),
-            None => self.origin.flat_ty.clone(),
+        if let Some (nested_ids) = self.origin.nested_ids() {
+            let nested_override_path = nested_ids.override_path();
+            parse_quote!(#nested_override_path)
+        } else if let Some(override_from) = &self.attrs().override_from {
+            Type::Path(override_from.ty.clone())
+        } else {
+            self.origin.flat_ty.clone()
         }
     }
     pub(crate) fn flat_ty_pretty(&self) -> String {
@@ -506,7 +598,8 @@ impl OverrideField {
     pub(crate) fn ty(&self) -> Type {
         let mut ty = self.flat_ty();
         if !self.attrs().override_required {
-            ty = parse_quote!(Option<#ty>);
+            let option_path = CanonPath::Option;
+            ty = parse_quote!(#option_path<#ty>);
         }
         ty
     }
@@ -526,13 +619,14 @@ impl OverrideField {
             return ty;
         }
 
+        let option_path = CanonPath::Option;
         if let Some(inner_ty) = parse::util::unwrap_option(&ty) {
             if parse::util::is_string(inner_ty) {
                 // type is Option<String>
-                parse_quote!(Option<&str>)
+                parse_quote!(#option_path<&str>)
             } else {
                 // type is Option<_>
-                parse_quote!(Option<&#inner_ty>)
+                parse_quote!(#option_path<&#inner_ty>)
             }
         } else {
             if parse::util::is_string(&ty) {
@@ -573,7 +667,6 @@ impl OverrideField {
         }
     }
 }
-
 impl OverrideField {
     // ! Field-based doc segments
 
@@ -592,14 +685,14 @@ impl OverrideField {
         self.origin.unset_ident().map(|unset_ident| {
             let mut doc = Doc::new()
                 .h1("Aliases");
-            
+
             doc += Doc::new()
             + ()
             + format!("Various aliases are supported in addition to reverting via `{unset_ident}`.")
             + ()
             + "- **Note:** unset aliases are only supported when the **`serde` feature is enabled**."
             + ();
-            
+
             doc += Doc::new().begin_collapsed("Expand to view supported unset field aliases");
             for alias in self.origin.unset_aliases() {
                 doc += format!("> - `{alias}`");
@@ -690,10 +783,15 @@ impl ToTokens for OverrideField {
         let ident = self.ident();
         let ty = self.ty();
 
-        #[cfg(feature = "serde")]
-        let vis = quote!(pub(crate));
-        #[cfg(not(feature = "serde"))]
-        let vis = quote!(pub);
+        let vis =
+        if cfg!(any(
+            feature = "pub-override-fields",
+            not(feature = "serde"),
+        )) {
+            quote!(pub)
+        } else {
+            quote!(pub(crate))
+        };
 
         // regular assign field
         let docs = self.field_docs();
@@ -712,7 +810,6 @@ impl ToTokens for OverrideField {
             tokens.extend(quote! {
                 #cfg_attrs
             });
-            // !- FIXME: use cfg_attr and allow user to provide gate expression
             #[cfg(feature = "serde")]
             {
                 let aliases = self.origin.unset_aliases();

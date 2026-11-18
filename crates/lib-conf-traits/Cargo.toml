@@ -1,0 +1,22 @@
+[package]
+name = "lib-conf-traits"
+description = "`lib-conf` core traits"
+version = "0.0.1"
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+license.workspace = true
+publish = true
+
+[lints]
+workspace = true
+
+[features]
+# feature groups
+default = []
+
+[dependencies]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
