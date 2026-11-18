@@ -213,8 +213,8 @@ impl From<CanonPath> for Path {
         path.path()
     }
 }
-
-#[derive(Debug, Clone)]
+#[cfg_attr(feature = "syn-debug", derive(Debug))]
+#[derive(Clone)]
 pub(crate) struct CanonDepPath {
     pub pkg: Rc<TypePath>,
     pub item: CanonPath,
@@ -240,6 +240,7 @@ impl ToTokens for CanonDepPath {
 // !- Path traits
 
 /// Absolute path helper for generic traits
+#[cfg_attr(feature = "syn-debug", derive(Debug))]
 #[derive(Clone)]
 pub(crate) enum CanonTrait {
     From(TokenStream),

@@ -11,7 +11,7 @@ default = []
 
 [dependencies]
 lib-conf = { workspace = true, features = ["derive-expand","serde","derive","syn-debug","derive-pub-override-fields"] }
-serde = { workspace = true, features = ["derive"] }
+serde = { workspace = true, features = ["derive", "std"] }
 thiserror = { workspace = true }
 # lib-conf = { path = "../../crates/lib-conf", features = ["derive-expand","serde","derive","syn-debug"] }
 # serde = { version = "1.0.229", features = ["derive"] }

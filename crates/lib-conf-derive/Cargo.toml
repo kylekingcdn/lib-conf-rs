@@ -29,7 +29,7 @@ thiserror = { workspace = true }
 [dev-dependencies]
 lib-conf-traits = { workspace = true }
 secrecy = { workspace = true }
-serde = { workspace = true, features = ["alloc", "derive"] }
+serde = { workspace = true, features = ["derive", "std"] }
 static_assertions = { workspace = true }
 url =  { workspace = true }
 

@@ -359,6 +359,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "example6-bin"
+version = "0.1.0"
+dependencies = [
+ "config",
+ "dotenvy",
+ "lib-conf-example-6",
+ "serde",
+]
+
+[[package]]
+name = "example6-bin-invalid"
+version = "0.1.0"
+dependencies = [
+ "config",
+ "dotenvy",
+ "lib-conf-example-6",
+ "serde",
+]
+
+[[package]]
 name = "example7-bin"
 version = "0.1.0"
 dependencies = [
@@ -753,6 +773,15 @@ version = "0.3.2"
 dependencies = [
  "lib-conf",
  "serde",
+]
+
+[[package]]
+name = "lib-conf-example-6"
+version = "0.1.0"
+dependencies = [
+ "lib-conf",
+ "serde",
+ "thiserror",
 ]
 
 [[package]]

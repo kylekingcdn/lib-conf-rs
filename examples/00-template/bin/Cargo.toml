@@ -13,7 +13,7 @@ publish = false
 example00-lib = { path = "../lib", package = "lib-conf-example-00" }
 config = { workspace = true }
 dotenvy = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
+serde = { workspace = true, features = ["derive", "std"] }
 
 [lints]
 workspace = true

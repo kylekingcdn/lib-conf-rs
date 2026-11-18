@@ -34,7 +34,7 @@ sqlx-postgres = [
 lib-conf = { workspace = true, optional = true  }
 log = { workspace = true, optional = true, features = ["serde"] }
 secrecy = { workspace = true, optional = true, features = ["serde"] }
-serde = { workspace = true, optional = true, features = ["derive"] }
+serde = { workspace = true, optional = true, features = ["derive","std"] }
 sqlx = { workspace = true, optional = true }
 
 [package.metadata.docs.rs]

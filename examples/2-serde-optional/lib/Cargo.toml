@@ -13,7 +13,7 @@ default = []
 serde = ["dep:serde", "lib-conf/serde"]
 
 [dependencies]
-lib-conf = { workspace = true }
+lib-conf = { workspace = true, features = ["derive"] }
 serde = { workspace = true, optional = true, features = ["derive"] }
 
 [lints]

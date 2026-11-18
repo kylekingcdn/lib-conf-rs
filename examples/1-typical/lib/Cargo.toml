@@ -13,8 +13,8 @@ default = []
 expand = ["lib-conf/derive-expand"]
 
 [dependencies]
-lib-conf = { workspace = true, features = ["serde"] }
-serde = { workspace = true, features = ["derive"] }
+lib-conf = { workspace = true, features = ["standard"] }
+serde = { workspace = true, features = ["derive", "std"] }
 
 [lints]
 workspace = true

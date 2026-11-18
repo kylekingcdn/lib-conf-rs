@@ -10,7 +10,7 @@ publish = true
 
 [dependencies]
 lib-conf = { workspace = true, features = ["serde"] }
-serde = { workspace = true, features = ["derive"] }
+serde = { workspace = true, features = ["derive", "std"] }
 
 [lints]
 workspace = true
