@@ -700,7 +700,6 @@ dependencies = [
  "secrecy",
  "serde",
  "static_assertions",
- "thiserror",
  "tracing",
  "url",
 ]
@@ -710,11 +709,16 @@ name = "lib-conf-derive"
 version = "0.4.2"
 dependencies = [
  "arbitrait",
+ "lib-conf-traits",
  "prettyplease",
  "proc-macro2",
  "quote",
+ "secrecy",
+ "serde",
+ "static_assertions",
  "syn 3.0.5",
  "thiserror",
+ "url",
 ]
 
 [[package]]

@@ -15,7 +15,7 @@ workspace = true
 default = []
 expand = []
 pub-override-fields = []
-serde = []
+serde = ["url/serde"]
 syn-debug = ["syn/extra-traits"]
 
 [dependencies]
@@ -25,6 +25,13 @@ proc-macro2 = { workspace = true }
 quote = { workspace = true }
 syn = { workspace = true }
 thiserror = { workspace = true }
+
+[dev-dependencies]
+lib-conf-traits = { workspace = true }
+secrecy = { workspace = true }
+serde = { workspace = true, features = ["alloc", "derive"] }
+static_assertions = { workspace = true }
+url =  { workspace = true }
 
 [lib]
 proc-macro = true
