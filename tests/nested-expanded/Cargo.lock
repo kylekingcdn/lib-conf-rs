@@ -13,7 +13,6 @@ dependencies = [
  "lib-conf-derive",
  "lib-conf-traits",
  "static_assertions",
- "thiserror",
 ]
 
 [[package]]

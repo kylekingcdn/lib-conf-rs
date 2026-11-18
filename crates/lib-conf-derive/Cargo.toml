@@ -15,7 +15,7 @@ workspace = true
 default = []
 expand = []
 pub-override-fields = []
-serde = ["url/serde"]
+serde = ["url/serde","secrecy/serde"]
 syn-debug = ["syn/extra-traits"]
 
 [dependencies]
