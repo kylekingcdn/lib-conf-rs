@@ -6,8 +6,8 @@ use crate::{
     generate::{self, util::DerivedLink},
     parse::{
         attr::{
-            AttrExpr, AttrVariant, FieldAttr, GroupedAttrs,
-            PassthroughAttrs, ProxiedAttr, StandardAttr, StructAttr,
+            AttrVariant, CallExpr, DefaultExpr, FieldAttr, GroupedAttrs,
+            PassthroughAttrs, ProxiedAttr, StandardAttr, StrExpr, StructAttr,
         },
         error::ParseError,
     },
@@ -154,6 +154,8 @@ pub(crate) struct OriginStructAttrs {
     pub override_attrs: Vec<TokenStream2>,
 
     pub example_field_name: String,
+    pub validate: Option<CallExpr>,
+    pub validate_error: Option<TypePath>,
 }
 impl OriginStructAttrs {
     pub(crate) fn has_builder_derives(&self) -> bool {
@@ -190,9 +192,9 @@ impl OriginStructAttrs {
                 },
                 Meta::NameValue(meta_name_value) => {
                     match attr.variant {
-                        StructAttr::ExampleFieldName =>
-                            out.example_field_name = AttrExpr::try_from(meta_name_value.value)?.require_str(&attr.ident)?,
-
+                        StructAttr::ExampleFieldName => out.example_field_name = StrExpr::try_from(meta_name_value.value)?.to_string(),
+                        StructAttr::Validate => out.validate = Some(meta_name_value.value.try_into()?),
+                        StructAttr::ValidateError => out.validate_error = Some(syn::parse(meta_name_value.value.to_token_stream().into())?),
                         _unknown => unreachable!("shape validation covers unknown"),
                     }
                 }
@@ -231,7 +233,7 @@ pub(crate) struct OriginField {
     pub ty: Type,
     pub flat_ty: Type,
     pub is_option: bool,
-    pub default: Option<AttrExpr>,
+    pub default: Option<DefaultExpr>,
 
     pub ids: Rc<IdentPool>,
 
@@ -260,7 +262,7 @@ impl OriginField {
     pub(crate) fn has_default(&self) -> bool {
         self.default.is_some()
     }
-    pub(crate) fn default(&self) -> Option<&AttrExpr> {
+    pub(crate) fn default(&self) -> Option<&DefaultExpr> {
         self.default.as_ref()
     }
     pub(crate) fn has_override_attrs(&self) -> bool {
@@ -336,7 +338,7 @@ impl OriginField {
         // store default expr for Option types
         let default = match &attrs.default {
             Some(def) => Some(def.clone()),
-            None if is_option => Some(AttrExpr::none_expr()),
+            None if is_option => Some(DefaultExpr::none_expr()),
             None => None,
         };
 
@@ -368,7 +370,7 @@ pub(crate) struct FieldAttrs {
 
     /// incompatible attrs:
     /// - `override_required`
-    pub default: Option<AttrExpr>,
+    pub default: Option<DefaultExpr>,
 
     /// implies:
     /// - `builder_skip`
@@ -468,7 +470,7 @@ impl FieldAttrs {
                 },
                 Meta::NameValue(meta_name_value) => {
                     match attr.variant {
-                        FieldAttr::Default => out.default = Some(AttrExpr::try_from(meta_name_value.value)?),
+                        FieldAttr::Default => out.default = Some(meta_name_value.value.try_into()?),
                         FieldAttr::OverrideFrom => out.override_from = Some(syn::parse(meta_name_value.value.to_token_stream().into())?),
                         FieldAttr::OverrideVia => out.override_via = Some(syn::parse(meta_name_value.value.to_token_stream().into())?),
 

@@ -234,16 +234,32 @@ impl BuilderStruct {
         let merge_expr =
         if self.override_struct.has_required_fields() {
             quote! {
-                self.inner + self.override_conf
+                let merged = self.inner + self.override_conf;
             }
         } else {
             quote! {
-                if let Some(override_conf) = self.override_conf {
+                let merged = if let Some(override_conf) = self.override_conf {
                     self.inner + override_conf
                 } else {
                     self.inner
-                }
+                };
             }
+        };
+        
+        let ret_expr =
+        if let Some(call) = self.origin.attrs.validate.as_ref() {
+            quote! {
+                #call(&merged)?;
+                Ok(merged)
+            }
+        } else {
+            quote!(merged)
+        };
+
+        let ret_ty = if let Some(error_ty) = self.origin.attrs.validate_error.as_ref() {
+            quote!(::std::result::Result<#origin_ty, #error_ty>)
+        } else {
+            quote!(#origin_ty)
         };
 
         quote! {
@@ -252,8 +268,10 @@ impl BuilderStruct {
             /// Values present in an override config (if supplied) will replace
             /// corresponding assignments made using the builder.
             #[must_use]
-            pub fn build(self) -> #origin_ty {
+            pub fn build(self) -> #ret_ty {
                 #merge_expr
+
+                #ret_expr
             }
         }
     }

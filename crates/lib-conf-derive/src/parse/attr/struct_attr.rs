@@ -24,15 +24,21 @@ pub(crate) enum StructAttr {
     OverrideAttr,
     
     ExampleFieldName,
+    Validate,
+    ValidateError,
 }
 impl StructAttr {
     pub(crate) const DERIVE: &str = "derive";
     pub(crate) const BUILDER_DERIVE: &'static str = "builder_derive";
     pub(crate) const OVERRIDE_DERIVE: &'static str = "override_derive";
+    
     pub(crate) const ATTR: &'static str = "attr";
     pub(crate) const BUILDER_ATTR: &'static str = "builder_attr";
     pub(crate) const OVERRIDE_ATTR: &'static str = "override_attr";
+    
     pub(crate) const EXAMPLE_FIELD_NAME: &str = "example_field_name";
+    pub(crate) const VALIDATE: &str = "validate";
+    pub(crate) const VALIDATE_ERROR: &str = "validate_error";
 }
 
 // ! Struct attr trait impls
@@ -43,10 +49,14 @@ impl AttrVariant for StructAttr {
             Self::Derive => Self::DERIVE,
             Self::BuilderDerive => Self::BUILDER_DERIVE,
             Self::OverrideDerive => Self::OVERRIDE_DERIVE,
+
             Self::Attr => Self::ATTR,
             Self::BuilderAttr => Self::BUILDER_ATTR,
             Self::OverrideAttr => Self::OVERRIDE_ATTR,
+
             Self::ExampleFieldName => Self::EXAMPLE_FIELD_NAME,
+            Self::Validate => Self::VALIDATE,
+            Self::ValidateError => Self::VALIDATE_ERROR,
         }
     }
     fn empty_set() -> &'static Vec<Self> {
@@ -111,6 +121,8 @@ impl TryFrom<&Ident> for StructAttr {
             Self::BUILDER_ATTR => Ok(Self::BuilderAttr),
             Self::OVERRIDE_ATTR => Ok(Self::OverrideAttr),
             Self::EXAMPLE_FIELD_NAME => Ok(Self::ExampleFieldName),
+            Self::VALIDATE => Ok(Self::Validate),
+            Self::VALIDATE_ERROR => Ok(Self::ValidateError),
             _unknown => Err(ParseError::UnknownAttr { ident: value.clone() })
         }
     }
@@ -133,10 +145,18 @@ pub(super) static STRUCT_ATTR_SHAPES: LazyLock<HashMap<StructAttr, Vec<Shape>>> 
     (StructAttr::BuilderAttr,       vec![Shape::List]),
     (StructAttr::OverrideAttr,      vec![Shape::List]),
     (StructAttr::ExampleFieldName,  vec![Shape::KeyValue]),
+    (StructAttr::Validate,          vec![Shape::KeyValue]),
+    (StructAttr::ValidateError,     vec![Shape::KeyValue]),
 ].into());
 
 /// Attributes that depend on other attrs being present
 pub(super) static STRUCT_ATTR_DEPS: LazyLock<HashMap<StructAttr, Vec<StructAttr>>> = LazyLock::new(|| [
+    (StructAttr::Validate, vec![
+        StructAttr::ValidateError
+    ]),
+    (StructAttr::ValidateError, vec![
+        StructAttr::Validate
+    ]),
 ].into());
 
 /// (Associated) attributes that can't be used simultaneously

@@ -19,8 +19,8 @@ pub(crate) enum ParseError {
     UnknownAttr { ident: Ident },
     #[error("Invalid attribute expression type")]
     InvalidAttrExpr { span: Span },
-    #[error("Expected string expr value, e.g. `#[config({ident} = \"..\")]`")]
-    ExpectedStrExpr { ident: Ident, span: Span },
+    #[error("Expected string expr value, e.g. `#[config(_ = \"..\")]`")]
+    ExpectedStrExpr { span: Span },
     #[error("Attribute '{ident}' specified multiple times")]
     DuplicateAttr { ident: Ident },
     #[error("Attribute '{ident}' cannot be used with '{other}'")]

@@ -16,9 +16,10 @@ use quote::{quote, ToTokens};
 use std::collections::HashMap;
 use std::fmt;
 use std::hash::Hash;
+use std::marker::PhantomData;
 use syn::{
-    Attribute, Expr, ExprCall, ExprLit, ExprPath, Ident, Lit,
-    Meta, parse_quote, spanned::Spanned, Token, punctuated::Punctuated,
+    Attribute, Expr, Ident, Lit, Meta, parse_quote,
+    spanned::Spanned, Token, punctuated::Punctuated,
 };
 
 // !- Attribute keys
@@ -399,16 +400,22 @@ impl From<&Meta> for Shape {
 
 // !- Attribute expression variants
 
+pub(crate) trait ExprGroup {
+    fn in_subset(expr: &Expr) -> bool;
+}
+
 #[cfg_attr(feature = "syn-debug", derive(Debug))]
 #[derive(Clone)]
-pub(crate) enum AttrExpr {
-    Lit(ExprLit),
-    Path(ExprPath),
-    Call(ExprCall),
+pub(crate) struct ExprSubset<G: ExprGroup> {
+    expr: Expr,
+    _group: PhantomData<G>,
 }
-impl AttrExpr {
-    pub(crate) fn none_expr() -> Self {
-        Self::Path(parse_quote!(None))
+impl<G: ExprGroup> ExprSubset<G> {
+    fn new(expr: Expr) -> Self {
+        Self {
+            expr,
+            _group: PhantomData,
+        }
     }
     pub(crate) fn to_pretty_string(&self) -> String {
         let tokens = self.to_token_stream();
@@ -418,52 +425,125 @@ impl AttrExpr {
             tokens.to_string()
         }
     }
-    pub(crate) fn require_str(self, ident: &Ident) -> Result<String, ParseError> {
-        let span = self.span();
-        if let Self::Lit(expr) = self
-            && let Lit::Str(lit) = expr.lit {
-                return Ok(lit.value());
+    fn try_from_default(expr: Expr) -> Result<Self, ParseError> {
+        if G::in_subset(&expr) {
+            Ok(Self::new(expr))
+        } else {
+            #[cfg(feature = "syn-debug")]
+            {
+                eprintln!("Unexpected Expr variant for AttrExpr: {:?}", &expr);
             }
-        Err(ParseError::ExpectedStrExpr { ident: ident.clone(), span })
-    }
-    pub(crate) fn span(&self) -> Span {
-        match self {
-            Self::Lit(expr) => expr.span(),
-            Self::Path(expr) => expr.span(),
-            Self::Call(expr) => expr.span(),
+            Err(ParseError::InvalidAttrExpr { span: expr.span() })
         }
     }
+    
 }
-impl ToTokens for AttrExpr {
+impl<G: ExprGroup> From<ExprSubset<G>> for Expr {
+    fn from(subset: ExprSubset<G>) -> Self {
+        subset.expr
+    }
+}
+impl<G: ExprGroup> ToTokens for ExprSubset<G> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        match self {
-            Self::Lit(lit) => lit.to_tokens(tokens),
-            Self::Path(path) => path.to_tokens(tokens),
-            Self::Call(call) => call.to_tokens(tokens),
+        self.expr.to_tokens(tokens)
+    }
+}
+
+// ! Call expr
+
+#[derive(Debug, Copy, Clone)]
+pub(crate) struct CallExprGroup;
+
+impl ExprGroup for CallExprGroup {
+    fn in_subset(expr: &Expr) -> bool {
+        match expr {
+            Expr::Path(_) => true,
+            //Expr::Call(_) |
+            //Expr::MethodCall(_) => true,
+            _ => false,
         }
     }
 }
-impl TryFrom<Expr> for AttrExpr {
+
+pub(crate) type CallExpr = ExprSubset<CallExprGroup>;
+
+impl TryFrom<Expr> for CallExpr {
+    type Error = ParseError;
+    fn try_from(expr: Expr) -> Result<Self, Self::Error> {
+        Self::try_from_default(expr)
+    }
+}
+
+// ! Default expr
+
+#[derive(Debug, Copy, Clone)]
+pub(crate) struct DefaultExprGroup;
+
+impl ExprGroup for DefaultExprGroup {
+    fn in_subset(expr: &Expr) -> bool {
+        match expr {
+            Expr::Lit(_) |
+            Expr::Path(_) |
+            Expr::Call(_) |
+            Expr::MethodCall(_) => true,
+            _ => false,
+        }
+    }
+}
+
+pub(crate) type DefaultExpr = ExprSubset<DefaultExprGroup>;
+
+impl DefaultExpr {
+    pub(crate) fn none_expr() -> Self {
+        Self::new(Expr::Path(parse_quote!(None)))
+    }
+}
+impl TryFrom<Expr> for DefaultExpr {
+    type Error = ParseError;
+    fn try_from(expr: Expr) -> Result<Self, Self::Error> {
+        Self::try_from_default(expr)
+    }
+}
+
+// ! Str expr
+
+#[derive(Debug, Copy, Clone)]
+pub(crate) struct StrExprGroup;
+
+impl ExprGroup for StrExprGroup {
+    fn in_subset(expr: &Expr) -> bool {
+        if let Expr::Lit(expr) = expr && matches!(&expr.lit, Lit::Str(_)) {
+            true
+        } else {
+            false
+        }
+    }
+}
+
+pub(crate) type StrExpr = ExprSubset<StrExprGroup>;
+
+impl TryFrom<Expr> for StrExpr {
     type Error = ParseError;
 
     fn try_from(expr: Expr) -> Result<Self, Self::Error> {
-        match expr {
-            Expr::Lit(lit) => Ok(Self::Lit(lit)),
-            Expr::Path(path) => Ok(Self::Path(path)),
-            Expr::Call(call) => Ok(Self::Call(call)),
-            ref other => Err(ParseError::InvalidAttrExpr {
-                //span: other.span(), expr: expr.clone()
-                span: other.span(),
-            }),
+        if DefaultExprGroup::in_subset(&expr) {
+            Ok(Self::new(expr))
+        } else {
+            #[cfg(feature = "syn-debug")]
+            {
+                eprintln!("Unexpected Expr variant for AttrExpr: {:?}", &expr);
+            }
+            Err(ParseError::ExpectedStrExpr { span: expr.span() })
         }
     }
 }
-impl From<AttrExpr> for Expr {
-    fn from(attr_expr: AttrExpr) -> Self {
-        match attr_expr {
-            AttrExpr::Lit(lit) => Self::Lit(lit),
-            AttrExpr::Path(path) => Self::Path(path),
-            AttrExpr::Call(call) => Self::Call(call),
+impl fmt::Display for StrExpr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Expr::Lit(expr) = &self.expr
+        && let Lit::Str(lit) = &expr.lit {
+            let value = lit.value();
+            write!(f, "{value}")?;
         }
+        Ok(())
     }
 }
