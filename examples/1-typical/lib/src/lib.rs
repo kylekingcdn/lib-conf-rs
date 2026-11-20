@@ -8,7 +8,6 @@ use std::time::Duration;
 
 /// Settings for `example1` of `lib-conf`
 #[derive(Debug, Clone, LibConfig)]
-#[config(example_field_name = "example1")]
 pub struct Example1Config {
     // - Example Notes
     //

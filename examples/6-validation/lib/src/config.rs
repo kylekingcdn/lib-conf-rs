@@ -11,7 +11,6 @@ pub enum ValidationError {
 /// Settings for `example6` of `lib-conf`
 #[derive(Debug, Clone, LibConfig)]
 #[config(
-    example_field_name = "example6",
     validate = Example6Config::validate,
     validate_error = ValidationError,
 )] //                ^^^^^^^^^^^^^^^ inform `LibConfig` of our error type used in the validate fn
