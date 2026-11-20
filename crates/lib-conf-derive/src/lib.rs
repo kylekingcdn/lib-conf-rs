@@ -17,9 +17,17 @@ mod parse;
 
 use proc_macro::TokenStream;
 
-#[doc = include_str!("../doc/attributes.md")]
+#[doc = include_str!("../doc/links.md")]
 ///
-#[doc = include_str!("../doc/nested.md")]
+#[doc = include_str!("../doc/restrictions.md")]
+///
+#[doc = include_str!("../doc/attrs/struct.md")]
+///
+#[doc = include_str!("../doc/attrs/field.md")]
+///
+#[doc = include_str!("../doc/attrs/field-nested.md")]
+///
+#[doc = include_str!("../doc/getter-types.md")]
 #[proc_macro_derive(LibConfig, attributes(config))]
 pub fn derive_lib_config(input: TokenStream) -> TokenStream {
     let output = lib_config::derive(input.into());
