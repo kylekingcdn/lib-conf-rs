@@ -1,11 +1,11 @@
 use crate::{
     generate::{
         doc::{AppendDoc, Doc, Document},
-        ConfigStruct, OverrideStruct, VariantField,
+        ConfigStruct, OverrideField, OverrideStruct, VariantField,
         plan::{BuilderConsensus, BuilderPlan, FallibleBuild, InfallibleBuild},
         util::{self, CanonDepPath, CanonPath, FnProperties},
     },
-    parse::{IdentPool, OriginStruct},
+    parse::{IdentPool, OriginStruct, OriginField},
 };
 
 use arbitrait::vote::{CastVote, IdentifyVoter, Vote};
@@ -64,9 +64,6 @@ impl BuilderStruct {
     pub(crate) fn ty(&self) -> &Type {
         &self.ty
     }
-    pub(crate) fn all_fields_copy(&self) -> bool {
-        self.origin.all_fields_copy() && self.override_struct.plan().copy
-    }
 
     pub(crate) fn build_trait_path(&self) -> CanonDepPath {
         let path = if self.plan().fallible_build {
@@ -89,15 +86,27 @@ impl BuilderStruct {
             .into_fallible_when(self.plan().fallible_build, error_ty)
     }
     pub(crate) fn build_consensus(&self) -> BuilderConsensus {
-        let infallible_build = self.fields.iter()
-            .map(BuilderField::cast_ballot)
+        let copy = self.origin.fields.iter().map(|f| OriginField::cast_ballot(f))
+            .chain(std::iter::once(self.origin.cast_ballot()))
+            .chain(self.override_struct.fields().iter().map(OverrideField::cast_ballot))
+            .chain(std::iter::once(self.override_struct.cast_ballot()))
+            .collect();
+        let default = self.origin.fields.iter().map(|f| OriginField::cast_ballot(f))
+            .chain(std::iter::once(self.origin.cast_ballot()))
+            .chain(self.override_struct.fields().iter().map(OverrideField::cast_ballot))
+            .chain(std::iter::once(self.override_struct.cast_ballot()))
+            .collect();
+
+        let infallible_build = self.fields.iter().map(BuilderField::cast_ballot)
             .chain(std::iter::once(self.cast_ballot()))
             .collect();
-        let fallible_build = self.fields.iter()
-            .map(BuilderField::cast_ballot)
+        let fallible_build = self.fields.iter().map(BuilderField::cast_ballot)
             .chain(std::iter::once(self.cast_ballot()))
             .collect();
+
         BuilderConsensus {
+            copy,
+            default,
             infallible_build,
             fallible_build,
         }

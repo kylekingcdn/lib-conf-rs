@@ -10,7 +10,7 @@ pub(crate) use {
     builder_struct::BuilderStruct,
     config_docs::ConfigDocs,
     config_struct::ConfigStruct,
-    override_struct::OverrideStruct,
+    override_struct::{OverrideField, OverrideStruct},
 };
 
 use crate::{

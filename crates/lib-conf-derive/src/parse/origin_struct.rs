@@ -3,7 +3,7 @@ use crate::{
         self,
         doc::AppendDoc,
         plan::{
-            Cause, FallibleBuild, FallibleFromOverride,
+            Cause, DeriveCopy, DeriveDefault, FallibleBuild, FallibleFromOverride,
             InfallibleBuild, InfallibleFromOverride, Topic,
         },
     },
@@ -120,6 +120,33 @@ impl OriginStruct {
 impl IdentifyVoter for OriginStruct {
     fn voter_identity(&self) -> String {
         self.ids.origin_ident().to_string()
+    }
+}
+impl CastVote<DeriveDefault> for OriginStruct {
+    fn cast_ballot(&self) -> Vote<DeriveDefault> {
+        let mut evidence = DeriveDefault::new_evidence();
+        let res = if self.fields.is_empty() {
+            evidence.add_piece(Topic::Struct, Cause::NoFields);
+            Mandate
+        } else {
+            Abstain
+        };
+        self.build_vote(res).with_evidence(evidence)
+    }
+}
+impl CastVote<DeriveCopy> for OriginStruct {
+    fn cast_ballot(&self) -> Vote<DeriveCopy> {
+        let mut evidence = DeriveCopy::new_evidence();
+        let res = if self.attrs.no_autoderive {
+            evidence.add_piece(Topic::Attr, Cause::AttrPresent(StructAttr::NoAutoderive.into()));
+            Forbid
+        } else if self.fields.is_empty() {
+            evidence.add_piece(Topic::Struct, Cause::NoFields);
+            Mandate
+        } else {
+            Abstain
+        };
+        self.build_vote(res).with_evidence(evidence)
     }
 }
 impl CastVote<InfallibleBuild> for OriginStruct {

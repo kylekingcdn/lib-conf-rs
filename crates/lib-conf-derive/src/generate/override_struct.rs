@@ -74,6 +74,9 @@ impl OverrideStruct {
     pub(crate) fn ty(&self) -> &Type {
         &self.ty
     }
+    pub(crate) fn fields(&self) -> &Vec<OverrideField> {
+        &self.fields
+    }
     pub(crate) fn has_required_fields(&self) -> bool {
         self.fields.iter().any(OverrideField::is_required)
     }

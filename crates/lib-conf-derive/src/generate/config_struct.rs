@@ -3,9 +3,9 @@ use crate::{
         BuilderStruct, OverrideStruct, VariantField,
         doc::{AppendDoc, Doc, Document, Link},
         plan::{
-            Cause, ConfigConsensus, ConfigPlan, DeriveCopy, DeriveDefault,
+            ConfigConsensus, ConfigPlan, DeriveCopy, DeriveDefault,
             FallibleBuild, FallibleFromOverride, FallibleMerge,
-            InfallibleBuild, InfallibleFromOverride, InfallibleMerge, Topic,
+            InfallibleBuild, InfallibleFromOverride, InfallibleMerge,
         },
         util::{self, CanonDepPath, CanonPath, FnProperties, IntoTypePath},
     },
@@ -13,8 +13,6 @@ use crate::{
 };
 
 use arbitrait::{
-    Propose,
-    ballot::unscored::MandateForbidBallot::{Abstain, Mandate},
     vote::{CastVote, IdentifyVoter, Vote},
 };
 use proc_macro2::TokenStream;
@@ -132,26 +130,14 @@ impl IdentifyVoter for ConfigStruct {
 }
 impl CastVote<DeriveDefault> for ConfigStruct {
     fn cast_ballot(&self) -> Vote<DeriveDefault> {
-        let mut evidence = DeriveDefault::new_evidence();
-        let res = if self.fields.is_empty() {
-            evidence.add_piece(Topic::Struct, Cause::NoFields);
-            Mandate
-        } else {
-            Abstain
-        };
-        self.build_vote(res).with_evidence(evidence)
+        let proxy: Vote<DeriveDefault> = self.origin.cast_ballot();
+        self.build_vote(*proxy.ballot()).with_evidence(proxy.into_evidence())
     }
 }
 impl CastVote<DeriveCopy> for ConfigStruct {
     fn cast_ballot(&self) -> Vote<DeriveCopy> {
-        let mut evidence = DeriveCopy::new_evidence();
-        let res = if self.fields.is_empty() {
-            evidence.add_piece(Topic::Struct, Cause::NoFields);
-            Mandate
-        } else {
-            Abstain
-        };
-        self.build_vote(res).with_evidence(evidence)
+        let proxy: Vote<DeriveCopy> = self.origin.cast_ballot();
+        self.build_vote(*proxy.ballot()).with_evidence(proxy.into_evidence())
     }
 }
 impl CastVote<InfallibleMerge> for ConfigStruct {

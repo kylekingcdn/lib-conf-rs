@@ -33,10 +33,11 @@ impl From<&ConfigConsensus> for ConfigPlan {
     }
 }
 
+#[expect(clippy::struct_excessive_bools, reason = "bools are the correct choice here")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct BuilderPlan {
-    //pub copy: bool,
-    //pub default: bool,
+    pub copy: bool,
+    pub default: bool,
 
     pub infallible_build: bool,
     pub fallible_build: bool,
@@ -44,8 +45,8 @@ pub(crate) struct BuilderPlan {
 impl From<&BuilderConsensus> for BuilderPlan {
     fn from(consensus: &BuilderConsensus) -> Self {
         Self {
-            //copy: consensus.copy.as_bool(),
-            //default: consensus.default.as_bool(),
+            copy: consensus.copy.as_bool(),
+            default: consensus.default.as_bool(),
             infallible_build: consensus.infallible_build.as_bool(),
             fallible_build: consensus.fallible_build.as_bool(),
         }
@@ -171,8 +172,8 @@ impl ConfigConsensus {
 }
 
 pub(crate) struct BuilderConsensus {
-    //pub copy: Outcome<DeriveCopy>,
-    //pub default: Outcome<DeriveDefault>,
+    pub copy: Outcome<DeriveCopy>,
+    pub default: Outcome<DeriveDefault>,
 
     pub infallible_build: Outcome<InfallibleBuild>,
     pub fallible_build: Outcome<FallibleBuild>,
@@ -185,8 +186,8 @@ impl BuilderConsensus {
         let fmt = StandardFormat;
         [
             "\n-- Builder struct --\n".to_string(),
-            //self.copy.as_rendered_report(fmt),
-            //self.default.as_rendered_report(fmt),
+            self.copy.as_rendered_report(fmt),
+            self.default.as_rendered_report(fmt),
             self.infallible_build.as_rendered_report(fmt),
             self.fallible_build.as_rendered_report(fmt),
         ].join("\n")
