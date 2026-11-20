@@ -1,6 +1,9 @@
 # Base config sourced from axum's sane defaults: https://github.com/tokio-rs/axum/blob/main/release-plz.toml
 #
 [workspace]
+# Temporarily disable release handling for all (covering examples)
+release = false
+
 # Only release when the release PR is merged, not on every commit
 # https://release-plz.dev/docs/config#the-release_always-field
 release_always = false
@@ -24,18 +27,39 @@ pr_branch_prefix = "release-plz/"
 [[package]]
 name = "lib-conf"
 changelog_include = ["lib-conf-derive"]
+release = true
 git_tag_enable = true
 changelog_update = true
+version_group = "core"
 
 [[package]]
 name = "lib-conf-derive"
+release = true
 git_tag_enable = true
 changelog_update = true
+version_group = "core"
+
+[[package]]
+name = "lib-conf-traits"
+release = true
+git_tag_enable = true
+changelog_update = true
+version_group = "traits"
 
 [[package]]
 name = "lib-conf-ports"
+release = true
 git_tag_enable = true
 changelog_update = true
+version_group = "ports"
+
+# [[package]]
+# name = "lib-conf-nested-tests"
+# release = false
+#
+# [[package]]
+# name = "lib-conf-example-00"
+# release = false
 
 [changelog]
 protect_breaking_commits = true
