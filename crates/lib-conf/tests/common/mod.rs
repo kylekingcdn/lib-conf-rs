@@ -1,3 +1,4 @@
+#![allow(unused, reason="test bootstrap")]
 use config::{Config, Environment};
 use std::path::Path;
 

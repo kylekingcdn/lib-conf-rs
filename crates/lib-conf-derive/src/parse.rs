@@ -22,6 +22,7 @@ use syn::{Ident, Path, PathSegment};
 /// Primary type idents, shared by all parse / generate structs to aid with doc refs
 #[cfg_attr(feature = "syn-debug", derive(Debug))]
 pub(crate) struct IdentPool {
+    #[cfg(feature = "serde")]
     prefix: Rc<Ident>,
     // suffix: Rc<Ident>,
 
@@ -53,6 +54,7 @@ impl IdentPool {
         let (prefix, suffix) = Self::split_origin_ident(&origin_ident)?;
 
         Ok(Self {
+            #[cfg(feature = "serde")]
             prefix: format_ident!("{prefix}").into(),
             // suffix: format_ident!("{suffix}").into(),
 
@@ -89,6 +91,7 @@ impl IdentPool {
             })
         }
     }
+    #[cfg(feature = "serde")]
     pub(crate) fn prefix(&self) -> &Rc<Ident> {
         &self.prefix
     }

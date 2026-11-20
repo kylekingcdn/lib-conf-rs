@@ -580,10 +580,6 @@ impl OverrideField {
     pub(crate) fn is_required(&self) -> bool {
         self.attrs().override_required
     }
-    #[cfg_attr(
-        not(feature = "serde"),
-        expect(dead_code, reason = "used w/ serde feature")
-    )]
     pub(crate) fn supports_copy(&self) -> bool {
         if let Some(override_from) = &self.attrs().override_from {
             override_from.copy

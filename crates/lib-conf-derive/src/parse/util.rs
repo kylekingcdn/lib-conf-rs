@@ -28,6 +28,7 @@ pub(crate) fn snake_case_to_upper_pascal(snek: &str) -> String {
     pasc
 }
 
+#[cfg(feature = "serde")]
 pub(crate) fn upper_pascal_to_snake_case(pasc: &str) -> String {
     let mut snek = String::with_capacity((pasc.len()*5)/4);
 

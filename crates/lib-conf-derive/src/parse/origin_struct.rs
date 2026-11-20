@@ -12,7 +12,7 @@ use crate::{
             CallExpr, GroupedAttrs, PassthroughAttrs, ProxiedAttr, StandardAttr,
             StrExpr, StructAttr, UnvalidatedGroupedAttrs, ValidateAttrs,
         },
-        error::ParseError, IdentPool, OriginField, shared::SharedAttrs, util,
+        error::ParseError, IdentPool, OriginField, shared::SharedAttrs,
     },
 };
 
@@ -22,10 +22,17 @@ use arbitrait::{
     vote::{CastVote, IdentifyVoter, Vote},
 };
 use proc_macro2::TokenStream;
-use quote::{format_ident, ToTokens};
+use quote::ToTokens;
 use std::rc::Rc;
 use std::sync::LazyLock;
-use syn::{Data, DeriveInput, Error, Fields, Generics, Ident, Meta, Type, TypePath};
+use syn::{Data, DeriveInput, Error, Fields, Generics, Meta, Type, TypePath};
+
+#[cfg(feature = "serde")]
+use {
+    crate::parse::util,
+    quote::format_ident,
+    syn::Ident,
+};
 
 // !- Statics
 
@@ -73,6 +80,7 @@ impl OriginStruct {
         self.input
     }
     // ! Attributes
+    #[cfg(feature = "serde")]
     pub(crate) fn example_field_name(&self) -> Ident {
         if let Some(name) = self.attrs.example_field_name() {
             format_ident!("{name}")
@@ -99,10 +107,6 @@ impl OriginStruct {
     pub(crate) fn has_required_fields(&self) -> bool {
         self.fields.iter().any(|f| f.is_required())
     }
-    #[cfg_attr(
-        not(feature = "serde"),
-        expect(dead_code, reason = "used w/ serde feature")
-    )]
     pub(crate) fn has_optional_fields(&self) -> bool {
         self.fields.iter().any(|f| f.is_optional())
     }
@@ -286,6 +290,7 @@ pub(crate) struct OriginStructAttrs {
     pub shared: SharedAttrs,
 }
 impl OriginStructAttrs {
+    #[cfg(feature = "serde")]
     fn example_field_name(&self) -> Option<&str> {
         self.example_field_name.as_deref()
     }
