@@ -33,7 +33,7 @@ config = { version = "0.15.25", default-features = false }
 dotenvy = { version = "0.15.7", default-features = false }
 lib-conf = { version = "0.5.0-rc.1", default-features = false, path = "crates/lib-conf" }
 lib-conf-derive = { version = "0.5.0-rc.1", default-features = false, path = "crates/lib-conf-derive" }
-lib-conf-traits = { version = "0.0.1-rc.1", default-features = false, path = "crates/lib-conf-traits" }
+lib-conf-traits = { version = "0.0.1", default-features = false, path = "crates/lib-conf-traits" }
 log = { version = "0.4.18", default-features = false }
 prettyplease = { version = "0.3.0", default-features = false }
 proc-macro2 = { version = "1.0.107", default-features = false }
