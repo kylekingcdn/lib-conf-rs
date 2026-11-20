@@ -245,6 +245,7 @@ impl ValidateAttrs<StructAttr, ()> for UnvalidatedGroupedAttrs<StructAttr> {
 #[cfg_attr(feature = "syn-debug", derive(Debug))]
 #[derive(Clone, Default)]
 pub(crate) struct OriginStructAttrs {
+    pub no_autoderive: bool,
     pub builder_derives: Vec<TokenStream>,
     pub builder_attrs: Vec<TokenStream>,
 
@@ -257,7 +258,7 @@ pub(crate) struct OriginStructAttrs {
 
     pub vote_debug: bool,
     pub lib_conf_attribution: bool,
-    
+
     pub shared: SharedAttrs,
 }
 impl OriginStructAttrs {
@@ -293,6 +294,7 @@ impl OriginStructAttrs {
             match attr.meta {
                 Meta::Path(_mpath) => {
                     match attr.variant {
+                        StructAttr::NoAutoderive => out.no_autoderive = true,
                         StructAttr::VoteDebug => out.vote_debug = true,
                         StructAttr::LibConfAttribution => out.lib_conf_attribution = true,
                         _unknown => unreachable!("shape validation covers unknown"),

@@ -13,6 +13,7 @@ use syn::Ident;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum StructAttr {
+    NoAutoderive,
     Derive,
     BuilderDerive,
     OverrideDerive,
@@ -32,6 +33,7 @@ pub(crate) enum StructAttr {
     StaticAssertionsCrate,
 }
 impl StructAttr {
+    pub(crate) const NO_AUTODERIVE: &str = "no_autoderive";
     pub(crate) const DERIVE: &str = "derive";
     pub(crate) const BUILDER_DERIVE: &'static str = "builder_derive";
     pub(crate) const OVERRIDE_DERIVE: &'static str = "override_derive";
@@ -56,6 +58,7 @@ impl StructAttr {
 impl AttrVariant for StructAttr {
     fn as_str(self) -> &'static str {
         match self {
+            Self::NoAutoderive => Self::NO_AUTODERIVE,
             Self::Derive => Self::DERIVE,
             Self::BuilderDerive => Self::BUILDER_DERIVE,
             Self::OverrideDerive => Self::OVERRIDE_DERIVE,
@@ -134,6 +137,7 @@ impl TryFrom<(Option<StructAttr>, &Ident)> for StructAttr {
     fn try_from((parent, ident): (Option<StructAttr>, &Ident)) -> Result<Self, Self::Error> {
         match parent {
             None => match ident.to_string().as_str() {
+                Self::NO_AUTODERIVE => Ok(Self::NoAutoderive),
                 Self::DERIVE => Ok(Self::Derive),
                 Self::BUILDER_DERIVE => Ok(Self::BuilderDerive),
                 Self::OVERRIDE_DERIVE => Ok(Self::OverrideDerive),
@@ -164,6 +168,7 @@ impl TryFrom<(Option<StructAttr>, Ident)> for StructAttr {
 // ! Struct attr statics
 
 pub(super) static STRUCT_ATTR_SHAPES: LazyLock<HashMap<StructAttr, Vec<Shape>>> = LazyLock::new(|| [
+    (StructAttr::NoAutoderive,          vec![Shape::Flag]),
     (StructAttr::Derive,                vec![Shape::List]),
     (StructAttr::BuilderDerive,         vec![Shape::List]),
     (StructAttr::OverrideDerive,        vec![Shape::List]),
