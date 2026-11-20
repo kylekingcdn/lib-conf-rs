@@ -53,7 +53,7 @@ dependencies = [
 
 [[package]]
 name = "lib-conf-traits"
-version = "0.0.1"
+version = "0.0.1-rc.1"
 
 [[package]]
 name = "prettyplease"
