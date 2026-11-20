@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0-rc.1](https://github.com/kylekingcdn/lib-conf-rs/compare/lib-conf-derive-v0.4.2...lib-conf-derive-v0.5.0-rc.1) - 2026-11-20
+
+### Chore
+
+- add copy/default to builder plan
+- fix serde flags
+- update deps
+- no default dep features, fix dev deps
+- fix typos
+- improve expansion
+- lint fixes
+- drop field attrs field vis
+- direct StrExpr -> String helper
+- wrap field ident in Rc
+- add path support to IdentPool
+
+### Doc
+
+- wip attributes update
+- fix typos
+- fmt/typos
+- expr handling fixed
+
+### Feat
+
+- add no_autoderive attr
+- support for custom dep crate paths
+- config_docs attr macro
+- nested support
+- auto-derive copy
+- add assign impl for Config += Override
+- preliminary support for validation
+
+### Fix
+
+- no-serde lints
+- derives use plan
+- default/copy derive on empty config
+- improve invalid attr shape error
+
 ## [0.4.2](https://github.com/kylekingcdn/lib-conf-rs/compare/lib-conf-derive-v0.4.1...lib-conf-derive-v0.4.2) - 2026-10-21
 
 ### Chore

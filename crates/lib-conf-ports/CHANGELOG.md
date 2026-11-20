@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0-rc.1](https://github.com/kylekingcdn/lib-conf-rs/compare/lib-conf-ports-v0.4.2...lib-conf-ports-v0.5.0-rc.1) - 2026-11-20
+
+### Chore
+
+- fix serde flags
+- improve expansion
+
+### Feat
+
+- nested support
+
 ## [0.4.0](https://github.com/kylekingcdn/lib-conf-rs/compare/lib-conf-ports-v0.3.2...lib-conf-ports-v0.4.0) - 2026-10-16
 
 ### Build
