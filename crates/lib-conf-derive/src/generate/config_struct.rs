@@ -862,12 +862,12 @@ impl ConfigField {
             let init_fallback = match nested_attrs.from_override {
                 FromOverrideSupport::Infallible => quote!(<#flat_ty>::from(val)),
                 FromOverrideSupport::Fallible => quote!(<#flat_ty>::try_from(val)#from_override_suffix),
-                FromOverrideSupport::None => unreachable!("nested merge - Shouldn't be able to execute this branch if no from_override is avaialable")
+                FromOverrideSupport::None => unreachable!("nested merge - Shouldn't be able to execute this branch if no from_override is available")
             };
             quote! {
                 // can safely ignore if not present in override
                 if let #option_path::Some(val) = val {
-                    // nested sruct is present, simply do recursive merge
+                    // nested struct is present, simply do recursive merge
                     if let #option_path::Some(current) = &mut self.#ident {
                         <#flat_ty as #merge_trait_path>::#merge_fn(current, val)#merge_suffix;
                     }
@@ -881,7 +881,7 @@ impl ConfigField {
         }
         // stored config is non-option: trivial merges
         else {
-            // stored comfig is non-option, trivial merge call
+            // stored config is non-option, trivial merge call
             if self.attrs().override_required {
                 quote! {
                     <#flat_ty as #merge_trait_path>::#merge_fn(&mut self.#ident, val)#merge_suffix;
@@ -889,7 +889,7 @@ impl ConfigField {
             }
             // requires if let check for override presence
             else {
-                // NOTE: keeping the inner portions sepearate to reduce maintenance burden, KISS
+                // NOTE: keeping the inner portions separate to reduce maintenance burden, KISS
                 quote! {
                     if let #option_path::Some(val) = val {
                         <#flat_ty as #merge_trait_path>::#merge_fn(&mut self.#ident, val)#merge_suffix;
@@ -978,7 +978,7 @@ impl ConfigField {
             match from_override {
                 FromOverrideSupport::Infallible => quote!(<#flat_ty>::from(val)),
                 FromOverrideSupport::Fallible => quote!(<#flat_ty>::try_from(val)#map_err),
-                FromOverrideSupport::None => unreachable!("nested from override - shouldn't be able to execute this branch if no from_override is avaialable")
+                FromOverrideSupport::None => unreachable!("nested from override - shouldn't be able to execute this branch if no from_override is available")
             }
         }
 
