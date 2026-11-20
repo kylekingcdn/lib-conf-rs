@@ -106,8 +106,7 @@ for ReqContainsRequiredAndOverrideSkipConfig {
 /// Can be constructed using either [`ReqContainsRequiredAndOverrideSkipConfig::builder()`](method@ReqContainsRequiredAndOverrideSkipConfig::builder) or [`ReqContainsRequiredAndOverrideSkipConfigBuilder::new()`](method@ReqContainsRequiredAndOverrideSkipConfigBuilder::new).
 ///
 /// For run-time configuration of `ReqContainsRequiredAndOverrideSkipConfig`, see [`ReqContainsRequiredAndOverrideSkipOverrideConfig`](struct@ReqContainsRequiredAndOverrideSkipOverrideConfig)
-#[derive(Debug, Clone)]
-#[derive(Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct ReqContainsRequiredAndOverrideSkipConfigBuilder {
     pub(crate) inner: ReqContainsRequiredAndOverrideSkipConfig,
     pub(crate) override_conf: ::std::option::Option<
@@ -229,9 +228,7 @@ for ReqContainsRequiredAndOverrideSkipConfigBuilder {
 /// | Name | Type |
 /// | - | - |
 /// | `foo` | `WithRequiredAndOverrideSkipOverrideConfig` |
-#[derive(Debug, Clone)]
-#[derive(Copy)]
-#[derive(::serde::Deserialize)]
+#[derive(Debug, Clone, Copy, ::serde::Deserialize)]
 pub struct ReqContainsRequiredAndOverrideSkipOverrideConfig {
     ///
     /// ---

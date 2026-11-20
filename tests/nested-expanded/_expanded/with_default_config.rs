@@ -103,8 +103,7 @@ impl ::std::ops::AddAssign<WithDefaultOverrideConfig> for WithDefaultConfig {
 /// Can be constructed using either [`WithDefaultConfig::builder()`](method@WithDefaultConfig::builder) or [`WithDefaultConfigBuilder::new()`](method@WithDefaultConfigBuilder::new).
 ///
 /// For run-time configuration of `WithDefaultConfig`, see [`WithDefaultOverrideConfig`](struct@WithDefaultOverrideConfig)
-#[derive(Debug, Clone)]
-#[derive(Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct WithDefaultConfigBuilder {
     pub(crate) inner: WithDefaultConfig,
     pub(crate) override_conf: ::std::option::Option<WithDefaultOverrideConfig>,
@@ -167,12 +166,6 @@ impl WithDefaultConfigBuilder {
     #[must_use]
     pub fn build(mut self) -> WithDefaultConfig {
         <Self as ::lib_conf::traits::build::BuildConfig>::build(self)
-    }
-}
-#[automatically_derived]
-impl ::std::default::Default for WithDefaultConfigBuilder {
-    fn default() -> Self {
-        Self::new()
     }
 }
 #[automatically_derived]
@@ -250,9 +243,7 @@ impl ::lib_conf::traits::build::BuildConfig for WithDefaultConfigBuilder {
 /// - `foo_revert`
 /// - `foo_clear`
 /// - `foo_default`
-#[derive(Debug, Clone)]
-#[derive(Copy)]
-#[derive(::serde::Deserialize)]
+#[derive(Debug, Clone, Copy, ::serde::Deserialize)]
 pub struct WithDefaultOverrideConfig {
     ///
     /// ---

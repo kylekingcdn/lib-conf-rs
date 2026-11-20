@@ -216,8 +216,7 @@ impl ::lib_conf::traits::error::ConfigError for ReqContainsRequiredConfigError {
 /// Can be constructed using either [`ReqContainsRequiredConfig::builder()`](method@ReqContainsRequiredConfig::builder) or [`ReqContainsRequiredConfigBuilder::new()`](method@ReqContainsRequiredConfigBuilder::new).
 ///
 /// For run-time configuration of `ReqContainsRequiredConfig`, see [`ReqContainsRequiredOverrideConfig`](struct@ReqContainsRequiredOverrideConfig)
-#[derive(Debug, Clone)]
-#[derive(Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct ReqContainsRequiredConfigBuilder {
     pub(crate) inner: ReqContainsRequiredConfig,
     pub(crate) override_conf: ::std::option::Option<ReqContainsRequiredOverrideConfig>,
@@ -336,9 +335,7 @@ impl ::lib_conf::traits::build::BuildConfig for ReqContainsRequiredConfigBuilder
 /// | Name | Type |
 /// | - | - |
 /// | `foo` | `WithRequiredOverrideConfig` |
-#[derive(Debug, Clone)]
-#[derive(Copy)]
-#[derive(::serde::Deserialize)]
+#[derive(Debug, Clone, Copy, ::serde::Deserialize)]
 pub struct ReqContainsRequiredOverrideConfig {
     ///
     /// ---

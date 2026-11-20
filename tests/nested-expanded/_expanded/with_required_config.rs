@@ -179,8 +179,7 @@ impl ::lib_conf::traits::error::ConfigError for WithRequiredConfigError {
 /// Can be constructed using either [`WithRequiredConfig::builder()`](method@WithRequiredConfig::builder) or [`WithRequiredConfigBuilder::new()`](method@WithRequiredConfigBuilder::new).
 ///
 /// For run-time configuration of `WithRequiredConfig`, see [`WithRequiredOverrideConfig`](struct@WithRequiredOverrideConfig)
-#[derive(Debug, Clone)]
-#[derive(Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct WithRequiredConfigBuilder {
     pub(crate) inner: WithRequiredConfig,
     pub(crate) override_conf: ::std::option::Option<WithRequiredOverrideConfig>,
@@ -280,9 +279,7 @@ impl ::lib_conf::traits::build::BuildConfig for WithRequiredConfigBuilder {
 /// | Name | Type |
 /// | - | - |
 /// | `foo` | `bool` |
-#[derive(Debug, Clone)]
-#[derive(Copy)]
-#[derive(::serde::Deserialize)]
+#[derive(Debug, Clone, Copy, ::serde::Deserialize)]
 pub struct WithRequiredOverrideConfig {
     ///
     /// ---

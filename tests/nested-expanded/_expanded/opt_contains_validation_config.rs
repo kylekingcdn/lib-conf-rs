@@ -216,8 +216,7 @@ impl ::lib_conf::traits::error::ConfigError for OptContainsValidationConfigError
 /// Can be constructed using either [`OptContainsValidationConfig::builder()`](method@OptContainsValidationConfig::builder) or [`OptContainsValidationConfigBuilder::new()`](method@OptContainsValidationConfigBuilder::new).
 ///
 /// For run-time configuration of `OptContainsValidationConfig`, see [`OptContainsValidationOverrideConfig`](struct@OptContainsValidationOverrideConfig)
-#[derive(Debug, Clone)]
-#[derive(Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct OptContainsValidationConfigBuilder {
     pub(crate) inner: OptContainsValidationConfig,
     pub(crate) override_conf: ::std::option::Option<OptContainsValidationOverrideConfig>,
@@ -328,12 +327,6 @@ impl OptContainsValidationConfigBuilder {
     }
 }
 #[automatically_derived]
-impl ::std::default::Default for OptContainsValidationConfigBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-#[automatically_derived]
 impl ::lib_conf::traits::build::TryBuildConfig for OptContainsValidationConfigBuilder {
     type Config = OptContainsValidationConfig;
     type Error = OptContainsValidationConfigError;
@@ -376,9 +369,7 @@ impl ::lib_conf::traits::build::TryBuildConfig for OptContainsValidationConfigBu
 /// | Name | Type |
 /// | - | - |
 /// | `foo` | `WithValidationOverrideConfig` |
-#[derive(Debug, Clone)]
-#[derive(Copy)]
-#[derive(::serde::Deserialize)]
+#[derive(Debug, Clone, Copy, ::serde::Deserialize)]
 pub struct OptContainsValidationOverrideConfig {
     ///
     /// ---

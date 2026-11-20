@@ -5,7 +5,11 @@ use crate::{
         util::{self, CanonPath},
         VariantField,
     },
-    parse::{self, attr::FieldAttr, IdentPool, OriginField, OriginStruct},
+    parse::{
+        self,
+        attr::{FieldAttr, StructAttr},
+        IdentPool, OriginField, OriginStruct,
+    },
 };
 
 #[cfg(feature = "serde")]
@@ -130,7 +134,10 @@ impl CastVote<DeriveDefault> for OverrideStruct {
 impl CastVote<DeriveCopy> for OverrideStruct {
     fn cast_ballot(&self) -> Vote<DeriveCopy> {
         let mut evidence = DeriveCopy::new_evidence();
-        let res = if self.fields.is_empty() {
+        let res = if self.origin.attrs.no_autoderive {
+            evidence.add_piece(Topic::Attr, Cause::AttrPresent(StructAttr::NoAutoderive.into()));
+            Forbid
+        } else if self.fields.is_empty() {
             evidence.add_piece(Topic::Struct, Cause::NoFields);
             Mandate
         } else {
@@ -366,23 +373,25 @@ impl OverrideStruct {
     // ! Struct token output
 
     fn derive_tokens(&self) -> TokenStream {
-        let mut base = quote! { #[derive(Debug, Clone)] };
+        let mut traits = Vec::new();
 
+        if self.origin.attrs.autoderive() {
+            traits.push(quote!(Debug));
+            traits.push(quote!(Clone));
+        }
+        // handles no autoderive
         if self.plan().copy {
-            base.extend(quote! { #[derive(Copy)] });
+            traits.push(quote!(Copy));
         }
 
         #[cfg(feature = "serde")]
-        base.extend(quote! { #[derive(::serde::Deserialize)] });
+        traits.push(quote!(::serde::Deserialize));
 
-        let custom = self.origin.attrs.has_override_derives().then(|| {
-            let derives = &self.origin.attrs.override_derives;
-            quote!(#[derive(#(#derives),*)])
-        });
+        // add user custom
+        traits.extend(self.origin.attrs.override_derives.clone());
 
         quote! {
-            #base
-            #custom
+            #[derive(#(#traits),*)]
         }
     }
     fn attr_tokens(&self) -> Option<TokenStream> {
@@ -528,8 +537,8 @@ impl ToTokens for OverrideStruct {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         tokens.extend(self.struct_tokens());
         tokens.extend(self.impl_tokens());
+
         if self.plan().default {
-            // all fields must be optional for default impl
             tokens.extend(self.default_impl_tokens());
         }
     }

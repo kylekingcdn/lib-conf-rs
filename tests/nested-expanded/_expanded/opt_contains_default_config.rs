@@ -128,8 +128,7 @@ for OptContainsDefaultConfig {
 /// Can be constructed using either [`OptContainsDefaultConfig::builder()`](method@OptContainsDefaultConfig::builder) or [`OptContainsDefaultConfigBuilder::new()`](method@OptContainsDefaultConfigBuilder::new).
 ///
 /// For run-time configuration of `OptContainsDefaultConfig`, see [`OptContainsDefaultOverrideConfig`](struct@OptContainsDefaultOverrideConfig)
-#[derive(Debug, Clone)]
-#[derive(Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct OptContainsDefaultConfigBuilder {
     pub(crate) inner: OptContainsDefaultConfig,
     pub(crate) override_conf: ::std::option::Option<OptContainsDefaultOverrideConfig>,
@@ -229,12 +228,6 @@ impl OptContainsDefaultConfigBuilder {
     }
 }
 #[automatically_derived]
-impl ::std::default::Default for OptContainsDefaultConfigBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-#[automatically_derived]
 impl ::lib_conf::traits::build::BuildConfig for OptContainsDefaultConfigBuilder {
     type Config = OptContainsDefaultConfig;
     fn build(mut self) -> Self::Config {
@@ -276,9 +269,7 @@ impl ::lib_conf::traits::build::BuildConfig for OptContainsDefaultConfigBuilder 
 /// | Name | Type |
 /// | - | - |
 /// | `foo` | `WithDefaultOverrideConfig` |
-#[derive(Debug, Clone)]
-#[derive(Copy)]
-#[derive(::serde::Deserialize)]
+#[derive(Debug, Clone, Copy, ::serde::Deserialize)]
 pub struct OptContainsDefaultOverrideConfig {
     ///
     /// ---

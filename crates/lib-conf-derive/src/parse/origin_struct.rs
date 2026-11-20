@@ -112,9 +112,6 @@ impl OriginStruct {
     pub(crate) fn use_phantom_fields(&self) -> bool {
         self.has_generics()
     }
-    pub(crate) fn all_fields_copy(&self) -> bool {
-        self.fields.iter().all(|f| f.attrs.copy)
-    }
 }
 
 impl IdentifyVoter for OriginStruct {
@@ -292,11 +289,8 @@ impl OriginStructAttrs {
     fn example_field_name(&self) -> Option<&str> {
         self.example_field_name.as_deref()
     }
-    pub(crate) fn has_builder_derives(&self) -> bool {
-        !self.builder_derives.is_empty()
-    }
-    pub(crate) fn has_override_derives(&self) -> bool {
-        !self.override_derives.is_empty()
+    pub(crate) fn autoderive(&self) -> bool {
+        !self.no_autoderive
     }
     pub(crate) fn has_builder_attrs(&self) -> bool {
         !self.builder_attrs.is_empty()

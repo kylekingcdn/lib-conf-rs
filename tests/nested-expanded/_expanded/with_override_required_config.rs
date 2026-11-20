@@ -106,8 +106,7 @@ for WithOverrideRequiredConfig {
 /// Can be constructed using either [`WithOverrideRequiredConfig::builder()`](method@WithOverrideRequiredConfig::builder) or [`WithOverrideRequiredConfigBuilder::new()`](method@WithOverrideRequiredConfigBuilder::new).
 ///
 /// For run-time configuration of `WithOverrideRequiredConfig`, see [`WithOverrideRequiredOverrideConfig`](struct@WithOverrideRequiredOverrideConfig)
-#[derive(Debug, Clone)]
-#[derive(Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct WithOverrideRequiredConfigBuilder {
     pub(crate) inner: WithOverrideRequiredConfig,
     pub(crate) override_conf: WithOverrideRequiredOverrideConfig,
@@ -196,9 +195,7 @@ impl ::lib_conf::traits::build::BuildConfig for WithOverrideRequiredConfigBuilde
 ///
 /// **Notes:**
 /// - ❗️: This field is mandatory.
-#[derive(Debug, Clone)]
-#[derive(Copy)]
-#[derive(::serde::Deserialize)]
+#[derive(Debug, Clone, Copy, ::serde::Deserialize)]
 pub struct WithOverrideRequiredOverrideConfig {
     ///
     /// ---

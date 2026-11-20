@@ -210,8 +210,7 @@ impl ::lib_conf::traits::error::ConfigError for OptContainsRequiredConfigError {
 /// Can be constructed using either [`OptContainsRequiredConfig::builder()`](method@OptContainsRequiredConfig::builder) or [`OptContainsRequiredConfigBuilder::new()`](method@OptContainsRequiredConfigBuilder::new).
 ///
 /// For run-time configuration of `OptContainsRequiredConfig`, see [`OptContainsRequiredOverrideConfig`](struct@OptContainsRequiredOverrideConfig)
-#[derive(Debug, Clone)]
-#[derive(Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct OptContainsRequiredConfigBuilder {
     pub(crate) inner: OptContainsRequiredConfig,
     pub(crate) override_conf: ::std::option::Option<OptContainsRequiredOverrideConfig>,
@@ -298,12 +297,6 @@ impl OptContainsRequiredConfigBuilder {
     }
 }
 #[automatically_derived]
-impl ::std::default::Default for OptContainsRequiredConfigBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-#[automatically_derived]
 impl ::lib_conf::traits::build::TryBuildConfig for OptContainsRequiredConfigBuilder {
     type Config = OptContainsRequiredConfig;
     type Error = OptContainsRequiredConfigError;
@@ -346,9 +339,7 @@ impl ::lib_conf::traits::build::TryBuildConfig for OptContainsRequiredConfigBuil
 /// | Name | Type |
 /// | - | - |
 /// | `foo` | `WithRequiredOverrideConfig` |
-#[derive(Debug, Clone)]
-#[derive(Copy)]
-#[derive(::serde::Deserialize)]
+#[derive(Debug, Clone, Copy, ::serde::Deserialize)]
 pub struct OptContainsRequiredOverrideConfig {
     ///
     /// ---

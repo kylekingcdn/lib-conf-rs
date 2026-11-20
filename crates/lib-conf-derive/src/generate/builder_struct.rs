@@ -159,20 +159,24 @@ impl BuilderStruct {
     // ! Struct token output
 
     fn derive_tokens(&self) -> TokenStream {
-        let mut base = TokenStream::new();
+        let mut traits = Vec::new();
 
-        if self.all_fields_copy() {
-            base.extend(quote! { #[derive(Copy)] });
+        if self.origin.attrs.autoderive() {
+            traits.push(quote!(Debug));
+            traits.push(quote!(Clone));
+        }
+        if self.plan().copy {
+            traits.push(quote!(Copy));
+        }
+        if self.plan().default {
+            traits.push(quote!(Default));
         }
 
-        let custom = self.origin.attrs.has_builder_derives().then(|| {
-            let derives = &self.origin.attrs.builder_derives;
-            quote!(#[derive(#(#derives),*)])
-        });
+        // add user custom
+        traits.extend(self.origin.attrs.builder_derives.clone());
 
         quote! {
-            #base
-            #custom
+            #[derive(#(#traits),*)]
         }
     }
     fn attr_tokens(&self) -> Option<TokenStream> {
@@ -207,7 +211,6 @@ impl BuilderStruct {
             #docs
             #cfg_attrs
             #doc_cfg_attrs
-            #[derive(Debug, Clone)]
             #derives
             #attrs
             pub struct #struct_ident #generics
@@ -428,11 +431,6 @@ impl BuilderStruct {
             }
         }
     }
-    fn default_impl_tokens(&self) -> TokenStream {
-        let cfg_attrs = self.origin.cfg_tokens();
-        let doc_cfg_attrs = self.origin.doc_cfg_tokens();
-        util::bare_default_impl_tokens(self.ident(), self.origin.generics(), &cfg_attrs, &doc_cfg_attrs)
-    }
     fn impl_tokens(&self) -> TokenStream {
         let struct_ident = self.ident();
         let cfg_attrs = self.origin.cfg_tokens();
@@ -464,13 +462,6 @@ impl ToTokens for BuilderStruct {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         tokens.extend(self.struct_tokens());
         tokens.extend(self.impl_tokens());
-
-        // add default impl, if supported
-        if !self.origin.has_required_fields() &&
-        !self.override_struct.has_required_fields() {
-            tokens.extend(self.default_impl_tokens());
-        }
-
         tokens.extend(self.build_trait_impl_tokens());
     }
 }

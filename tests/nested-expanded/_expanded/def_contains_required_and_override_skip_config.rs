@@ -122,8 +122,7 @@ for DefContainsRequiredAndOverrideSkipConfig {
 /// Can be constructed using either [`DefContainsRequiredAndOverrideSkipConfig::builder()`](method@DefContainsRequiredAndOverrideSkipConfig::builder) or [`DefContainsRequiredAndOverrideSkipConfigBuilder::new()`](method@DefContainsRequiredAndOverrideSkipConfigBuilder::new).
 ///
 /// For run-time configuration of `DefContainsRequiredAndOverrideSkipConfig`, see [`DefContainsRequiredAndOverrideSkipOverrideConfig`](struct@DefContainsRequiredAndOverrideSkipOverrideConfig)
-#[derive(Debug, Clone)]
-#[derive(Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct DefContainsRequiredAndOverrideSkipConfigBuilder {
     pub(crate) inner: DefContainsRequiredAndOverrideSkipConfig,
     pub(crate) override_conf: ::std::option::Option<
@@ -205,12 +204,6 @@ impl DefContainsRequiredAndOverrideSkipConfigBuilder {
     }
 }
 #[automatically_derived]
-impl ::std::default::Default for DefContainsRequiredAndOverrideSkipConfigBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-#[automatically_derived]
 impl ::lib_conf::traits::build::BuildConfig
 for DefContainsRequiredAndOverrideSkipConfigBuilder {
     type Config = DefContainsRequiredAndOverrideSkipConfig;
@@ -253,9 +246,7 @@ for DefContainsRequiredAndOverrideSkipConfigBuilder {
 /// | Name | Type |
 /// | - | - |
 /// | `foo` | `WithRequiredAndOverrideSkipOverrideConfig` |
-#[derive(Debug, Clone)]
-#[derive(Copy)]
-#[derive(::serde::Deserialize)]
+#[derive(Debug, Clone, Copy, ::serde::Deserialize)]
 pub struct DefContainsRequiredAndOverrideSkipOverrideConfig {
     ///
     /// ---

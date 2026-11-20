@@ -130,8 +130,7 @@ for DefContainsOverrideRequiredConfig {
 /// Can be constructed using either [`DefContainsOverrideRequiredConfig::builder()`](method@DefContainsOverrideRequiredConfig::builder) or [`DefContainsOverrideRequiredConfigBuilder::new()`](method@DefContainsOverrideRequiredConfigBuilder::new).
 ///
 /// For run-time configuration of `DefContainsOverrideRequiredConfig`, see [`DefContainsOverrideRequiredOverrideConfig`](struct@DefContainsOverrideRequiredOverrideConfig)
-#[derive(Debug, Clone)]
-#[derive(Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct DefContainsOverrideRequiredConfigBuilder {
     pub(crate) inner: DefContainsOverrideRequiredConfig,
     pub(crate) override_conf: ::std::option::Option<
@@ -216,12 +215,6 @@ impl DefContainsOverrideRequiredConfigBuilder {
     }
 }
 #[automatically_derived]
-impl ::std::default::Default for DefContainsOverrideRequiredConfigBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-#[automatically_derived]
 impl ::lib_conf::traits::build::BuildConfig
 for DefContainsOverrideRequiredConfigBuilder {
     type Config = DefContainsOverrideRequiredConfig;
@@ -264,9 +257,7 @@ for DefContainsOverrideRequiredConfigBuilder {
 /// | Name | Type |
 /// | - | - |
 /// | `foo` | `WithOverrideRequiredOverrideConfig` |
-#[derive(Debug, Clone)]
-#[derive(Copy)]
-#[derive(::serde::Deserialize)]
+#[derive(Debug, Clone, Copy, ::serde::Deserialize)]
 pub struct DefContainsOverrideRequiredOverrideConfig {
     ///
     /// ---

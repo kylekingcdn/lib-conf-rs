@@ -84,8 +84,7 @@ for WithRequiredAndOverrideSkipConfig {
 /// Can be constructed using either [`WithRequiredAndOverrideSkipConfig::builder()`](method@WithRequiredAndOverrideSkipConfig::builder) or [`WithRequiredAndOverrideSkipConfigBuilder::new()`](method@WithRequiredAndOverrideSkipConfigBuilder::new).
 ///
 /// For run-time configuration of `WithRequiredAndOverrideSkipConfig`, see [`WithRequiredAndOverrideSkipOverrideConfig`](struct@WithRequiredAndOverrideSkipOverrideConfig)
-#[derive(Debug, Clone)]
-#[derive(Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct WithRequiredAndOverrideSkipConfigBuilder {
     pub(crate) inner: WithRequiredAndOverrideSkipConfig,
     pub(crate) override_conf: ::std::option::Option<
@@ -185,9 +184,7 @@ for WithRequiredAndOverrideSkipConfigBuilder {
 ///     with_required_and_override_skip: WithRequiredAndOverrideSkipOverrideConfig,
 /// }
 /// ```
-#[derive(Debug, Clone)]
-#[derive(Copy)]
-#[derive(::serde::Deserialize)]
+#[derive(Debug, Clone, Copy, ::serde::Deserialize)]
 pub struct WithRequiredAndOverrideSkipOverrideConfig {}
 impl WithRequiredAndOverrideSkipOverrideConfig {}
 #[automatically_derived]

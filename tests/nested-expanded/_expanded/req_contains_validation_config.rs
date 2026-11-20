@@ -212,8 +212,7 @@ impl ::lib_conf::traits::error::ConfigError for ReqContainsValidationConfigError
 /// Can be constructed using either [`ReqContainsValidationConfig::builder()`](method@ReqContainsValidationConfig::builder) or [`ReqContainsValidationConfigBuilder::new()`](method@ReqContainsValidationConfigBuilder::new).
 ///
 /// For run-time configuration of `ReqContainsValidationConfig`, see [`ReqContainsValidationOverrideConfig`](struct@ReqContainsValidationOverrideConfig)
-#[derive(Debug, Clone)]
-#[derive(Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct ReqContainsValidationConfigBuilder {
     pub(crate) inner: ReqContainsValidationConfig,
     pub(crate) override_conf: ::std::option::Option<ReqContainsValidationOverrideConfig>,
@@ -360,9 +359,7 @@ impl ::lib_conf::traits::build::TryBuildConfig for ReqContainsValidationConfigBu
 /// | Name | Type |
 /// | - | - |
 /// | `foo` | `WithValidationOverrideConfig` |
-#[derive(Debug, Clone)]
-#[derive(Copy)]
-#[derive(::serde::Deserialize)]
+#[derive(Debug, Clone, Copy, ::serde::Deserialize)]
 pub struct ReqContainsValidationOverrideConfig {
     ///
     /// ---

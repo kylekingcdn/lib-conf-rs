@@ -182,8 +182,7 @@ impl ::std::convert::From<ValidationError> for WithValidationConfigError {
 /// Can be constructed using either [`WithValidationConfig::builder()`](method@WithValidationConfig::builder) or [`WithValidationConfigBuilder::new()`](method@WithValidationConfigBuilder::new).
 ///
 /// For run-time configuration of `WithValidationConfig`, see [`WithValidationOverrideConfig`](struct@WithValidationOverrideConfig)
-#[derive(Debug, Clone)]
-#[derive(Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct WithValidationConfigBuilder {
     pub(crate) inner: WithValidationConfig,
     pub(crate) override_conf: ::std::option::Option<WithValidationOverrideConfig>,
@@ -248,12 +247,6 @@ impl WithValidationConfigBuilder {
         mut self,
     ) -> ::std::result::Result<WithValidationConfig, WithValidationConfigError> {
         <Self as ::lib_conf::traits::build::TryBuildConfig>::try_build(self)
-    }
-}
-#[automatically_derived]
-impl ::std::default::Default for WithValidationConfigBuilder {
-    fn default() -> Self {
-        Self::new()
     }
 }
 #[automatically_derived]
@@ -333,9 +326,7 @@ impl ::lib_conf::traits::build::TryBuildConfig for WithValidationConfigBuilder {
 /// - `foo_revert`
 /// - `foo_clear`
 /// - `foo_default`
-#[derive(Debug, Clone)]
-#[derive(Copy)]
-#[derive(::serde::Deserialize)]
+#[derive(Debug, Clone, Copy, ::serde::Deserialize)]
 pub struct WithValidationOverrideConfig {
     ///
     /// ---
