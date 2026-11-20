@@ -10,7 +10,7 @@ checksum = "0d98f77c9d63ffcb276f05550096da708b15dfd912de6ec56e04899c3b8a3507"
 
 [[package]]
 name = "lib-conf"
-version = "0.4.2"
+version = "0.5.0-rc.1"
 dependencies = [
  "lib-conf-derive",
  "lib-conf-traits",
@@ -19,7 +19,7 @@ dependencies = [
 
 [[package]]
 name = "lib-conf-derive"
-version = "0.4.2"
+version = "0.5.0-rc.1"
 dependencies = [
  "arbitrait",
  "prettyplease",

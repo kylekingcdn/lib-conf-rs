@@ -25,7 +25,7 @@ dependencies = [
 
 [[package]]
 name = "lib-conf"
-version = "0.4.2"
+version = "0.5.0-rc.1"
 dependencies = [
  "lib-conf-derive",
  "lib-conf-traits",
@@ -34,7 +34,7 @@ dependencies = [
 
 [[package]]
 name = "lib-conf-derive"
-version = "0.4.2"
+version = "0.5.0-rc.1"
 dependencies = [
  "arbitrait",
  "prettyplease",
